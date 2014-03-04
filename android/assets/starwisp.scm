@@ -350,7 +350,7 @@
 ;; user interface abstraction
 
 (define (mbutton id title fn)
-  (button (make-id id) title 15 fillwrap fn))
+  (button (make-id id) title 20 fillwrap fn))
 
 (define (mbutton2 id title fn)
   (button (make-id id) title 30 (layout 150 100 1 'centre 0) fn))
@@ -698,73 +698,19 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; activities
 
-(define ingredients (list "water" "quail eggs" "black tea leaves" "apple wood chips"))
-(define methods (list "boil" "smoke" "simmer" "strain" "dry" "serve" "add"))
-
-(define (ingredient id)
-  (draggable
-   (make-id (string-append id "in1")) 'horizontal wrap (list 255 255 127 127)
-   (list
-    (spinner (make-id "sin1") ingredients wrap (lambda (v) '())))
-   (lambda () (string-append "ingredient-" id))))
-
-(define (method id)
-  (draggable
-   (make-id (string-append id "m1")) 'vertical wrap (list 225 127 80 127)
-   (list
-    (spinner (make-id "sm1") methods wrap (lambda (v) '())))
-   (lambda () (string-append "method-" id))))
-
-(define (note id)
-  (draggable
-   (make-id (string-append id "note1")) 'horizontal wrap (list 225 127 127 127)
-   (list
-    (edit-text (make-id "sm1") "NOTE: Do not peel the eggs, the shell is edible and has absorbed the taste of the smoke and tea." 20 "plain" wrap (lambda () '())))
-   (lambda () (string-append "note-" id))))
-
-(define did 100)
-(define (new-id)
-  (set! did (+ did 1))
-  (number->string did))
 
 (define-activity-list
 
   (activity
    "main"
    (vert
-    (linear-layout
-     0 'vertical (layout 'fill-parent 'wrap-content 1 'centre 0) (list 255 255 255 127)
-     (list
-      (mtitle "" "Open Sauces Notebook")))
-    (horiz
-     (mbutton "eval" "Parse me"
-              (lambda ()
-                (list (walk-draggable
-                       "eval" 99
-                       (lambda (v)
-                         (list (toast v)))))))
-     (mbutton "add-ingredient" "Add ingredient"
-              (lambda ()
-                (list (update-widget 'draggable 99 'contents (list (ingredient (new-id))
-                 )))))
-     (mbutton "add-method" "Add method"
-              (lambda ()
-                (list (update-widget 'draggable 99 'contents (list (method (new-id))
-                 )))))
-     (mbutton "add-note" "Add note"
-              (lambda ()
-                (list (update-widget 'draggable 99 'contents (list (note (new-id))
-                 ))))))
-    (draggable
-     99 'vertical (layout 'fill-parent 'fill-parent 1 'left 0) (list 255 255 255 127)
-      (list
-      (ingredient "4")
-      (ingredient "5")
-      (method "4")
-      (method "5")
-      (note "1")
-      )
-     (lambda (v) '())))
+    (mtitle "" "Symbai")
+
+
+    (mtext "" "Database")
+    (mbutton "main-sync" "Sync database" (lambda () (list (start-activity "sync" 0 "")))))
+
+    )
    (lambda (activity arg)
      (activity-layout activity))
    (lambda (activity arg)
@@ -774,6 +720,95 @@
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
+   (lambda (activity) '())
+   (lambda (activity requestcode resultcode) '()))
+
+
+
+  (activity
+   "sync"
+   (vert
+    (text-view (make-id "sync-title") "Sync database" 40 fillwrap)
+    (mtext "sync-dirty" "...")
+    (horiz
+     (mtoggle-button2 "sync-all" "Sync me" (lambda (v) (set-current! 'sync-on v)))
+     (mbutton2 "sync-syncall" "Push all"
+               (lambda ()
+                 (let ((r (append
+                           (spit db "sync" (dirty-and-all-entities db "sync"))
+                           (spit db "stream" (dirty-and-all-entities db "stream")))))
+                   (cons (toast "Uploading data...") r)))))
+    (mtitle "" "Export data")
+    (horiz
+     (mbutton2 "sync-download" "Download"
+               (lambda ()
+                 (debug! (string-append "Downloading whole db"))
+                 (append
+                 (foldl
+                  (lambda (e r)
+                    (debug! (string-append "Downloading /sdcard/mongoose/" e ".csv"))
+                    (cons
+                     (http-download
+                      (string-append "getting-" e)
+                      (string-append url "fn=entity-csv&table=stream&type=" e)
+                      (string-append "/sdcard/mongoose/" e ".csv"))
+                     r))
+                  (list
+                   (http-download
+                    "getting-db"
+                    "http://192.168.2.1:8888/mongoose.db"
+                    (string-append "/sdcard/mongoose/mongoose.db"))
+                   )
+                  entity-types)
+                 (list))))
+     (mbutton2 "sync-export" "Email"
+               (lambda ()
+                 (debug! "Sending mail")
+                 (list
+                  (send-mail
+                   ""
+                   "From Mongoose2000" "Please find attached your mongoose data"
+                   (cons
+                    "/sdcard/mongoose/mongoose.db"
+                    (map
+                     (lambda (e)
+                       (string-append "/sdcard/mongoose/" e ".csv"))
+                     entity-types))))))
+     (mbutton2 "sync-export" "Email local data"
+               (lambda ()
+                 (debug! "Sending mail")
+                 (list
+                  (send-mail
+                   ""
+                   "From Mongoose2000" "Please find attached your local mongoose data"
+                   (list "/sdcard/mongoose/local-mongoose.db")))))
+     )
+    (spacer 10)
+    (mtitle "" "Debug")
+    (scroll-view-vert
+     0 (layout 'fill-parent 200 1 'left 0)
+     (list
+      (vert
+       (debug-text-view (make-id "sync-debug") "..." 15 (layout 'fill-parent 400 1 'left 0)))))
+    (spacer 10)
+    (horiz
+     (mbutton2 "sync-back" "Back" (lambda () (list (finish-activity 1))))
+     (mbutton2 "sync-send" "[Prof]" (lambda () (prof-print) (list))))
+    )
+
+   (lambda (activity arg)
+     (activity-layout activity))
+   (lambda (activity arg)
+     (set-current! 'sync-on #f)
+     (append
+      (debug-timer-cb)
+      (list
+       (update-widget 'debug-text-view (get-id "sync-debug") 'text (get-current 'debug-text ""))
+       (update-widget 'text-view (get-id "sync-dirty") 'text (build-dirty))
+       )))
+   (lambda (activity) '())
+   (lambda (activity) (list (delayed "debug-timer" 1000 (lambda () '()))))
+   (lambda (activity) (list (delayed "debug-timer" 1000 (lambda () '()))))
    (lambda (activity) '())
    (lambda (activity requestcode resultcode) '()))
 
