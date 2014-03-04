@@ -71,7 +71,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; persistent database
 
-(define db "/sdcard/opensauces/local-mongoose.db")
+(define db "/sdcard/symbai/local-symbai.db")
 (db-open db)
 (setup db "local")
 (setup db "sync")
