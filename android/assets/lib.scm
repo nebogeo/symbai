@@ -16,6 +16,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; debugging and unit tests
 
+(alog "hello from lib.scm")
+
 (define (msg . args)
   (for-each
    (lambda (i) (display i)(display " "))
@@ -170,10 +172,10 @@
 (define (time->seconds t)
    (+ (car t) (/ (cadr t) 1000000)))
 
-(define start-time (time->seconds (time)))
+(define start-time (time->seconds (time-of-day)))
 
 (define (time-now)
-  (- (time->seconds (time)) start-time))
+  (- (time->seconds (time-of-day)) start-time))
 
 ;; just for graph so don't have to be accurate!!!
 (define (date->day d)
@@ -858,3 +860,6 @@
           (update-dialogs! events)
           (send (scheme->json events))
           (prof-end "widget-callback")))))
+
+
+(alog "lib.scm done")

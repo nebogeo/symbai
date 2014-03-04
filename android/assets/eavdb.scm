@@ -111,7 +111,7 @@
              entity-id (ktv-key ktv) (ktv-value ktv)))
 
 (define (get-unique user)
-  (let ((t (time)))
+  (let ((t (time-of-day)))
     (string-append
      user "-" (number->string (car t)) ":" (number->string (cadr t)))))
 

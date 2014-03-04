@@ -16,62 +16,16 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; strings
 
-(define obs-gc "Group Composition")
-(define obs-pf "Pup Focal")
-(define obs-gp "Group Events")
-
-(define entity-types
-  (list
-   "pup-focal"
-   "pup-focal-nearest"
-   "pup-focal-pupfeed"
-   "pup-focal-pupfind"
-   "pup-focal-pupcare"
-   "pup-focal-pupaggr"
-   "group-interaction"
-   "group-alarm"
-   "group-move"))
 
 ;; colours
-
-(define pf-col (list 255 204 51 255))
-(define gp-col (list 255 102 0 255))
-(define gc-col (list 164 82 9 255))
-
-(define pf-bgcol (list 255 204 51 127))
-(define gp-bgcol (list 255 102 0 127))
-(define gc-bgcol (list 164 82 9 127))
-
-;(define pf-col (list  22  19 178  127))
-;(define gp-col (list 255  97   0  127))
-;(define gc-col (list 255 236   0  127))
-
 
 
 (define trans-col (list 0 0 0 0))
 
-(define (get-fragment-index name frag)
-  (define (_ i l)
-    (cond
-     ((null? l) 0)
-     ((equal? name (cadr (car l))) i)
-     (else (_ (+ i 1) (cdr l)))))
-  (_ 0 frag))
-
-(define gc-fragments
-  (list
-   (list "Start" "gc-start")
-   (list "Weights" "gc-weights")
-   (list "Pregnant" "gc-preg")
-   (list "Pup assoc" "gc-pup-assoc")
-   (list "Oestrus" "gc-oestrus")
-   (list "Babysit" "gc-babysitting")
-   (list "End" "gc-end")))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; persistent database
 
-(define db "/sdcard/symbai/local-symbai.db")
+(define db "/sdcard/starwisp/local-symbai.db")
 (db-open db)
 (setup db "local")
 (setup db "sync")
@@ -82,7 +36,7 @@
  (list
   (ktv "user-id" "varchar" "No name yet...")))
 
-(display (db-all db "local" "app-settings"))(newline)
+;;(display (db-all db "local" "app-settings"))(newline)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; stuff in memory
@@ -526,8 +480,6 @@
    (ktv "pack-id" "varchar" (ktv-get (get-current 'pack '()) "unique_id"))
    (ktv "dob" "varchar" (date->string (date-minus-months (date-time) 6)))))
 
-
-
 (define (tri-state id text key)
   (linear-layout
    (make-id "") 'vertical (layout 'fill-parent 'wrap-content '1 'centre 0) trans-col
@@ -708,7 +660,7 @@
 
 
     (mtext "" "Database")
-    (mbutton "main-sync" "Sync database" (lambda () (list (start-activity "sync" 0 "")))))
+;;    (mbutton "main-sync" "Sync database" (lambda () (list (start-activity "sync" 0 ""))))
 
     )
    (lambda (activity arg)
@@ -724,93 +676,6 @@
    (lambda (activity requestcode resultcode) '()))
 
 
-
-  (activity
-   "sync"
-   (vert
-    (text-view (make-id "sync-title") "Sync database" 40 fillwrap)
-    (mtext "sync-dirty" "...")
-    (horiz
-     (mtoggle-button2 "sync-all" "Sync me" (lambda (v) (set-current! 'sync-on v)))
-     (mbutton2 "sync-syncall" "Push all"
-               (lambda ()
-                 (let ((r (append
-                           (spit db "sync" (dirty-and-all-entities db "sync"))
-                           (spit db "stream" (dirty-and-all-entities db "stream")))))
-                   (cons (toast "Uploading data...") r)))))
-    (mtitle "" "Export data")
-    (horiz
-     (mbutton2 "sync-download" "Download"
-               (lambda ()
-                 (debug! (string-append "Downloading whole db"))
-                 (append
-                 (foldl
-                  (lambda (e r)
-                    (debug! (string-append "Downloading /sdcard/mongoose/" e ".csv"))
-                    (cons
-                     (http-download
-                      (string-append "getting-" e)
-                      (string-append url "fn=entity-csv&table=stream&type=" e)
-                      (string-append "/sdcard/mongoose/" e ".csv"))
-                     r))
-                  (list
-                   (http-download
-                    "getting-db"
-                    "http://192.168.2.1:8888/mongoose.db"
-                    (string-append "/sdcard/mongoose/mongoose.db"))
-                   )
-                  entity-types)
-                 (list))))
-     (mbutton2 "sync-export" "Email"
-               (lambda ()
-                 (debug! "Sending mail")
-                 (list
-                  (send-mail
-                   ""
-                   "From Mongoose2000" "Please find attached your mongoose data"
-                   (cons
-                    "/sdcard/mongoose/mongoose.db"
-                    (map
-                     (lambda (e)
-                       (string-append "/sdcard/mongoose/" e ".csv"))
-                     entity-types))))))
-     (mbutton2 "sync-export" "Email local data"
-               (lambda ()
-                 (debug! "Sending mail")
-                 (list
-                  (send-mail
-                   ""
-                   "From Mongoose2000" "Please find attached your local mongoose data"
-                   (list "/sdcard/mongoose/local-mongoose.db")))))
-     )
-    (spacer 10)
-    (mtitle "" "Debug")
-    (scroll-view-vert
-     0 (layout 'fill-parent 200 1 'left 0)
-     (list
-      (vert
-       (debug-text-view (make-id "sync-debug") "..." 15 (layout 'fill-parent 400 1 'left 0)))))
-    (spacer 10)
-    (horiz
-     (mbutton2 "sync-back" "Back" (lambda () (list (finish-activity 1))))
-     (mbutton2 "sync-send" "[Prof]" (lambda () (prof-print) (list))))
-    )
-
-   (lambda (activity arg)
-     (activity-layout activity))
-   (lambda (activity arg)
-     (set-current! 'sync-on #f)
-     (append
-      (debug-timer-cb)
-      (list
-       (update-widget 'debug-text-view (get-id "sync-debug") 'text (get-current 'debug-text ""))
-       (update-widget 'text-view (get-id "sync-dirty") 'text (build-dirty))
-       )))
-   (lambda (activity) '())
-   (lambda (activity) (list (delayed "debug-timer" 1000 (lambda () '()))))
-   (lambda (activity) (list (delayed "debug-timer" 1000 (lambda () '()))))
-   (lambda (activity) '())
-   (lambda (activity requestcode resultcode) '()))
 
 
   )
