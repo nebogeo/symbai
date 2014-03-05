@@ -639,10 +639,10 @@
    (list 0 0 0 0)
    l))
 
-(define (relative-rules rules . l)
+(define (relative rules colour . l)
   (relative-layout
    0 (rlayout 'fill-parent 'wrap-content 20 rules)
-   (list 0 255 0 127)
+   colour
    l))
 
 (define (activity name layout on-create on-start on-resume on-pause on-stop on-destroy on-activity-result)

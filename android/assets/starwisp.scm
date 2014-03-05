@@ -42,40 +42,98 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; user interface abstraction
 
+;;;;;;;;;;;;; i18n ;;;;;;;;;;;;;;;;;;;;;;
+
+(define i18n-lang 0)
+
+(define i18n-text
+  (list
+   (list 'title (list "Symbai" "Symbai" "Symbai"))
+   (list 'sync (list "Sync" "Sync" "Sync"))
+   (list 'languages (list "Choose language" "Choose language" "Choose language"))
+   (list 'english (list "English" "English" "English"))
+   (list 'khasi (list "Khasi" "Khasi" "Khasi"))
+   (list 'hindi (list "Hindi" "Hindi" "Hindi"))
+   (list 'user-id (list "User ID" "User ID" "User ID"))
+   (list 'ok (list "Ok" "Ok" "Ok"))
+   (list 'cancel (list "Cancel" "Cancel" "Cancel"))
+   ))
+
+(define (mtext-lookup id)
+  (alog id)
+  (define (_ l)
+    (cond
+     ((null? l) (string-append (symbol->string id) " not translated"))
+     ((eq? (car (car l)) id) (list-ref (cadr (car l)) i18n-lang))
+     (else (_ (cdr l)))))
+  (_ i18n-text))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (define (mbutton id title fn)
-  (button (make-id id) title 30 (layout 'fill-parent 'wrap-content -1 'left 0) fn))
+  (button (make-id id)
+          (mtext-lookup title)
+          40 (layout 'fill-parent 'wrap-content -1 'left 5) fn))
 
 (define (mbutton-scale id title fn)
-  (button (make-id id) title 30 (layout 'fill-parent 'wrap-content 1 'left 0) fn))
-
-(define (mbutton2 id title fn)
-  (button (make-id id) title 30 (layout 150 100 1 'left 0) fn))
+  (button (make-id id)
+          (mtext-lookup title)
+          40 (layout 'fill-parent 'wrap-content 1 'left 5) fn))
 
 (define (mtoggle-button id title fn)
-  (toggle-button (make-id id) title 30 (layout 'fill-parent 'wrap-content 1 'left 0) "fancy" fn))
+  (toggle-button (make-id id)
+                 (mtext-lookup title)
+                 30 (layout 'fill-parent 'wrap-content 1 'left 0) "fancy" fn))
 
 (define (mtoggle-button-yes id title fn)
-  (toggle-button (make-id id) title 30 (layout 49 43 1 'left 0) "yes" fn))
+  (toggle-button (make-id id)
+                 (mtext-lookup title)
+                 30 (layout 49 43 1 'left 0) "yes" fn))
 
 (define (mtoggle-button-maybe id title fn)
-  (toggle-button (make-id id) title 30 (layout  49 43 1 'left 0) "maybe" fn))
+  (toggle-button (make-id id)
+                 (mtext-lookup title)
+                 30 (layout  49 43 1 'left 0) "maybe" fn))
 
 (define (mtoggle-button-no id title fn)
-  (toggle-button (make-id id) title 30 (layout  49 43 1 'left 0) "no" fn))
-
-(define (mtoggle-button2 id title fn)
-  (toggle-button (make-id id) title 30 (layout 150 100 1 'left 0) "plain" fn))
+  (toggle-button (make-id id)
+                 (mtext-lookup title)
+                 30 (layout  49 43 1 'left 0) "no" fn))
 
 (define (mtext id text)
-  (text-view (make-id id) text 30 wrap))
+  (text-view (make-id id)
+             (mtext-lookup text)
+             30 (layout 'wrap-content 'wrap-content -1 'left 0)))
+
+(define (mtext-scale id text)
+  (text-view (make-id id)
+             (mtext-lookup text)
+             30 (layout 'wrap-content 'wrap-content 1 'left 0)))
 
 (define (mtitle id text)
-  (text-view (make-id id) text 50 (layout 'fill-parent 'wrap-content -1 'left 0)))
+  (text-view (make-id id)
+             (mtext-lookup text)
+             50 (layout 'fill-parent 'wrap-content -1 'left 0)))
 
 (define (medit-text id text type fn)
   (vert
    (mtext (string-append id "-title") text)
    (edit-text (make-id id) "" 30 type fillwrap fn)))
+
+(define (mspinner id name types fn)
+   (vert
+    (mtext "" name)
+    (spinner (make-id (string-append id "-spinner")) (map mtext-lookup types) fillwrap
+             (lambda (c) (fn c)))))
+
+(define (mspinner-other id name types fn)
+  (horiz
+   (mspinner id name types fn (lambda (c) (fn c)))
+   (vert
+    (mtext "" 'other)
+    (edit-text (make-id (string-append id "-edit-text")) "" 30 "normal" fillwrap
+               (lambda (t) (fn t))))))
+
 
 (define (mclear-toggles id-list)
   (map
@@ -89,16 +147,6 @@
      (if (equal? me id)
          r (cons (update-widget 'toggle-button (get-id id) 'checked 0) r)))
    '() id-list))
-
-(define (xwise n l)
-  (define (_ c l)
-    (cond
-      ((null? l) (if (null? c) '() (list c)))
-      ((eqv? (length c) (- n 1))
-       (cons (append c (list (car l))) (_ '() (cdr l))))
-      (else
-       (_ (append c (list (car l))) (cdr l)))))
-  (_ '() l))
 
 ;;;;
 
@@ -221,26 +269,49 @@
 (define-fragment-list
 
   (fragment
-   "pf-timer"
-   (relative-layout
-    (make-id "") fillwrap trans-col
-    (list
-     (mtitle "pf-details" "Pack: xxx Pup: xxx")))
+   "top"
+   (horiz
+    (image-view 0 "face" (layout 48 64 -1 'left 0))
+    (text-view (make-id "") 'title 30
+               (layout 'fill-parent 'fill-parent 0.25 'centre 10))
+
+    (linear-layout
+     0 'vertical
+     (layout 'fill-parent 'wrap-content 0.75 'left 0)
+     (list 0 0 0 0)
+
+     (list
+      (text-view (make-id "") 'name 20
+                 (layout 'fill-parent 'wrap-content 1 'left 0))
+      (text-view (make-id "") 'photoid 20
+                 (layout 'fill-parent 'wrap-content 1 'left 0)))))
    (lambda (fragment arg)
      (activity-layout fragment))
    (lambda (fragment arg)
-     (list
-      (update-widget 'text-view (get-id "pf-details") 'text
-                     (string-append
-                      "Pack: " (ktv-get (get-current 'pack '()) "name") " "
-                      "Pup: " (ktv-get (get-current 'individual '()) "name"))
-                     )))
+     (list))
    (lambda (fragment) '())
    (lambda (fragment) '())
    (lambda (fragment) '())
    (lambda (fragment) '()))
 
 
+  (fragment
+   "bottom"
+   (linear-layout
+    0 'horizontal
+    (layout 'fill-parent 'fill-parent 1 'left 0)
+    (list 0 0 0 0)
+    (list
+     (mbutton-scale "cancel" 'cancel (lambda () (list)))
+     (mbutton-scale "ok" 'ok (lambda () (list)))))
+   (lambda (fragment arg)
+     (activity-layout fragment))
+   (lambda (fragment arg)
+     (list))
+   (lambda (fragment) '())
+   (lambda (fragment) '())
+   (lambda (fragment) '())
+   (lambda (fragment) '()))
 
 
   )
@@ -257,28 +328,86 @@
    "main"
 
    (vert-fill
-    (relative-rules
+    (relative
      '(("parent-top"))
-     (horiz
-      (mbutton-scale "cancel" "Cancel" (lambda () (list)))
-      (mbutton-scale "ok" "Ok" (lambda () (list)))))
+     (list 100 100 255 127)
+     (build-fragment "top" (make-id "top") fillwrap))
 
+    (scroll-view-vert
+     0 (layout 'fill-parent 'fill-parent 1 'left 0)
+     (list
+      (vert-fill
 
-    (vert
-     ;;(image-view (make-id "face") "face" (layout 640 470 1 'left 0))
-     (mtitle "" "Symbai")
-     (mtext "" "Database")
-     (mbutton "main-sync" "Sync database1" (lambda () (list (start-activity "sync" 0 ""))))
-     (mbutton "main-sync" "Sync database2" (lambda () (list (start-activity "sync" 0 ""))))
-     (mbutton "main-sync" "Sync database3" (lambda () (list (start-activity "sync" 0 ""))))
-     )
+       (mtitle "" 'title)
 
-    (relative-rules
+       (horiz
+        (medit-text "user-id" 'user-id "normal" (lambda () (list)))
+        (mbutton-scale "sync" 'sync (lambda () (list))))
+
+       (mspinner "languages" 'languages (list 'english 'khasi 'hindi) (lambda (c) (list)))
+       (mbutton "new-village" 'new-village (lambda () (list (start-activity "village" 0 ""))))
+
+       )))
+
+    (relative
      '(("parent-bottom"))
-     (horiz
-      (mbutton-scale "cancel" "Cancel" (lambda () (list)))
-      (mbutton-scale "ok" "Ok" (lambda () (list)))))
+     (list 100 100 255 127)
+     (vert
+      (spacer 5)
+      (build-fragment "bottom" (make-id "bottom") fillwrap)))
+    )
 
+   (lambda (activity arg)
+     (activity-layout activity))
+   (lambda (activity arg)
+     (let ((user-id (ktv-get (get-entity db "local" 1) "user-id")))
+       (set-current! 'user-id user-id)
+       (list)))
+   (lambda (activity) '())
+   (lambda (activity) '())
+   (lambda (activity) '())
+   (lambda (activity) '())
+   (lambda (activity requestcode resultcode) '()))
+
+
+  (activity
+   "village"
+
+   (vert-fill
+    (relative
+     '(("parent-top"))
+     (list 100 100 255 127)
+     (build-fragment "top" (make-id "top") fillwrap))
+
+    (scroll-view-vert
+     0 (layout 'fill-parent 'fill-parent 1 'left 0)
+     (list
+      (vert-fill
+       ;;(image-view (make-id "face") "face" (layout 640 470 1 'left 0))
+       (mtitle "" 'title)
+       (mtext "" 'database)
+       (mbutton "main-sync" 'sync (lambda () (list (start-activity "sync" 0 ""))))
+       (mspinner-other "test" 'test (list 'one 'two 'three) (lambda (c) (list)))
+       (mbutton "main-sync" 'sync (lambda () (list (start-activity "sync" 0 ""))))
+       (mspinner-other "test" 'test (list 'one 'two 'three) (lambda (c) (list)))
+       (mbutton "main-sync" 'sync (lambda () (list (start-activity "sync" 0 ""))))
+       (mspinner-other "test" 'test (list 'one 'two 'three) (lambda (c) (list)))
+       (mbutton "main-sync" 'sync (lambda () (list (start-activity "sync" 0 ""))))
+       (mspinner-other "test" 'test (list 'one 'two 'three) (lambda (c) (list)))
+       (mbutton "main-sync" 'sync (lambda () (list (start-activity "sync" 0 ""))))
+       (mspinner-other "test" 'test (list 'one 'two 'three) (lambda (c) (list)))
+       (mbutton "main-sync" 'sync (lambda () (list (start-activity "sync" 0 ""))))
+       (mspinner-other "test" 'test (list 'one 'two 'three) (lambda (c) (list)))
+       (mbutton "main-sync" 'sync (lambda () (list (start-activity "sync" 0 ""))))
+       (mspinner-other "test" 'test (list 'one 'two 'three) (lambda (c) (list)))
+       )))
+
+    (relative
+     '(("parent-bottom"))
+     (list 100 100 255 127)
+     (vert
+      (spacer 5)
+      (build-fragment "bottom" (make-id "bottom") fillwrap)))
     )
    (lambda (activity arg)
      (activity-layout activity))
