@@ -57,6 +57,7 @@
    (list 'user-id (list "User ID" "User ID" "User ID"))
    (list 'ok (list "Ok" "Ok" "Ok"))
    (list 'cancel (list "Cancel" "Cancel" "Cancel"))
+   (list '+ (list "+" "+" "+"))
    ))
 
 (define (mtext-lookup id)
@@ -337,17 +338,17 @@
      0 (layout 'fill-parent 'fill-parent 1 'left 0)
      (list
       (vert-fill
-
        (mtitle "" 'title)
-
        (horiz
         (medit-text "user-id" 'user-id "normal" (lambda () (list)))
-        (mbutton-scale "sync" 'sync (lambda () (list))))
+        (mbutton-scale "sync-button" 'sync (lambda () (list))))
 
        (mspinner "languages" 'languages (list 'english 'khasi 'hindi) (lambda (c) (list)))
-       (mbutton "new-village" 'new-village (lambda () (list (start-activity "village" 0 ""))))
-
-       )))
+       (horiz
+        (mtext "" 'villages)
+        (mbutton "new-village" '+
+                 (lambda ()
+                   (list (start-activity "village" 0 ""))))))))
 
     (relative
      '(("parent-bottom"))
@@ -360,9 +361,7 @@
    (lambda (activity arg)
      (activity-layout activity))
    (lambda (activity arg)
-     (let ((user-id (ktv-get (get-entity db "local" 1) "user-id")))
-       (set-current! 'user-id user-id)
-       (list)))
+     (list))
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
@@ -386,18 +385,6 @@
        ;;(image-view (make-id "face") "face" (layout 640 470 1 'left 0))
        (mtitle "" 'title)
        (mtext "" 'database)
-       (mbutton "main-sync" 'sync (lambda () (list (start-activity "sync" 0 ""))))
-       (mspinner-other "test" 'test (list 'one 'two 'three) (lambda (c) (list)))
-       (mbutton "main-sync" 'sync (lambda () (list (start-activity "sync" 0 ""))))
-       (mspinner-other "test" 'test (list 'one 'two 'three) (lambda (c) (list)))
-       (mbutton "main-sync" 'sync (lambda () (list (start-activity "sync" 0 ""))))
-       (mspinner-other "test" 'test (list 'one 'two 'three) (lambda (c) (list)))
-       (mbutton "main-sync" 'sync (lambda () (list (start-activity "sync" 0 ""))))
-       (mspinner-other "test" 'test (list 'one 'two 'three) (lambda (c) (list)))
-       (mbutton "main-sync" 'sync (lambda () (list (start-activity "sync" 0 ""))))
-       (mspinner-other "test" 'test (list 'one 'two 'three) (lambda (c) (list)))
-       (mbutton "main-sync" 'sync (lambda () (list (start-activity "sync" 0 ""))))
-       (mspinner-other "test" 'test (list 'one 'two 'three) (lambda (c) (list)))
        (mbutton "main-sync" 'sync (lambda () (list (start-activity "sync" 0 ""))))
        (mspinner-other "test" 'test (list 'one 'two 'three) (lambda (c) (list)))
        )))

@@ -689,6 +689,7 @@
    ((equal? (widget-type w) "relative-layout") (relative-layout-children w))
    ((equal? (widget-type w) "frame-layout") (frame-layout-children w))
    ((equal? (widget-type w) "scroll-view") (scroll-view-children w))
+   ((equal? (widget-type w) "scroll-view-vert") (scroll-view-children w))
    ((equal? (widget-type w) "draggable") (draggable-children w))
 ;;   ((equal? (widget-type w) "grid-layout") (grid-layout-children w))
    (else '())))
