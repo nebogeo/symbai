@@ -16,8 +16,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; debugging and unit tests
 
-(alog "hello from lib.scm")
-
 (define (msg . args)
   (for-each
    (lambda (i) (display i)(display " "))
@@ -413,13 +411,7 @@
 ;; android ui
 
 (define (layout width height weight gravity margin) (list "layout" width height weight gravity margin))
-(define (layout-width l) (list-ref l 1))
-(define (layout-height l) (list-ref l 2))
-(define (layout-weight l) (list-ref l 3))
-(define (layout-gravity l) (list-ref l 4))
-(define (layout-margin l) (list-ref l 5))
-
-(define centre-layout (layout 'wrap-content 'wrap-content 1 'centre 0))
+(define (rlayout width height margin rules) (list "relative-layout" width height margin rules))
 
 (define (widget-type w) (list-ref w 0))
 (define (widget-id w) (list-ref w 1))
@@ -428,6 +420,9 @@
 (define (linear-layout id orientation layout colour children)
   (list "linear-layout" id orientation layout colour children))
 (define (linear-layout-children t) (list-ref t 5))
+(define (relative-layout id layout colour children)
+  (list "relative-layout" id layout colour children))
+(define (relative-layout-children t) (list-ref t 4))
 (define (frame-layout id layout children)
   (list "frame-layout" id layout children))
 (define (frame-layout-children t) (list-ref t 3))
@@ -615,10 +610,10 @@
              (* (/ (prof-item-accum d) tot) 100) "%"))
      prof-map)))
 
-(define wrap (layout 'wrap-content 'wrap-content 1 'left 0))
-(define fillwrap (layout 'fill-parent 'wrap-content 1 'left 0))
-(define wrapfill (layout 'wrap-content 'fill-parent 1 'left 0))
-(define fill (layout 'fill-parent 'fill-parent 1 'left 0))
+(define wrap (layout 'wrap-content 'wrap-content -1 'left 0))
+(define fillwrap (layout 'fill-parent 'wrap-content -1 'left 0))
+(define wrapfill (layout 'wrap-content 'fill-parent -1 'left 0))
+(define fill (layout 'fill-parent 'fill-parent -1 'left 0))
 
 (define (spacer size) (space (layout 'fill-parent size 1 'left 0)))
 
@@ -626,15 +621,28 @@
 (define (horiz . l)
   (linear-layout
    0 'horizontal
-   (layout 'fill-parent 'wrap-content 1 'left 0)
+   (layout 'fill-parent 'wrap-content -1 'left 0)
    (list 0 0 0 0)
    l))
 
 (define (vert . l)
   (linear-layout
    0 'vertical
-   (layout 'fill-parent 'wrap-content 1 'left 0)
+   (layout 'fill-parent 'wrap-content 1 'left 20)
    (list 0 0 0 0)
+   l))
+
+(define (vert-fill . l)
+  (linear-layout
+   0 'vertical
+   (layout 'fill-parent 'fill-parent 1 'left 0)
+   (list 0 0 0 0)
+   l))
+
+(define (relative-rules rules . l)
+  (relative-layout
+   0 (rlayout 'fill-parent 'wrap-content 20 rules)
+   (list 0 255 0 127)
    l))
 
 (define (activity name layout on-create on-start on-resume on-pause on-stop on-destroy on-activity-result)
@@ -678,6 +686,7 @@
 (define (widget-get-children w)
   (cond
    ((equal? (widget-type w) "linear-layout") (linear-layout-children w))
+   ((equal? (widget-type w) "relative-layout") (relative-layout-children w))
    ((equal? (widget-type w) "frame-layout") (frame-layout-children w))
    ((equal? (widget-type w) "scroll-view") (scroll-view-children w))
    ((equal? (widget-type w) "draggable") (draggable-children w))
