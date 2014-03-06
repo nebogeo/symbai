@@ -166,6 +166,7 @@
            ((equal? (car v) "no change")
             (debug! (string-append "No change for " (car (car e)))))
            ((equal? (car v) "updated")
+            ;; send new files hereish
             (update-entity-clean db table (cadr v))
             (debug! (string-append "Updated changed " (car (car e)))))
            (else
@@ -187,6 +188,7 @@
      ;; check "sync-insert" in sync.ss raspberry pi-side for the contents of 'entity'
      (let ((entity (list-ref data 0))
            (ktvlist (list-ref data 1)))
+       ;; request updated files hereish
        (if (not exists)
            (insert-entity-wholesale
             db table

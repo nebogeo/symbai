@@ -49,6 +49,14 @@
 (define i18n-text
   (list
    (list 'test-num (list "1.0000000" "1.0000000" "1.0000000"))
+   (list 'test-text (list "I am test text" "I am test text" "I am test text"))
+   (list 'one (list "one"))
+   (list 'two (list "two"))
+   (list 'three (list "three"))
+   (list 'village (list "Village"))
+   (list 'household (list "Household"))
+   (list 'individual (list "Individual"))
+
 
    (list 'title (list "Symbai" "Symbai" "Symbai"))
    (list 'sync (list "Sync" "Sync" "Sync"))
@@ -63,7 +71,7 @@
    (list 'villages (list "Villages" "Villages" "Villages"))
 
    ;; village screen
-   (list 'name (list "Village name" "Village name" "Village name"))
+   (list 'village-name (list "Village name" "Village name" "Village name"))
    (list 'block (list "Block" "Block" "Block"))
    (list 'district (list "District" "District" "District"))
    (list 'car (list "Accessible by car"))
@@ -73,7 +81,6 @@
    (list 'present (list "Present"))
    (list 'closest-access (list "Closest place of access"))
    (list 'gps (list "GPS"))
-
    (list 'school (list "School"))
    (list 'hospital (list "Hospital/Health care centre"))
    (list 'post-office (list "Post Office"))
@@ -84,11 +91,108 @@
    (list 'NGO (list "Presence of NGO's working with them"))
    (list 'market (list "Market"))
 
+   ;; household
+   (list 'location (list "House location"))
+   (list 'elevation (list "Elevation"))
+   (list 'toilet-location (list "Toilet location"))
+   (list 'children (list "Children"))
+   (list 'male (list "Male"))
+   (list 'female (list "Female"))
+   (list 'num-pots (list "Number of pots"))
+   (list 'adults (list "Adults"))
+   (list 'add-individual (list "Add individual"))
 
+   ;; individual
+   (list 'details (list "Details"))
+   (list 'family (list "Family"))
+   (list 'migration (list "Migration"))
+   (list 'income (list "Income"))
+   (list 'geneaology (list "Geneaology"))
+   (list 'social (list "Social"))
+   (list 'agreement (list "Agreement"))
+
+   ;; details
+   (list 'change-photo (list "Change photo"))
+   (list 'name (list "Name"))
+   (list 'photo-id (list "Photo ID"))
+   (list 'tribe (list "Tribe"))
+   (list 'sub-tribe (list "Sub tribe"))
+   (list 'other (list "Other"))
+   (list 'age (list "Age"))
+   (list 'gender (list "Gender"))
+   (list 'education (list "Education"))
+
+   ;; family
+   (list 'spouse (list "Spouse"))
+   (list 'head-of-house (list "Head of house"))
+   (list 'marital-status (list "Marital status"))
+   (list 'ever-married (list "Ever married"))
+   (list 'currently-married (list "Currently married"))
+   (list 'currently-single (list "Currently single"))
+   (list 'seperated (list "Seperated/divorced"))
+   (list 'times-married (list "How many times married"))
+   (list 'change-spouse (list "Change/add spouse"))
+   (list 'living (list "Living"))
+   (list 'dead (list "Dead"))
+   (list 'together (list "Living together"))
+   (list 'apart (list "Living apart"))
+   (list 'residence-after-marriage (list "Residence after marriage"))
+   (list 'birthplace (list "Birthplace"))
+   (list 'spouse-village (list "Spouses natal village"))
+   (list 'num-siblings (list "Number of living siblings of the same sex born from same mother"))
+   (list 'birth-order (list "Birth order amoung currently living same sex siblings born from same mother"))
+
+   ;; migration
+   (list 'length-time (list "Length of time lived in this village (years)"))
+   (list 'place-of-birth (list "Place of birth"))
+   (list 'num-residence-changes (list "Number of time place of residence changed since birth"))
+   (list 'village-visits-month (list "Number of times you have visited another village in the last month"))
+   (list 'village-visits-year (list "Number of times you have visited another village in the last year (i.e. betwen last summer and this summer)"))
+
+   ;; income
+   (list 'occupation (list "Occupation"))
+   (list 'occupation (list "Occupation"))
+   (list 'agriculture (list "Agriculture"))
+   (list 'gathering (list "Gathering"))
+   (list 'labour (list "Labour"))
+   (list 'cows (list "Cows"))
+   (list 'fishing (list "Fishing"))
+   (list 'num-people-in-house (list "Number of people living in this house"))
+   (list 'contribute (list "Do you contribute to the family earnings?"))
+   (list 'own-land (list "Do you own land?"))
+   (list 'rent-land (list "Do you rent out your land?"))
+   (list 'hire-land (list "Do you hire someone else's land?"))
+   (list 'crops (list "Crops"))
+   (list 'crop (list "Crop"))
+   (list 'unit (list "Unit"))
+   (list 'quantity (list "Quantity"))
+   (list 'used-or-eaten (list "Used/Eaten"))
+   (list 'sold (list "Sold"))
+   (list 'seed (list "Seed (hybrid/local)"))
+   (list 'house-type (list "House type"))
+   (list 'concrete (list "Concrete"))
+   (list 'tin (list "Tin"))
+   (list 'thatched (list "Thatched"))
+   (list 'loan (list "How much outstanding loan money have you taken in all from any source at this time?"))
+   (list 'earning (list "How much do you earn for one day's labour?"))
+   (list 'in-the-home (list "In the home"))
+   (list 'radio (list "Radio"))
+   (list 'tv (list "TV"))
+   (list 'mobile (list "Mobile phone"))
+   (list 'visit-market (list "How many times a month do you visit the tribal market?"))
+   (list 'town-sell (list "How many times a month do you visit the local town or city to sell something?"))
+
+   ;; geneaology
+
+   (list 'mother (list "Mother"))
+   (list 'father (list "Father"))
+   (list 'change-mother (list "Change mother"))
+   (list 'change-father (list "Change father"))
+   (list 'alive (list "Alive"))
+   (list 'sex (list "Sex"))
    ))
 
 (define (mtext-lookup id)
-  (alog id)
   (define (_ l)
     (cond
      ((null? l) (string-append (symbol->string id) " not translated"))
@@ -138,6 +242,10 @@
              (mtext-lookup id)
              30 (layout w 'wrap-content -1 'centre 0)))
 
+(define (mtext-small id)
+  (text-view (symbol->id id)
+             (mtext-lookup id)
+             20 (layout 'wrap-content 'wrap-content -1 'centre 0)))
 
 (define (mtext-scale id)
   (text-view (symbol->id id)
@@ -164,21 +272,30 @@
               fn)))
 
 (define (mspinner id types fn)
-  (horiz
+  (vert
    (text-view (symbol->id id)
               (mtext-lookup id)
-              30 (layout 'wrap-content 'wrap-content -1 'centre 10))
+              30 (layout 'wrap-content 'wrap-content 1 'centre 10))
    (spinner (make-id (string-append (symbol->string id) "-spinner"))
-            (map mtext-lookup types) fillwrap
+            (map mtext-lookup types)
+            (layout 'wrap-content 'wrap-content 1 'centre 0)
             (lambda (c) (fn c)))))
 
 (define (mspinner-other id types fn)
   (horiz
-   (mspinner id types fn (lambda (c) (fn c)))
    (vert
-    (mtext 'other)
+    (text-view (symbol->id id)
+               (mtext-lookup id)
+               30 (layout 'wrap-content 'wrap-content 1 'centre 10))
+    (spinner (make-id (string-append (symbol->string id) "-spinner"))
+             (map mtext-lookup types)
+             (layout 'wrap-content 'wrap-content 1 'centre 0)
+             (lambda (c) (fn c))))
+   (vert
+    (mtext-scale 'other)
     (edit-text (make-id (string-append (symbol->string id) "-edit-text"))
-               "" 30 "normal" fillwrap
+               "" 30 "normal"
+               (layout 'fill-parent 'wrap-content 1 'centre 0)
                (lambda (t) (fn t))))))
 
 
@@ -319,7 +436,7 @@
    "top"
    (horiz
     (image-view 0 "face" (layout 48 64 -1 'centre 0))
-    (text-view (make-id "title") "Insert title here" 30
+    (text-view (make-id "title") "" 30
                (layout 'fill-parent 'fill-parent 0.25 'centre 10))
 
     (linear-layout
@@ -330,12 +447,15 @@
      (list
       (text-view (make-id "") 'name 20
                  (layout 'fill-parent 'wrap-content 1 'centre 0))
-      (text-view (make-id "") 'photoid 20
+      (text-view (make-id "") 'photo-id 20
                  (layout 'fill-parent 'wrap-content 1 'centre 0)))))
    (lambda (fragment arg)
      (activity-layout fragment))
    (lambda (fragment arg)
-     (list))
+     (msg "updating top" (get-current 'activity-title "Title not set"))
+     (list
+      (update-widget 'text-view (get-id "title") 'text
+                     (get-current 'activity-title "Title not set"))))
    (lambda (fragment) '())
    (lambda (fragment) '())
    (lambda (fragment) '())
@@ -388,53 +508,44 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; activities
 
+(define photo-code 999)
 
 (define-activity-list
 
   (activity
    "main"
+   (build-activity
+    (mtitle 'title)
+    (horiz
+     (medit-text 'user-id "normal" (lambda () (list)))
+     (mbutton-scale 'sync (lambda () (list))))
 
-   (vert-fill
-    (relative
-     '(("parent-top"))
-     (list 100 100 255 127)
-     (build-fragment "top" (make-id "top") fillwrap))
-
-    (scroll-view-vert
-     0 (layout 'fill-parent 'fill-parent 1 'centre 0)
-     (list
-      (vert-fill
-       (mtitle 'title)
-       (horiz
-        (medit-text 'user-id "normal" (lambda () (list)))
-        (mbutton-scale 'sync (lambda () (list))))
-
-       (mspinner 'languages (list 'english 'khasi 'hindi) (lambda (c) (list)))
-       (horiz
-        (mtext 'villages)
-        (mbutton 'new-village
-                 (lambda ()
-                   (list (start-activity "village" 0 ""))))))))
-
-    ;; village list here
-
-    (relative
-     '(("parent-bottom"))
-     (list 100 100 255 127)
-     (vert
-      (spacer 5)
-      (build-fragment "bottom" (make-id "bottom") fillwrap)))
-    )
-
+    (mspinner 'languages (list 'english 'khasi 'hindi) (lambda (c) (list)))
+    (mtitle 'villages)
+    (mbutton 'village (lambda () (list (start-activity "village" 0 ""))))
+    (mbutton 'village (lambda () (list (start-activity "village" 0 ""))))
+    (mbutton 'village (lambda () (list (start-activity "village" 0 ""))))
+    (mbutton 'village (lambda () (list (start-activity "village" 0 "")))))
    (lambda (activity arg)
+     (set-current! 'activity-title "Main screen")
      (activity-layout activity))
    (lambda (activity arg)
-     (list))
+     (list (update-widget
+            'image-view (get-id "image")
+            'external-image (string-append dirname "photo.jpg"))))
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
-   (lambda (activity requestcode resultcode) '()))
+   (lambda (activity requestcode resultcode)
+     (cond
+      ((eqv? requestcode photo-code)
+       (msg "camera returned" resultcode)
+       (list (update-widget
+              'image-view (get-id "image")
+              'external-image (string-append dirname "photo.jpg"))))
+      (else
+       '()))))
 
 
   (activity
@@ -447,16 +558,16 @@
              (medit-text-scale 'closest-access "normal" (lambda (v) '()))
              (vert
               (mbutton-scale 'gps (lambda () '()))
-              (mtext 'test-num)
-              (mtext 'test-num))))))
+              (mtext-small 'test-num)
+              (mtext-small 'test-num))))))
      (build-activity
       (horiz
-       (medit-text 'name "normal" (lambda () '()))
+       (medit-text 'village-name "normal" (lambda () '()))
        (medit-text 'block "normal" (lambda () '())))
       (horiz
        (medit-text 'district "normal" (lambda () '()))
        (mtoggle-button-scale 'car (lambda () '())))
-      (mbutton 'household-list (lambda () '()))
+      (mbutton 'household-list (lambda () (list (start-activity "household-list" 0 ""))))
       (mtitle 'amenities)
       (place-widgets 'school #t)
       (place-widgets 'hospital #f)
@@ -468,6 +579,7 @@
       (place-widgets 'NGO #f)
       (place-widgets 'market #t)))
    (lambda (activity arg)
+     (set-current! 'activity-title "Village")
      (activity-layout activity))
    (lambda (activity arg)
      (let ((user-id (ktv-get (get-entity db "local" 1) "user-id")))
@@ -483,8 +595,14 @@
   (activity
    "household-list"
    (build-activity
+    (mbutton 'household (lambda () (list (start-activity "household" 0 ""))))
+    (mbutton 'household (lambda () (list (start-activity "household" 0 ""))))
+    (mbutton 'household (lambda () (list (start-activity "household" 0 ""))))
+    (mbutton 'household (lambda () (list (start-activity "household" 0 ""))))
+    (mbutton 'household (lambda () (list (start-activity "household" 0 ""))))
     )
    (lambda (activity arg)
+     (set-current! 'activity-title "Household List")
      (activity-layout activity))
    (lambda (activity arg) '())
    (lambda (activity) '())
@@ -496,8 +614,38 @@
   (activity
    "household"
    (build-activity
+    (horiz
+     (mtext 'location)
+     (vert
+      (mbutton 'GPS (lambda () '()))
+      (mtext-small 'test-num)
+      (mtext-small 'test-num))
+     (medit-text 'elevation "numeric" (lambda (v) '())))
+    (horiz
+     (mtext 'toilet-location)
+     (vert
+      (mbutton 'GPS (lambda () '()))
+      (mtext-small 'test-num)
+      (mtext-small 'test-num))
+     (medit-text 'elevation "numeric" (lambda (v) '())))
+    (horiz
+     (medit-text 'num-pots "numeric" (lambda (v) '()))
+     (vert
+      (mtext 'children)
+      (horiz
+       (medit-text 'male "numeric" (lambda (v) '()))
+       (medit-text 'female "numeric" (lambda (v) '())))))
+    (mtitle 'adults)
+    (mbutton 'individual (lambda () (list (start-activity "individual" 0 ""))))
+    (mbutton 'individual (lambda () (list (start-activity "individual" 0 ""))))
+    (mbutton 'individual (lambda () (list (start-activity "individual" 0 ""))))
+    (mbutton 'individual (lambda () (list (start-activity "individual" 0 ""))))
+    (mbutton 'individual (lambda () (list (start-activity "individual" 0 ""))))
+    (mbutton 'individual (lambda () (list (start-activity "individual" 0 ""))))
+
     )
    (lambda (activity arg)
+     (set-current! 'activity-title "Household")
      (activity-layout activity))
    (lambda (activity arg) '())
    (lambda (activity) '())
@@ -509,8 +657,25 @@
   (activity
    "individual"
    (build-activity
-    )
+    (horiz
+     (image-view (make-id "photo") "face" (layout 240 320 -1 'centre 10))
+     (vert
+      (mtext 'name)
+      (mtext 'family)
+      (mtext 'photo-id)))
+    (horiz
+     (mbutton-scale 'details (lambda () (list (start-activity "details" 0 ""))))
+     (mbutton-scale 'family (lambda () (list (start-activity "family" 0 "")))))
+    (horiz
+     (mbutton-scale 'migration (lambda () (list (start-activity "migration" 0 ""))))
+     (mbutton-scale 'income (lambda () (list (start-activity "income" 0 "")))))
+    (horiz
+     (mbutton-scale 'geneaology (lambda () (list (start-activity "geneaology" 0 ""))))
+     (mbutton-scale 'social (lambda () (list (start-activity "social" 0 "")))))
+    (mbutton 'agreement (lambda () (list (start-activity "agreement" 0 "")))))
+
    (lambda (activity arg)
+     (set-current! 'activity-title "Individual")
      (activity-layout activity))
    (lambda (activity arg) '())
    (lambda (activity) '())
@@ -522,8 +687,26 @@
   (activity
    "details"
    (build-activity
+    (horiz
+     (vert
+      (image-view (make-id "image") "face" (layout 240 320 -1 'centre 10))
+      (mbutton
+       'change-photo
+       (lambda ()
+         (list (take-photo (string-append dirname "photo.jpg") photo-code)))))
+     (vert
+      (medit-text 'name "normal" (lambda (v) '()))
+      (medit-text 'family "normal" (lambda (v) '()))
+      (medit-text 'photo-id "normal" (lambda (v) '()))))
+    (mspinner-other 'tribe '(one two three) (lambda (v) '()))
+    (mspinner-other 'sub-tribe '(one two three) (lambda (v) '()))
+    (horiz
+     (medit-text 'age "numeric" (lambda (v) '()))
+     (mspinner 'gender '(male female) (lambda (v) '()))
+     (mspinner 'education '(one two three) (lambda (v) '())))
     )
    (lambda (activity arg)
+     (set-current! 'activity-title "Individual details")
      (activity-layout activity))
    (lambda (activity arg) '())
    (lambda (activity) '())
@@ -535,8 +718,28 @@
   (activity
    "family"
    (build-activity
-    )
+    (horiz
+     (vert
+      (mspinner 'head-of-house '(male female) (lambda (v) '()))
+      (mspinner 'marital-status '(ever-married currently-married currently-single seperated) (lambda (v) '()))
+      (medit-text 'times-married "numeric" (lambda (v) '())))
+     (vert
+      (mtitle 'spouse)
+      (image-view (make-id "spouse-image") "face" (layout 240 320 -1 'centre 0))
+      (mbutton 'change-spouse (lambda () '()))))
+
+    (mtitle 'children)
+    (horiz
+     (medit-text 'living "numeric" (lambda (v) '()))
+     (medit-text 'dead "numeric" (lambda (v) '())))
+    (horiz
+     (medit-text 'together "numeric" (lambda (v) '()))
+     (medit-text 'apart "numeric" (lambda (v) '())))
+    (mspinner-other 'residence-after-marriage '(birthplace spouse-village) (lambda (v) '()))
+    (medit-text 'num-siblings "numeric" (lambda (v) '()))
+    (medit-text 'birth-order "numeric" (lambda (v) '())))
    (lambda (activity arg)
+     (set-current! 'activity-title "Individual family")
      (activity-layout activity))
    (lambda (activity arg) '())
    (lambda (activity) '())
@@ -549,8 +752,14 @@
   (activity
    "migration"
    (build-activity
+    (medit-text 'length-time "numeric" (lambda (v) '()))
+    (medit-text 'place-of-birth "normal" (lambda (v) '()))
+    (medit-text 'num-residence-changes "numeric" (lambda (v) '()))
+    (medit-text 'village-visits-month "numeric" (lambda (v) '()))
+    (medit-text 'village-visits-year "numeric" (lambda (v) '()))
     )
    (lambda (activity arg)
+     (set-current! 'activity-title "Individual migration")
      (activity-layout activity))
    (lambda (activity arg) '())
    (lambda (activity) '())
@@ -562,8 +771,35 @@
   (activity
    "income"
    (build-activity
+    (horiz
+     (mspinner 'occupation '(agriculture gathering labour cows fishing other)
+               (lambda (v) '()))
+     (medit-text 'num-people-in-house "numeric" (lambda (v) '())))
+    (horiz
+     (mtoggle-button-scale 'contribute (lambda (v) '()))
+     (mtoggle-button-scale 'own-land (lambda (v) '())))
+    (horiz
+     (mtoggle-button-scale 'rent-land (lambda (v) '()))
+     (mtoggle-button-scale 'hire-land (lambda (v) '())))
+    (mtitle 'crops)
+    (horiz
+     (mtext-scale 'crop) (mtext-scale 'unit) (mtext-scale 'quantity)
+     (mtext-scale 'used-or-eaten) (mtext-scale 'sold) (mtext-scale 'seed))
+    (mspinner-other 'house-type '(concrete tin thatched) (lambda (v) '()))
+    (horiz
+     (medit-text 'loan "numeric" (lambda (v) '()))
+     (medit-text 'earning "numeric" (lambda (v) '())))
+    (mtext 'in-the-home)
+    (horiz
+     (mtoggle-button-scale 'radio (lambda (v) '()))
+     (mtoggle-button-scale 'tv (lambda (v) '()))
+     (mtoggle-button-scale 'mobile (lambda (v) '())))
+    (horiz
+     (medit-text 'visit-market "numeric" (lambda (v) '()))
+     (medit-text 'town-sell "numeric" (lambda (v) '())))
     )
    (lambda (activity arg)
+     (set-current! 'activity-title "Individual income")
      (activity-layout activity))
    (lambda (activity arg) '())
    (lambda (activity) '())
@@ -575,8 +811,24 @@
   (activity
    "geneaology"
    (build-activity
+    (horiz
+     (vert
+      (mtitle 'mother)
+      (image-view (make-id "image") "face" (layout 240 320 -1 'centre 0))
+      (mbutton 'change-mother (lambda () '())))
+     (vert
+      (mtitle 'father)
+      (image-view (make-id "image") "face" (layout 240 320 -1 'centre 0))
+      (mbutton 'change-father (lambda () '()))))
+    (mtitle 'children)
+    (horiz
+     (medit-text 'name "normal" (lambda (v) '()))
+     (mtoggle-button-scale 'alive (lambda (v) '()))
+     (mspinner 'sex '(female male) (lambda (v) '()))
+     (medit-text 'age "numeric" (lambda (v) '())))
     )
    (lambda (activity arg)
+     (set-current! 'activity-title "Individual geneaology")
      (activity-layout activity))
    (lambda (activity arg) '())
    (lambda (activity) '())
@@ -590,6 +842,7 @@
    (build-activity
     )
    (lambda (activity arg)
+     (set-current! 'activity-title "Individual social network")
      (activity-layout activity))
    (lambda (activity arg) '())
    (lambda (activity) '())
@@ -603,6 +856,7 @@
    (build-activity
     )
    (lambda (activity arg)
+     (set-current! 'activity-title "Individual agreement")
      (activity-layout activity))
    (lambda (activity arg) '())
    (lambda (activity) '())
@@ -616,6 +870,7 @@
    (build-activity
     )
    (lambda (activity arg)
+     (set-current! 'activity-title "Individual chooser")
      (activity-layout activity))
    (lambda (activity arg) '())
    (lambda (activity) '())

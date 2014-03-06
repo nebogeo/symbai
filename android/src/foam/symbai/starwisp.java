@@ -82,10 +82,13 @@ public class starwisp extends StarwispActivity
     {
         setContentView(R.layout.main);
 
-        String dirname = "starwisp/";
+        String dirname = "symbai/";
         m_AppDir = "/sdcard/"+dirname;
         File appdir = new File(m_AppDir);
         appdir.mkdirs();
+
+        File filesdir = new File(m_AppDir+"/files/");
+        filesdir.mkdirs();
 
         // build static things
         m_Scheme = new Scheme(this);
