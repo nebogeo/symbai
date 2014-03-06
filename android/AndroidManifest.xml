@@ -18,6 +18,17 @@
             </intent-filter>
         </activity>
         <activity android:name="foam.symbai.VillageActivity" android:configChanges="orientation"></activity>
+        <activity android:name="foam.symbai.HouseholdListActivity" android:configChanges="orientation"></activity>
+        <activity android:name="foam.symbai.HouseholdActivity" android:configChanges="orientation"></activity>
+        <activity android:name="foam.symbai.IndividualActivity" android:configChanges="orientation"></activity>
+        <activity android:name="foam.symbai.DetailsActivity" android:configChanges="orientation"></activity>
+        <activity android:name="foam.symbai.FamilyActivity" android:configChanges="orientation"></activity>
+        <activity android:name="foam.symbai.MigrationActivity" android:configChanges="orientation"></activity>
+        <activity android:name="foam.symbai.IncomeActivity" android:configChanges="orientation"></activity>
+        <activity android:name="foam.symbai.GeneaologyActivity" android:configChanges="orientation"></activity>
+        <activity android:name="foam.symbai.SocialActivity" android:configChanges="orientation"></activity>
+        <activity android:name="foam.symbai.AgreementActivity" android:configChanges="orientation"></activity>
+        <activity android:name="foam.symbai.IndividualChooserActivity" android:configChanges="orientation"></activity>
 
     </application>
 

@@ -621,21 +621,21 @@
 (define (horiz . l)
   (linear-layout
    0 'horizontal
-   (layout 'fill-parent 'wrap-content -1 'left 0)
+   (layout 'fill-parent 'wrap-content -1 'centre 0)
    (list 0 0 0 0)
    l))
 
 (define (horiz-colour col . l)
   (linear-layout
    0 'horizontal
-   (layout 'fill-parent 'wrap-content -1 'left 0)
+   (layout 'fill-parent 'wrap-content -1 'centre 0)
    col
    l))
 
 (define (vert . l)
   (linear-layout
    0 'vertical
-   (layout 'fill-parent 'wrap-content 1 'left 20)
+   (layout 'fill-parent 'wrap-content 1 'centre 20)
    (list 0 0 0 0)
    l))
 

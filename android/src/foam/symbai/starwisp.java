@@ -63,6 +63,17 @@ public class starwisp extends StarwispActivity
         // register all activities here
         ActivityManager.RegisterActivity("main",starwisp.class);
         ActivityManager.RegisterActivity("village",VillageActivity.class);
+        ActivityManager.RegisterActivity("household-list",HouseholdListActivity.class);
+        ActivityManager.RegisterActivity("household",HouseholdActivity.class);
+        ActivityManager.RegisterActivity("individual",IndividualActivity.class);
+        ActivityManager.RegisterActivity("details",DetailsActivity.class);
+        ActivityManager.RegisterActivity("family",FamilyActivity.class);
+        ActivityManager.RegisterActivity("migration",MigrationActivity.class);
+        ActivityManager.RegisterActivity("income",IncomeActivity.class);
+        ActivityManager.RegisterActivity("geneaology",GeneaologyActivity.class);
+        ActivityManager.RegisterActivity("social",SocialActivity.class);
+        ActivityManager.RegisterActivity("individual-chooser",IndividualChooserActivity.class);
+
     };
 
     /** Called when the activity is first created. */
