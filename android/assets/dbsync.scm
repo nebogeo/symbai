@@ -58,6 +58,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; db abstraction
 
+(define (entity-init! ktv-list)
+  (entity-reset!)
+  (entity-set! ktv-list))
+
 ;; store a ktv, replaces existing with same key
 (define (entity-add-value! key type value)
   (set-current!
