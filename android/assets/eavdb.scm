@@ -358,6 +358,13 @@
     (ktv-value (car ktv-list)))
    (else (ktv-get (cdr ktv-list) key))))
 
+(define (ktv-get-type ktv-list key)
+  (cond
+   ((null? ktv-list) #f)
+   ((equal? (ktv-key (car ktv-list)) key)
+    (ktv-type (car ktv-list)))
+   (else (ktv-get-type (cdr ktv-list) key))))
+
 (define (ktv-set ktv-list ktv)
   (cond
    ((null? ktv-list) (list ktv))
@@ -609,8 +616,11 @@
        "select entity_id from " table "_entity where unique_id = ?")
    unique-id))
 
+(define (get-entity-by-unique db table unique-id)
+  (get-entity db table (get-entity-id db table unique-id)))
+
 (define (get-entity-name db table unique-id)
-  (ktv-get (get-entity db table (get-entity-id db table unique-id)) "name"))
+  (ktv-get (get-entity-by-unique db table unique-id) "name"))
 
 (define (get-entity-names db table id-list)
   (foldl

@@ -58,9 +58,13 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; db abstraction
 
-(define (entity-init! ktv-list)
+(define (entity-init! db table entity-type ktv-list)
   (entity-reset!)
-  (entity-set! ktv-list))
+  (entity-set! ktv-list)
+  (set-current! 'db db)
+  (set-current! 'table table)
+  (set-current! 'entity-type entity-type))
+
 
 ;; store a ktv, replaces existing with same key
 (define (entity-add-value! key type value)
@@ -73,47 +77,73 @@
 (define (entity-set! ktv-list)
   (set-current! 'entity-values ktv-list))
 
+(define (entity-get-value key)
+  (ktv-get (get-current 'entity-values '()) key))
+
+;; version to check the entity has the key
+(define (entity-set-value! key type value)
+  (msg "entity-set-value!")
+  (let ((existing-type (ktv-get-type (get-current 'entity-values '()) key)))
+    (if (equal? existing-type type)
+        (set-current!
+         'entity-values
+         (ktv-set
+          (get-current 'entity-values '())
+          (ktv key type value)))
+        (msg "entity-set-value -" key "of type" type "doesn't exist on this entity"))
+    (msg "done entity-set-value!")))
+
 (define (date-time->string dt)
   (string-append
    (number->string (list-ref dt 0)) "-"
-   (number->string (list-ref dt 1)) "-"
-   (number->string (list-ref dt 2)) " "
-   (number->string (list-ref dt 3)) ":"
-   (number->string (list-ref dt 4)) ":"
-   (substring (number->string (+ 100 (list-ref dt 5))) 1 2)))
+   (substring (number->string (+ (list-ref dt 1) 100)) 1 3) "-"
+   (substring (number->string (+ (list-ref dt 2) 100)) 1 3) " "
+   (substring (number->string (+ (list-ref dt 3) 100)) 1 3) ":"
+   (substring (number->string (+ (list-ref dt 4) 100)) 1 3) ":"
+   (substring (number->string (+ (list-ref dt 5) 100)) 1 3)))
 
 ;; build entity from all ktvs, insert to db, return unique_id
-(define (entity-record-values db table type)
-  ;; standard bits
-  (entity-add-value! "user" "varchar" (get-current 'user-id "none"))
-  (entity-add-value! "time" "varchar" (date-time->string (date-time)))
-  (entity-add-value! "lat" "real" (car (get-current 'location '(0 0))))
-  (entity-add-value! "lon" "real" (cadr (get-current 'location '(0 0))))
-  (let ((values (get-current 'entity-values '())))
-    (cond
-     ((not (null? values))
-      (let ((r (insert-entity/get-unique
-                db table type (get-current 'user-id "no id")
-                values)))
-        (msg "inserted a " type)
-        (entity-reset!) r))
-     (else
-      (msg "no values to add as entity!") #f))))
+(define (entity-record-values!)
+  (let ((db (get-current 'db #f))
+        (table (get-current 'table #f))
+        (type (get-current 'entity-type #f)))
+    ;; standard bits
+    (entity-add-value! "user" "varchar" (get-current 'user-id "none"))
+    (entity-add-value! "time" "varchar" (date-time->string (date-time)))
+    (entity-add-value! "lat" "real" (car (get-current 'location '(0 0))))
+    (entity-add-value! "lon" "real" (cadr (get-current 'location '(0 0))))
+    (let ((values (get-current 'entity-values '())))
+      (cond
+       ((not (null? values))
+        (let ((r (insert-entity/get-unique
+                  db table type (get-current 'user-id "no id")
+                  values)))
+          (msg "inserted a " type)
+          (entity-reset!) r))
+       (else
+        (msg "no values to add as entity!") #f)))
+    ;; just to be on the safe side
+    (entity-reset!)))
 
-(define (entity-update-values db table)
-  ;; standard bits
-  (let ((values (get-current 'entity-values '()))
-        (unique-id (ktv-get (get-current 'entity-values '()) "unique_id")))
-    (cond
-     ((and unique-id (not (null? values)))
-      (update-entity db table (entity-id-from-unique db table unique-id) values)
-      (msg "updated " unique-id)
-      (entity-reset!))
-     (else
-      (msg "no values or no id to update as entity:" unique-id "values:" values)))))
+(define (entity-update-values!)
+  (let ((db (get-current 'db #f))
+        (table (get-current 'table #f)))
+    ;; standard bits
+    (let ((values (get-current 'entity-values '()))
+          (unique-id (ktv-get (get-current 'entity-values '()) "unique_id")))
+      (cond
+       ((and unique-id (not (null? values)))
+        (update-entity db table (entity-id-from-unique db table unique-id) values)
+        (msg "updated " unique-id)
+        (entity-reset!))
+       (else
+        (msg "no values or no id to update as entity:" unique-id "values:" values))))))
 
 (define (entity-reset!)
-  (set-current! 'entity-values '()))
+  (set-current! 'entity-values '())
+  (set-current! 'db "reset")
+  (set-current! 'table "reset")
+  (set-current! 'entity-type "reset"))
 
 (define (assemble-array entities)
   (foldl

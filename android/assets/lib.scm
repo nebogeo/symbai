@@ -640,6 +640,13 @@
    (list 0 0 0 0)
    l))
 
+(define (vert-colour col . l)
+  (linear-layout
+   0 'vertical
+   (layout 'fill-parent 'wrap-content 1 'centre 20)
+   col
+   l))
+
 (define (vert-fill . l)
   (linear-layout
    0 'vertical
@@ -725,7 +732,6 @@
             (update-callbacks! c))
       (let ((cb (widget-get-callback w)))
         (when cb
-              (msg "adding callback from" (widget-id w))
               (add-callback! (callback (widget-id w) (widget-type w) cb)))))
     (update-callbacks! (cdr widget-list)))))
 

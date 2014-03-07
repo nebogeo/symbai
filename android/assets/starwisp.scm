@@ -18,14 +18,16 @@
 
 
 ;; colours
-
+(msg "starting up....")
 
 (define trans-col (list 0 0 0 0))
+(define colour-one (list 0 0 255 100))
+(define colour-two (list  127 127 255 100))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; persistent database
 
-(define db "/sdcard/starwisp/local-symbai.db")
+(define db "/sdcard/symbai/local-symbai.db")
 (db-open db)
 (setup db "local")
 (setup db "sync")
@@ -57,6 +59,8 @@
    (list 'household (list "Household"))
    (list 'individual (list "Individual"))
 
+   (list 'add-item (list "+"))
+   (list 'default-village-name (list "New village"))
 
    (list 'title (list "Symbai" "Symbai" "Symbai"))
    (list 'sync (list "Sync" "Sync" "Sync"))
@@ -67,7 +71,6 @@
    (list 'user-id (list "User ID" "User ID" "User ID"))
    (list 'ok (list "Ok" "Ok" "Ok"))
    (list 'cancel (list "Cancel" "Cancel" "Cancel"))
-   (list 'new-village (list "+" "+" "+"))
    (list 'villages (list "Villages" "Villages" "Villages"))
 
    ;; village screen
@@ -211,6 +214,10 @@
         (msg "symbol->id: [" id "] is not a symbol"))
   (make-id (symbol->string id)))
 
+(define (get-symbol-id id)
+  (when (not (symbol? id))
+        (msg "symbol->id: [" id "] is not a symbol"))
+  (get-id (symbol->string id)))
 
 (define (mbutton id fn)
   (button (symbol->id id)
@@ -257,16 +264,23 @@
              (mtext-lookup id)
              50 (layout 'fill-parent 'wrap-content -1 'centre 0)))
 
+(define (mtitle-scale id)
+  (text-view (symbol->id id)
+             (mtext-lookup id)
+             50 (layout 'fill-parent 'wrap-content 1 'centre 0)))
+
 (define (medit-text id type fn)
   (vert
-   (mtext id)
+   (text-view 0 (mtext-lookup id)
+              30 (layout 'wrap-content 'wrap-content -1 'centre 0))
    (edit-text (symbol->id id) "" 30 type
               (layout 'fill-parent 'wrap-content -1 'centre 0)
               fn)))
 
 (define (medit-text-scale id type fn)
   (vert
-   (mtext id)
+   (text-view 0 (mtext-lookup id)
+              30 (layout 'wrap-content 'wrap-content 1 'centre 0))
    (edit-text (symbol->id id) "" 30 type
               (layout 'fill-parent 'wrap-content 1 'centre 0)
               fn)))
@@ -311,6 +325,19 @@
      (if (equal? me id)
          r (cons (update-widget 'toggle-button (get-id id) 'checked 0) r)))
    '() id-list))
+
+
+;; fill out the widget from the current entity in the memory store
+;; dispatches based on widget type
+(define (mupdate widget-type id-symbol key)
+  (cond
+   ((eq? widget-type 'edit-text)
+    (update-widget widget-type (get-symbol-id id-symbol) 'text
+                   (entity-get-value key)))
+   ((eq? widget-type 'toggle-button)
+    (update-widget widget-type (get-symbol-id id-symbol) 'selected
+                   (entity-get-value key)))
+   (else (msg "mupdate-widget unhandled widget type" widget-type))))
 
 ;;;;
 
@@ -469,8 +496,21 @@
     (layout 'fill-parent 'fill-parent 1 'centre 0)
     (list 0 0 0 0)
     (list
-     (mbutton-scale 'cancel (lambda () (list)))
-     (mbutton-scale 'ok (lambda () (list)))))
+     (mbutton-scale
+      'ok
+      (lambda ()
+        (list
+         (alert-dialog
+          "ok-check"
+          "Are you sure you want to save changes?"
+          (lambda (v)
+            (cond
+             ((eqv? v 1)
+              (entity-update-values!)
+              (list (finish-activity 1)))
+             (else
+              (list))))))))
+     (mbutton-scale 'cancel (lambda () (list (finish-activity 1))))))
    (lambda (fragment arg)
      (activity-layout fragment))
    (lambda (fragment arg)
@@ -489,7 +529,7 @@
   (vert-fill
    (relative
     '(("parent-top"))
-    (list 100 100 255 127)
+    colour-one ;;(list 100 100 255 127)
     (build-fragment "top" (make-id "top") fillwrap))
 
    (scroll-view-vert
@@ -499,11 +539,48 @@
 
    (relative
     '(("parent-bottom"))
-    (list 100 100 255 127)
+    colour-one
     (vert
      (spacer 5)
      (build-fragment "bottom" (make-id "bottom") fillwrap)))))
 
+
+;; a standard builder for list widgets of entities and a
+;; make new button, to add defaults to the list
+(define (build-list-widget db table entity-type edit-activity ktv-default)
+    (vert-colour
+     colour-two
+     (horiz
+      (mtitle-scale 'villages)
+      (mbutton-scale
+       'add-item
+       (lambda ()
+         (entity-init! db table entity-type ktv-default)
+         (entity-record-values!)
+         (list (update-list-widget db table entity-type edit-activity)))))
+     (linear-layout
+      (make-id (string-append entity-type "-list"))
+      'vertical
+      (layout 'fill-parent 'wrap-content 1 'centre 20)
+      (list 0 0 0 0)
+      (list))))
+
+;; pull db data into list of button widgets
+(define (update-list-widget db table entity-type edit-activity)
+  (update-widget
+   'linear-layout
+   (get-id (string-append entity-type "-list"))
+   'contents
+   (map
+    (lambda (e)
+      (button
+       (make-id (string-append "list-button-" (ktv-get e "unique_id")))
+       (or (ktv-get e "name") "Unamed item")
+       40 (layout 'fill-parent 'wrap-content 1 'centre 5)
+       (lambda ()
+         (msg "sending start act" (ktv-get e "unique_id"))
+         (list (start-activity edit-activity 0 (ktv-get e "unique_id"))))))
+    (db-all db table entity-type))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; activities
@@ -521,18 +598,18 @@
      (mbutton-scale 'sync (lambda () (list))))
 
     (mspinner 'languages (list 'english 'khasi 'hindi) (lambda (c) (list)))
-    (mtitle 'villages)
-    (mbutton 'village (lambda () (list (start-activity "village" 0 ""))))
-    (mbutton 'village (lambda () (list (start-activity "village" 0 ""))))
-    (mbutton 'village (lambda () (list (start-activity "village" 0 ""))))
-    (mbutton 'village (lambda () (list (start-activity "village" 0 "")))))
+    (build-list-widget db "sync" "village" "village"
+                       (list
+                        (ktv "name" "varchar" (mtext-lookup 'default-village-name))
+                        (ktv "block" "varchar" "")
+                        (ktv "district" "varchar" "test")
+                        (ktv "car" "int" 0))))
+
    (lambda (activity arg)
      (set-current! 'activity-title "Main screen")
      (activity-layout activity))
    (lambda (activity arg)
-     (list (update-widget
-            'image-view (get-id "image")
-            'external-image (string-append dirname "photo.jpg"))))
+     (list (update-list-widget db "sync" "village" "village")))
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
@@ -553,7 +630,7 @@
    (let ((place-widgets
           (lambda (id shade)
             (horiz-colour
-             (if shade (list 0 0 255 100) (list  127 127 255 100))
+             (if shade colour-one colour-two)
              (mtoggle-button-scale id (lambda (v) '()))
              (medit-text-scale 'closest-access "normal" (lambda (v) '()))
              (vert
@@ -562,7 +639,8 @@
               (mtext-small 'test-num))))))
      (build-activity
       (horiz
-       (medit-text 'village-name "normal" (lambda () '()))
+       (medit-text 'village-name "normal"
+                   (lambda (v) (entity-set-value! "name" "varchar" v) '()))
        (medit-text 'block "normal" (lambda () '())))
       (horiz
        (medit-text 'district "normal" (lambda () '()))
@@ -582,9 +660,15 @@
      (set-current! 'activity-title "Village")
      (activity-layout activity))
    (lambda (activity arg)
-     (let ((user-id (ktv-get (get-entity db "local" 1) "user-id")))
-       (set-current! 'user-id user-id)
-       (list)))
+     (msg "activity start - entity init")
+     (entity-init! db "sync" "village" (get-entity-by-unique db "sync" arg))
+     (msg "activity start - entity init done")
+     (list
+      (mupdate 'edit-text 'village-name "name")
+      (mupdate 'edit-text 'block "block")
+      (mupdate 'edit-text 'district "district")
+      (mupdate 'toggle-button 'car "car")
+      (toast arg)))
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
