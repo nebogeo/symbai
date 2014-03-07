@@ -547,15 +547,21 @@
   (id-map-get name))
 
 (define (make-id name)
+  (msg "making id for" name)
   (let ((id (id-map-get name)))
     (cond
      ((zero? id)
+      (msg "this is a new id")
      ; (prof-start "make-id")
       (id-map-add name current-id)
       (set! current-id (+ current-id 1))
      ; (prof-end "make-id")
       (- current-id 1))
-     (else id))))
+     (else
+      ;; seems scheme is shut down while the id store keeps going?
+      (when (> id current-id) (set! current-id (+ id 1)))
+      (msg "we have seen this one before")
+      id))))
 
 (define prof-map '())
 
@@ -744,6 +750,7 @@
          ((null? w) #f)
          ;; drill deeper
          ((eq? (update-widget-token w) 'contents)
+          (msg "updateing contents from callback")
           (update-callbacks! (update-widget-value w)))
          ((eq? (update-widget-token w) 'grid-buttons)
           (add-callback! (callback (update-widget-id w)
@@ -880,7 +887,10 @@
                  ((callback-fn cb)))
                 (else
                  (msg "no callbacks for type" (callback-type cb))))))
-          ;;(update-callbacks! events)
+          ;; this was just update-callbacks, commented out,
+          ;; expecting trouble here... (but seems to fix new widgets from
+          ;; widget callbacks so far)
+          (update-callbacks-from-update! events)
           (update-dialogs! events)
           (send (scheme->json events))
           (prof-end "widget-callback")))))

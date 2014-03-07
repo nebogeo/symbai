@@ -112,6 +112,7 @@
     (entity-add-value! "time" "varchar" (date-time->string (date-time)))
     (entity-add-value! "lat" "real" (car (get-current 'location '(0 0))))
     (entity-add-value! "lon" "real" (cadr (get-current 'location '(0 0))))
+    (entity-add-value! "deleted" "int" 0)
     (let ((values (get-current 'entity-values '())))
       (cond
        ((not (null? values))

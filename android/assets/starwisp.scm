@@ -72,6 +72,10 @@
    (list 'ok (list "Ok" "Ok" "Ok"))
    (list 'cancel (list "Cancel" "Cancel" "Cancel"))
    (list 'villages (list "Villages" "Villages" "Villages"))
+   (list 'list-empty (list "List empty"))
+   (list 'delete (list "Delete"))
+   (list 'delete-are-you-sure (list "Are you sure you want to delete this?"))
+   (list 'save-are-you-sure (list "Are you sure you want to save changes?"))
 
    ;; village screen
    (list 'village-name (list "Village name" "Village name" "Village name"))
@@ -262,12 +266,12 @@
 (define (mtitle id)
   (text-view (symbol->id id)
              (mtext-lookup id)
-             50 (layout 'fill-parent 'wrap-content -1 'centre 0)))
+             50 (layout 'fill-parent 'wrap-content -1 'centre 5)))
 
 (define (mtitle-scale id)
   (text-view (symbol->id id)
              (mtext-lookup id)
-             50 (layout 'fill-parent 'wrap-content 1 'centre 0)))
+             50 (layout 'fill-parent 'wrap-content 1 'centre 5)))
 
 (define (medit-text id type fn)
   (vert
@@ -340,25 +344,6 @@
    (else (msg "mupdate-widget unhandled widget type" widget-type))))
 
 ;;;;
-
-(define (db-mongooses-by-pack)
-  (db-all-where
-   db "sync" "mongoose"
-   (ktv "pack-id" "varchar" (ktv-get (get-current 'pack '()) "unique_id"))))
-
-(define (db-mongooses-by-pack-male)
-  (db-all-where2or
-   db "sync" "mongoose"
-   (ktv "pack-id" "varchar" (ktv-get (get-current 'pack '()) "unique_id"))
-   (ktv "gender" "varchar" "Male") "Unknown"))
-
-(define (db-mongooses-by-pack-female)
-  (db-all-where2or
-   db "sync" "mongoose"
-   (ktv "pack-id" "varchar" (ktv-get (get-current 'pack '()) "unique_id"))
-   (ktv "gender" "varchar" "Female") "Unknown"))
-
-
 ;; (y m d h m s)
 (define (date-minus-months d ms)
   (let ((year (list-ref d 0))
@@ -371,18 +356,6 @@
        (list-ref d 3)
        (list-ref d 4)
        (list-ref d 5)))))
-
-(define (db-mongooses-by-pack-pups)
-  (db-all-newer
-   db "sync" "mongoose"
-   (ktv "pack-id" "varchar" (ktv-get (get-current 'pack '()) "unique_id"))
-   (ktv "dob" "varchar" (date->string (date-minus-months (date-time) 6)))))
-
-(define (db-mongooses-by-pack-adults)
-  (db-all-older
-   db "sync" "mongoose"
-   (ktv "pack-id" "varchar" (ktv-get (get-current 'pack '()) "unique_id"))
-   (ktv "dob" "varchar" (date->string (date-minus-months (date-time) 6)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -479,7 +452,6 @@
    (lambda (fragment arg)
      (activity-layout fragment))
    (lambda (fragment arg)
-     (msg "updating top" (get-current 'activity-title "Title not set"))
      (list
       (update-widget 'text-view (get-id "title") 'text
                      (get-current 'activity-title "Title not set"))))
@@ -502,7 +474,7 @@
         (list
          (alert-dialog
           "ok-check"
-          "Are you sure you want to save changes?"
+          (mtext-lookup 'save-are-you-sure)
           (lambda (v)
             (cond
              ((eqv? v 1)
@@ -567,20 +539,40 @@
 
 ;; pull db data into list of button widgets
 (define (update-list-widget db table entity-type edit-activity)
-  (update-widget
-   'linear-layout
-   (get-id (string-append entity-type "-list"))
-   'contents
-   (map
-    (lambda (e)
-      (button
-       (make-id (string-append "list-button-" (ktv-get e "unique_id")))
-       (or (ktv-get e "name") "Unamed item")
-       40 (layout 'fill-parent 'wrap-content 1 'centre 5)
-       (lambda ()
-         (msg "sending start act" (ktv-get e "unique_id"))
-         (list (start-activity edit-activity 0 (ktv-get e "unique_id"))))))
-    (db-all db table entity-type))))
+  (let ((search-results (db-all db table entity-type)))
+    (update-widget
+     'linear-layout
+     (get-id (string-append entity-type "-list"))
+     'contents
+     (if (null? search-results)
+         (list (mtext 'list-empty))
+         (map
+          (lambda (e)
+            (button
+             (make-id (string-append "list-button-" (ktv-get e "unique_id")))
+             (or (ktv-get e "name") "Unamed item")
+             40 (layout 'fill-parent 'wrap-content 1 'centre 5)
+             (lambda ()
+               (msg "sending start act" (ktv-get e "unique_id"))
+               (list (start-activity edit-activity 0 (ktv-get e "unique_id"))))))
+          search-results)))))
+
+(define (delete-button)
+  (mbutton
+   'delete
+   (lambda ()
+     (list
+      (alert-dialog
+       "delete-check"
+       (mtext-lookup 'delete-are-you-sure)
+       (lambda (v)
+         (cond
+          ((eqv? v 1)
+           (entity-set-value! "deleted" "int" 1)
+           (entity-update-values!)
+           (list (finish-activity 1)))
+          (else
+           (list)))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; activities
@@ -598,12 +590,13 @@
      (mbutton-scale 'sync (lambda () (list))))
 
     (mspinner 'languages (list 'english 'khasi 'hindi) (lambda (c) (list)))
-    (build-list-widget db "sync" "village" "village"
-                       (list
-                        (ktv "name" "varchar" (mtext-lookup 'default-village-name))
-                        (ktv "block" "varchar" "")
-                        (ktv "district" "varchar" "test")
-                        (ktv "car" "int" 0))))
+    (build-list-widget
+     db "sync" "village" "village"
+     (list
+      (ktv "name" "varchar" (mtext-lookup 'default-village-name))
+      (ktv "block" "varchar" "")
+      (ktv "district" "varchar" "test")
+      (ktv "car" "int" 0))))
 
    (lambda (activity arg)
      (set-current! 'activity-title "Main screen")
@@ -655,7 +648,8 @@
       (place-widgets 'district-bus-service #f)
       (place-widgets 'panchayat #t)
       (place-widgets 'NGO #f)
-      (place-widgets 'market #t)))
+      (place-widgets 'market #t)
+      (delete-button)))
    (lambda (activity arg)
      (set-current! 'activity-title "Village")
      (activity-layout activity))
