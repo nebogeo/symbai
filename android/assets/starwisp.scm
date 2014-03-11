@@ -68,7 +68,7 @@
    (list 'english (list "English" "English" "English"))
    (list 'khasi (list "Khasi" "Khasi" "Khasi"))
    (list 'hindi (list "Hindi" "Hindi" "Hindi"))
-   (list 'user-id (list "User ID" "User ID" "User ID"))
+   (list 'user-id (list "Your user ID" "User ID" "User ID"))
    (list 'ok (list "Ok" "Ok" "Ok"))
    (list 'cancel (list "Cancel" "Cancel" "Cancel"))
    (list 'villages (list "Villages" "Villages" "Villages"))
