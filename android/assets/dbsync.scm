@@ -157,7 +157,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; syncing code
 
-(define url "http://192.168.2.1:8888/mongoose?")
+(define url "http://192.168.2.1:8888/symbai?")
 
 (define (build-url-from-ktv ktv)
   (string-append "&" (ktv-key ktv) ":" (ktv-type ktv) "=" (stringify-value-url ktv)))

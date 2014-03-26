@@ -130,6 +130,6 @@
  #:listen-ip "192.168.2.1"
  #:port (string->number (command-line #:args (port) port))
  #:command-line? #t
- #:servlet-path "/mongoose"
+ #:servlet-path "/symbai"
  #:server-root-path
  (build-path "client"))
