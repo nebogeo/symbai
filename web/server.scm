@@ -21,6 +21,7 @@
          web-server/servlet
          web-server/servlet-env
          web-server/http/response-structs
+	 racket/match
          "scripts/request.ss"
          "scripts/logger.ss"
          "scripts/json.ss"
@@ -36,7 +37,7 @@
 ;;(unsafe!)
 ;;(define setuid (get-ffi-obj 'setuid #f (_fun _int -> _int)))
 
-(define db-name "client/htdocs/mongoose.db")
+(define db-name "client/htdocs/symbai.db")
 (define db (db-open db-name))
 (open-log "log.txt")
 
@@ -47,14 +48,25 @@
 
    (register
     (req 'ping '())
-    (lambda ()
+    (lambda (req)
       (pluto-response (scheme->txt '("hello")))))
+
+   (register
+    (req 'upload '())
+    (lambda (req)
+      (match (bindings-assq #"binary" (request-bindings/raw req))
+	     ((struct binding:file (id filename headers content))	      
+	      (with-output-to-file 
+		  (string-append "files/" (bytes->string/utf-8 filename)) #:exists 'replace
+		  (lambda ()
+		    (write-bytes content)))))
+      (pluto-response (scheme->txt '("ok")))))
 
    ;; http://localhost:8888/mongoose?fn=sync&table=sync&entity-type=mongoose&unique-id=dave1234&dirty=1&version=0&next:varchar=%22foo%22&blah:int=20
 
    (register
     (req 'sync '(table entity-type unique-id dirty version))
-    (lambda (table entity-type unique-id dirty version . data)
+    (lambda (req table entity-type unique-id dirty version . data)
       (pluto-response
        (scheme->txt
         (check-for-sync
@@ -67,28 +79,28 @@
 
    (register
     (req 'entity-versions '(table))
-    (lambda (table)
+    (lambda (req table)
       (pluto-response
        (scheme->txt
         (entity-versions db table)))))
 
    (register
     (req 'entity '(table unique-id))
-    (lambda (table unique-id)
+    (lambda (req table unique-id)
       (pluto-response
        (scheme->txt
         (send-entity db table unique-id)))))
 
    (register
     (req 'entity-types '(table))
-    (lambda (table)
+    (lambda (req table)
       (pluto-response
        (scheme->txt
         (get-all-entity-types db table)))))
 
    (register
     (req 'entity-csv '(table type))
-    (lambda (table type)
+    (lambda (req table type)
       (let ((r (csv db table type)))
 	(msg "--------------------------------------- csv request for" type "[" r "]")
 	(pluto-response
@@ -97,8 +109,8 @@
    ))
 
 (define (start request)
+  (msg "request")
   (let ((values (url-query (request-uri request))))
-    (msg "got a request" request)
     (if (not (null? values))   ; do we have some parameters?
         (let ((name (assq 'fn values)))
           (if name           ; is this a well formed request?
@@ -108,7 +120,8 @@
 		    (filter
 		     (lambda (v)
 		       (not (eq? (car v) 'fn)))
-		     values)))
+		     values))
+	       request)
 	      (pluto-response "could't find a function name")))
         (pluto-response "malformed thingy"))))
 
