@@ -590,6 +590,21 @@
      (mbutton-scale 'sync (lambda () (list))))
 
     (mspinner 'languages (list 'english 'khasi 'hindi) (lambda (c) (list)))
+    (mbutton 'test-upload (lambda ()
+                            (list
+                             (network-connect
+                              "network"
+                              "mongoose-web"
+                              (lambda (state)
+                                (msg state)
+                                (if (equal? state "Connected")
+                                    (list
+                                     (http-upload
+                                      "test-upload"
+                                      "http://192.168.2.1:8889/symbai?fn=upload"
+                                      "/sdcard/symbai/photo.jpg"))
+                                    '()))
+                              ))))
     (build-list-widget
      db "sync" "village" "village"
      (list

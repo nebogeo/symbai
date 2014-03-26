@@ -157,7 +157,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; syncing code
 
-(define url "http://192.168.2.1:8888/symbai?")
+(define url "http://192.168.2.1:8889/symbai?")
 
 (define (build-url-from-ktv ktv)
   (string-append "&" (ktv-key ktv) ":" (ktv-type ktv) "=" (stringify-value-url ktv)))
@@ -179,6 +179,19 @@
    "&version=" (number->string (list-ref (car e) 3))
    (build-url-from-ktvlist (cadr e))))
 
+;; todo fix all hardcoded paths here
+(define (send-files ktvlist)
+  (foldl
+   (lambda (ktv r)
+     (if (equal? (ktv-type ktv) "file")
+         (cons (http-upload
+                (string-append "upload-" (ktv-value ktv))
+                "http://192.168.2.1:8889/symbai?fn=upload"
+                (string-append "/sdcard/symbai/files/" (ktv-value ktv)))
+               r)
+         r))
+   '() ktvlist))
+
 ;; spit all dirty entities to server
 (define (spit db table entities)
   (foldl
@@ -193,13 +206,17 @@
           (cond
            ((or (equal? (car v) "inserted") (equal? (car v) "match"))
             (update-entity-clean db table (cadr v))
-            (debug! (string-append "Uploaded " (car (car e)))))
+            (append
+             (send-files e)
+             (debug! (string-append "Uploaded " (car (car e))))))
            ((equal? (car v) "no change")
             (debug! (string-append "No change for " (car (car e)))))
            ((equal? (car v) "updated")
             ;; send new files hereish
             (update-entity-clean db table (cadr v))
-            (debug! (string-append "Updated changed " (car (car e)))))
+            (append
+             (send-files e)
+             (debug! (string-append "Updated changed " (car (car e)))))
            (else
             (debug! (string-append
                      "Problem uploading "
@@ -210,6 +227,19 @@
    '()
    entities))
 
+;; todo fix all hardcoded paths here
+(define (request-files ktvlist)
+  (foldl
+   (lambda (ktv r)
+     (if (equal? (ktv-type ktv) "file")
+         (cons (http-download
+                (string-append "download-" (ktv-value ktv))
+                (string-append "http://192.168.2.1:8889/files/" (ktv-value ktv))
+                (string-append "/sdcard/symbai/files/" (ktv-value ktv)))
+               r)
+         r))
+   '() ktvlist))
+
 (define (suck-entity-from-server db table unique-id exists)
   ;; ask for the current version
   (http-request
@@ -219,7 +249,6 @@
      ;; check "sync-insert" in sync.ss raspberry pi-side for the contents of 'entity'
      (let ((entity (list-ref data 0))
            (ktvlist (list-ref data 1)))
-       ;; request updated files hereish
        (if (not exists)
            (insert-entity-wholesale
             db table
@@ -233,6 +262,7 @@
             (list-ref entity 2) ktvlist))
        (debug! (string-append (if exists "Got new: " "Updated: ") (ktv-get ktvlist "name")))
        (list
+        (request-files ktvlist)
         (update-widget 'text-view (get-id "sync-dirty") 'text (build-dirty)))))))
 
 ;; repeatedly read version and request updates
