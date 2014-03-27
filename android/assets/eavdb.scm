@@ -233,6 +233,30 @@
            (vector-ref i 0))
          (cdr s)))))
 
+(define (all-entities-with-parent db table type parent)
+  (let ((s (db-select
+            db (string-append "select e.entity_id from " table "_entity as e "
+                              "join " table "_value_varchar "
+                              " as n on n.entity_id = e.entity_id and n.attribute_id = ?"
+                              "join " table "_value_varchar "
+                              " as p on p.entity_id = e.entity_id and p.attribute_id = ?"
+                              "left join " table "_value_int "
+                              "as d on d.entity_id = e.entity_id and d.attribute_id = ? "
+                              "where e.entity_type = ? and "
+                              "p.value = ? and "
+                              "(d.value='NULL' or d.value is NULL or d.value = 0) "
+                              "order by n.value")
+            "name" "parent" "deleted" type parent)))
+    (msg (db-status db))
+    (if (null? s)
+        '()
+        (map
+         (lambda (i)
+           (vector-ref i 0))
+         (cdr s)))))
+
+
+
 (define (validate db)
   ;; check attribute for duplicate entity-id/attribute-ids
   0)
@@ -262,13 +286,17 @@
    (else (cons (car ktv-list) (ktv-set (cdr ktv-list) ktv)))))
 
 (define (db-all db table type)
-  (prof-start "db-all")
-  (let ((r (map
+  (map
    (lambda (i)
      (get-entity db table i))
-   (all-entities db table type))))
-    (prof-end "db-all")
-    r))
+   (all-entities db table type)))
+
+(define (db-with-parent db table type parent)
+  (map
+   (lambda (i)
+     (get-entity db table i))
+   (all-entities-with-parent db table type parent)))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; updating data
