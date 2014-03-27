@@ -38,7 +38,7 @@
  (list
   (ktv "user-id" "varchar" "No name yet...")))
 
-(define entity-types '())
+(define entity-types (list "village"))
 
 ;;(display (db-all db "local" "app-settings"))(newline)
 
@@ -395,13 +395,14 @@
      (set-current! 'download 0)
      (connect-to-net
       (lambda ()
+        (msg "connected, going in...")
         (append
          (list (toast "sync-cb"))
          (upload-dirty db)
          (suck-new db "sync")))))
     (else '()))
    (list
-    (delayed "debug-timer" (+ 5000 (random 5000)) debug-timer-cb)
+    (delayed "debug-timer" (+ 10000 (random 5000)) debug-timer-cb)
     (update-debug))))
 
 
@@ -1026,7 +1027,7 @@
     (text-view (make-id "sync-title") "Sync database" 40 fillwrap)
     (mtext 'sync-dirty "...")
     (horiz
-     (mtoggle-button-scale 'sync-all (lambda (v) (set-current! 'sync-on v)))
+     (mtoggle-button-scale 'sync-all (lambda (v) (set-current! 'sync-on v) '()))
      (mbutton-scale 'sync-syncall
                (lambda ()
                  (let ((r (append
