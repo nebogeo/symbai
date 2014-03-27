@@ -59,7 +59,9 @@
    (list 'three (list "three"))
    (list 'village (list "Village"))
    (list 'household (list "Household"))
+   (list 'households (list "Households"))
    (list 'individual (list "Individual"))
+   (list 'individuals (list "Individuals"))
 
    (list 'add-item (list "+"))
    (list 'default-village-name (list "New village"))
@@ -540,11 +542,11 @@
 
 ;; a standard builder for list widgets of entities and a
 ;; make new button, to add defaults to the list
-(define (build-list-widget db table entity-type edit-activity ktv-default)
+(define (build-list-widget db table title entity-type edit-activity ktv-default)
     (vert-colour
      colour-two
      (horiz
-      (mtitle-scale 'villages)
+      (mtitle-scale title)
       (mbutton-scale
        'add-item
        (lambda ()
@@ -627,7 +629,7 @@
                                     '()))
                               ))))
     (build-list-widget
-     db "sync" "village" "village"
+     db "sync" 'villages "village" "village"
      (list
       (ktv "name" "varchar" (mtext-lookup 'default-village-name))
       (ktv "block" "varchar" "")
@@ -686,7 +688,6 @@
           )))
 
 
-
       (mbutton 'household-list (lambda () (list (start-activity "household-list" 0 ""))))
       (mtitle 'amenities)
       (place-widgets 'school #t)
@@ -703,10 +704,8 @@
      (set-current! 'activity-title "Village")
      (activity-layout activity))
    (lambda (activity arg)
-     (msg "on start")
-     (msg "activity start - entity init")
      (entity-init! db "sync" "village" (get-entity-by-unique db "sync" arg))
-     (msg "activity start - entity init done")
+     (set-current! 'village arg)
      (list
       (mupdate 'edit-text 'village-name "name")
       (mupdate 'edit-text 'block "block")
@@ -736,16 +735,21 @@
   (activity
    "household-list"
    (build-activity
-    (mbutton 'household (lambda () (list (start-activity "household" 0 ""))))
-    (mbutton 'household (lambda () (list (start-activity "household" 0 ""))))
-    (mbutton 'household (lambda () (list (start-activity "household" 0 ""))))
-    (mbutton 'household (lambda () (list (start-activity "household" 0 ""))))
-    (mbutton 'household (lambda () (list (start-activity "household" 0 ""))))
-    )
+    (build-list-widget
+     db "sync" 'households "household" "household"
+     (list
+      (ktv "name" "varchar" (mtext-lookup 'default-household-name))
+      (ktv "num-pots" "int" 0)
+      (ktv "house-lat" "real" 0) ;; get from current location?
+      (ktv "house-lon" "real" 0)
+      (ktv "toilet-lat" "real" 0)
+      (ktv "toilet-lon" "real" 0)
+      (ktv "parent" "varchar" (get-current 'village "error no village set")))))
    (lambda (activity arg)
      (set-current! 'activity-title "Household List")
      (activity-layout activity))
-   (lambda (activity arg) '())
+   (lambda (activity arg)
+     (list (update-list-widget db "sync" "household" "household")))
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
@@ -755,6 +759,9 @@
   (activity
    "household"
    (build-activity
+    (horiz
+     (medit-text 'household-name "normal" (lambda (v) '()))
+     (medit-text 'num-pots "numeric" (lambda (v) '())))
     (horiz
      (mtext 'location)
      (vert
@@ -769,26 +776,25 @@
       (mtext-small 'test-num)
       (mtext-small 'test-num))
      (medit-text 'elevation "numeric" (lambda (v) '())))
-    (horiz
-     (medit-text 'num-pots "numeric" (lambda (v) '()))
-     (vert
-      (mtext 'children)
-      (horiz
-       (medit-text 'male "numeric" (lambda (v) '()))
-       (medit-text 'female "numeric" (lambda (v) '())))))
-    (mtitle 'adults)
-    (mbutton 'individual (lambda () (list (start-activity "individual" 0 ""))))
-    (mbutton 'individual (lambda () (list (start-activity "individual" 0 ""))))
-    (mbutton 'individual (lambda () (list (start-activity "individual" 0 ""))))
-    (mbutton 'individual (lambda () (list (start-activity "individual" 0 ""))))
-    (mbutton 'individual (lambda () (list (start-activity "individual" 0 ""))))
-    (mbutton 'individual (lambda () (list (start-activity "individual" 0 ""))))
 
-    )
+    (build-list-widget
+     db "sync" 'individuals "individual" "individual"
+     (list
+      (ktv "name" "varchar" (mtext-lookup 'default-household-name))
+      (ktv "family" "varchar" (mtext-lookup 'default-family-name))
+      (ktv "photo-id" "varchar" (mtext-lookup 'default-photo-id))
+      (ktv "parent" "varchar" (get-current 'household "error no household set")))))
    (lambda (activity arg)
      (set-current! 'activity-title "Household")
      (activity-layout activity))
-   (lambda (activity arg) '())
+   (lambda (activity arg)
+     (entity-init! db "sync" "household" (get-entity-by-unique db "sync" arg))
+     (set-current! 'household arg)
+     (list
+      (update-list-widget db "sync" "household" "household")
+      (mupdate 'edit-text 'household-name "name")
+      (mupdate 'edit-text 'num-pots "num-pots")))
+
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
