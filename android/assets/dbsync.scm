@@ -185,14 +185,18 @@
 
 ;; todo fix all hardcoded paths here
 (define (send-files ktvlist)
+  (msg "send-files" ktvlist)
   (foldl
    (lambda (ktv r)
+     (msg (ktv-type ktv))
      (if (equal? (ktv-type ktv) "file")
-         (cons (http-upload
-                (string-append "upload-" (ktv-value ktv))
-                "http://192.168.2.1:8889/symbai?fn=upload"
-                (string-append "/sdcard/symbai/files/" (ktv-value ktv)))
-               r)
+         (begin
+           (msg "sending" (ktv-value ktv))
+           (cons (http-upload
+                  (string-append "upload-" (ktv-value ktv))
+                  "http://192.168.2.1:8889/symbai?fn=upload"
+                  (string-append "/sdcard/symbai/files/" (ktv-value ktv)))
+                 r))
          r))
    '() ktvlist))
 
@@ -210,62 +214,69 @@
         (string-append "req-" (list-ref (car e) 1))
         (build-url-from-entity table e)
         (lambda (v)
+          (msg "in spit..." v)
           (cond
            ((or (equal? (car v) "inserted") (equal? (car v) "match"))
             (update-entity-clean db table (cadr v))
-            (append
-             (send-files e)
-             (debug! (string-append "Uploaded " (car (car e))))))
+            (debug! (string-append "Uploaded " (car (car e)))))
            ((equal? (car v) "no change")
             (debug! (string-append "No change for " (car (car e)))))
            ((equal? (car v) "updated")
-            ;; send new files hereish
             (update-entity-clean db table (cadr v))
-            (append
-             (send-files e)
-             (debug! (string-append "Updated changed " (car (car e))))))
+            (debug! (string-append "Updated changed " (car (car e)))))
            (else
             (debug! (string-append
                      "Problem uploading "
                      (car (car e)) " : " (car v)))))
-          (list
-           (update-widget 'text-view (get-id "sync-dirty") 'text (build-dirty db))))))
+          (append
+           ;; check for file uploads
+           (if (or (equal? (car v) "updated")
+                   (equal? (car v) "inserted")
+                   (equal? (car v) "match"))
+               (send-files (cadr e)) ;; takes a ktvlist
+               '())
+           (list
+            (update-widget 'text-view (get-id "sync-dirty") 'text (build-dirty db)))))))
       r))
    '()
    entities))
 
-(msg "request files")
-
 ;; todo fix all hardcoded paths here
 (define (request-files ktvlist)
+  (msg "request-files")
   (foldl
    (lambda (ktv r)
      (if (equal? (ktv-type ktv) "file")
-         (cons (http-download
-                (string-append "download-" (ktv-value ktv))
-                (string-append "http://192.168.2.1:8889/files/" (ktv-value ktv))
-                (string-append "/sdcard/symbai/files/" (ktv-value ktv)))
-               r)
+         (begin
+           (msg "requesting" (ktv-value ktv))
+           (cons (http-download
+                  (string-append "download-" (ktv-value ktv))
+                  (string-append "http://192.168.2.1:8889/files/" (ktv-value ktv))
+                  (string-append "/sdcard/symbai/files/" (ktv-value ktv)))
+                 r))
          r))
    '() ktvlist))
 
 (msg "suck ent")
 
 
-(define (suck-entity-from-server db table unique-id exists)
+(define (suck-entity-from-server db table unique-id)
   ;; ask for the current version
   (http-request
    (string-append unique-id "-update-new")
    (string-append url "fn=entity&table=" table "&unique-id=" unique-id)
    (lambda (data)
      ;; check "sync-insert" in sync.ss raspberry pi-side for the contents of 'entity'
-     (let ((entity (list-ref data 0))
-           (ktvlist (list-ref data 1)))
+     (let* ((entity (list-ref data 0))
+            (ktvlist (list-ref data 1))
+            (unique-id (list-ref entity 1))
+            (exists (entity-exists? db table unique-id)))
+       ;; need to check exists again here, due to delays back and forth
        (if (not exists)
            (insert-entity-wholesale
             db table
             (list-ref entity 0) ;; entity-type
-            (list-ref entity 1) ;; unique-id
+            unique-id
             0 ;; dirty
             (list-ref entity 2) ;; version
             ktvlist)
@@ -273,12 +284,14 @@
             db table (get-entity-id db table unique-id)
             (list-ref entity 2) ktvlist))
        (debug! (string-append (if exists "Got new: " "Updated: ") (ktv-get ktvlist "name")))
-       (list
-        (request-files ktvlist)
-        (update-widget 'text-view (get-id "sync-dirty") 'text (build-dirty db)))))))
+       (cons
+        (update-widget 'text-view (get-id "sync-dirty") 'text (build-dirty db))
+        (request-files ktvlist))))))
+
 
 ;; repeatedly read version and request updates
 (define (suck-new db table)
+  (msg "suck-new")
   (debug! "Requesting new entities")
   (list
    (http-request
@@ -298,7 +311,7 @@
                               #f)))
                     ;; if we don't have this entity or the version on the server is newer
                     (if (or (not exists) old)
-                        (cons (suck-entity-from-server db table unique-id exists) r)
+                        (cons (suck-entity-from-server db table unique-id) r)
                         r)))
                 '()
                 data)))
@@ -329,6 +342,7 @@
      "Stream data: " (number->string (car stream)) "/" (number->string (cadr stream)))))
 
 (define (upload-dirty db)
+  (msg "upload-dirty")
   (let ((r (append
             (spit db "sync" (dirty-entities db "sync"))
             (spit db "stream" (dirty-entities db "stream")))))
