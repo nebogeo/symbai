@@ -16,6 +16,7 @@
 
 ;; abstractions for synced databased
 
+(msg "dbsync.scm")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; stuff in memory
@@ -136,6 +137,7 @@
        ((and unique-id (not (null? values)))
         (update-entity db table (entity-id-from-unique db table unique-id) values)
         (msg "updated " unique-id)
+        (msg values)
         (entity-reset!))
        (else
         (msg "no values or no id to update as entity:" unique-id "values:" values))))))
@@ -158,6 +160,8 @@
 ;; syncing code
 
 (define url "http://192.168.2.1:8889/symbai?")
+
+(msg "url")
 
 (define (build-url-from-ktv ktv)
   (string-append "&" (ktv-key ktv) ":" (ktv-type ktv) "=" (stringify-value-url ktv)))
@@ -192,6 +196,9 @@
          r))
    '() ktvlist))
 
+(msg "spit")
+
+
 ;; spit all dirty entities to server
 (define (spit db table entities)
   (foldl
@@ -216,16 +223,18 @@
             (update-entity-clean db table (cadr v))
             (append
              (send-files e)
-             (debug! (string-append "Updated changed " (car (car e)))))
+             (debug! (string-append "Updated changed " (car (car e))))))
            (else
             (debug! (string-append
                      "Problem uploading "
                      (car (car e)) " : " (car v)))))
           (list
-           (update-widget 'text-view (get-id "sync-dirty") 'text (build-dirty))))))
+           (update-widget 'text-view (get-id "sync-dirty") 'text (build-dirty db))))))
       r))
    '()
    entities))
+
+(msg "request files")
 
 ;; todo fix all hardcoded paths here
 (define (request-files ktvlist)
@@ -239,6 +248,9 @@
                r)
          r))
    '() ktvlist))
+
+(msg "suck ent")
+
 
 (define (suck-entity-from-server db table unique-id exists)
   ;; ask for the current version
@@ -263,7 +275,7 @@
        (debug! (string-append (if exists "Got new: " "Updated: ") (ktv-get ktvlist "name")))
        (list
         (request-files ktvlist)
-        (update-widget 'text-view (get-id "sync-dirty") 'text (build-dirty)))))))
+        (update-widget 'text-view (get-id "sync-dirty") 'text (build-dirty db)))))))
 
 ;; repeatedly read version and request updates
 (define (suck-new db table)
@@ -307,12 +319,14 @@
            (play-sound "active")
            r))))))))
 
-(define (build-dirty)
+(msg "build-dirty defined...")
+
+(define (build-dirty db)
   (let ((sync (get-dirty-stats db "sync"))
         (stream (get-dirty-stats db "stream")))
     (string-append
-     "Pack data: " (number->string (car sync)) "/" (number->string (cadr sync)) " "
-     "Focal data: " (number->string (car stream)) "/" (number->string (cadr stream)))))
+     "Sync data: " (number->string (car sync)) "/" (number->string (cadr sync)) " "
+     "Stream data: " (number->string (car stream)) "/" (number->string (cadr stream)))))
 
 (define (upload-dirty db)
   (let ((r (append

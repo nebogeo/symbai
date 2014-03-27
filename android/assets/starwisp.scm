@@ -38,6 +38,8 @@
  (list
   (ktv "user-id" "varchar" "No name yet...")))
 
+(define entity-types '())
+
 ;;(display (db-all db "local" "app-settings"))(newline)
 
 
@@ -76,6 +78,17 @@
    (list 'delete (list "Delete"))
    (list 'delete-are-you-sure (list "Are you sure you want to delete this?"))
    (list 'save-are-you-sure (list "Are you sure you want to save changes?"))
+
+   ;; sync
+   (list 'sync-all (list "Sync me!"))
+   (list 'sync-syncall (list "Sync everything"))
+   (list 'export-data (list "Exporting data"))
+   (list 'sync-download (list "Download main DB"))
+   (list 'sync-export (list "Email main DB"))
+   (list 'email-local (list "Email local DB"))
+   (list 'debug (list "Debug"))
+   (list 'sync-back (list "Back"))
+   (list 'sync-prof (list "Profile"))
 
    ;; village screen
    (list 'village-name (list "Village name" "Village name" "Village name"))
@@ -341,6 +354,13 @@
    ((eq? widget-type 'toggle-button)
     (update-widget widget-type (get-symbol-id id-symbol) 'selected
                    (entity-get-value key)))
+   ((eq? widget-type 'image-view)
+    (let ((image-name (entity-get-value key)))
+      (msg "updating widget: " image-name)
+      (if (equal? image-name "none")
+          (update-widget widget-type (get-symbol-id id-symbol) 'image "face")
+          (update-widget widget-type (get-symbol-id id-symbol) 'external-image
+                         (string-append dirname "files/" image-name)))))
    (else (msg "mupdate-widget unhandled widget type" widget-type))))
 
 ;;;;
@@ -587,7 +607,7 @@
     (mtitle 'title)
     (horiz
      (medit-text 'user-id "normal" (lambda () (list)))
-     (mbutton-scale 'sync (lambda () (list))))
+     (mbutton-scale 'sync (lambda () (list (start-activity "sync" 0 "")))))
 
     (mspinner 'languages (list 'english 'khasi 'hindi) (lambda (c) (list)))
     (mbutton 'test-upload (lambda ()
@@ -611,7 +631,8 @@
       (ktv "name" "varchar" (mtext-lookup 'default-village-name))
       (ktv "block" "varchar" "")
       (ktv "district" "varchar" "test")
-      (ktv "car" "int" 0))))
+      (ktv "car" "int" 0)
+      (ktv "photo" "file" "none"))))
 
    (lambda (activity arg)
      (set-current! 'activity-title "Main screen")
@@ -653,6 +674,18 @@
       (horiz
        (medit-text 'district "normal" (lambda () '()))
        (mtoggle-button-scale 'car (lambda () '())))
+
+      (vert
+       (image-view (make-id "photo") "face" (layout 240 320 -1 'centre 10))
+       (mbutton
+        'change-photo
+        (lambda ()
+          (list
+           (take-photo (string-append dirname "files/" (entity-get-value "unique_id") "-face.jpg") photo-code))
+          )))
+
+
+
       (mbutton 'household-list (lambda () (list (start-activity "household-list" 0 ""))))
       (mtitle 'amenities)
       (place-widgets 'school #t)
@@ -669,6 +702,7 @@
      (set-current! 'activity-title "Village")
      (activity-layout activity))
    (lambda (activity arg)
+     (msg "on start")
      (msg "activity start - entity init")
      (entity-init! db "sync" "village" (get-entity-by-unique db "sync" arg))
      (msg "activity start - entity init done")
@@ -677,12 +711,25 @@
       (mupdate 'edit-text 'block "block")
       (mupdate 'edit-text 'district "district")
       (mupdate 'toggle-button 'car "car")
+      (mupdate 'image-view 'photo "photo")
       (toast arg)))
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
-   (lambda (activity requestcode resultcode) '()))
+   (lambda (activity requestcode resultcode)
+     (msg "back from camera")
+     (cond
+      ((eqv? requestcode photo-code)
+       ;; todo: means we save when the camera happens
+       ;; need to do this before init is called again in on-start,
+       ;; which happens next
+       (entity-set-value! "photo" "file" (string-append (entity-get-value "unique_id") "-face.jpg"))
+       (entity-update-values!)
+       (list
+        (mupdate 'image-view 'photo "photo")))
+      (else
+       '()))))
 
 
   (activity
@@ -976,6 +1023,72 @@
   (activity
    "sync"
    (vert
+    (text-view (make-id "sync-title") "Sync database" 40 fillwrap)
+    (mtext 'sync-dirty "...")
+    (horiz
+     (mtoggle-button-scale 'sync-all (lambda (v) (set-current! 'sync-on v)))
+     (mbutton-scale 'sync-syncall
+               (lambda ()
+                 (let ((r (append
+                           (spit db "sync" (dirty-and-all-entities db "sync"))
+                           (spit db "stream" (dirty-and-all-entities db "stream")))))
+                   (cons (toast "Uploading data...") r)))))
+    (mtitle 'export-data)
+    (horiz
+     (mbutton-scale 'sync-download
+               (lambda ()
+                 (debug! (string-append "Downloading whole db"))
+                 (append
+                 (foldl
+                  (lambda (e r)
+                    (debug! (string-append "Downloading /sdcard/symbai/" e ".csv"))
+                    (cons
+                     (http-download
+                      (string-append "getting-" e)
+                      (string-append url "fn=entity-csv&table=stream&type=" e)
+                      (string-append "/sdcard/mongoose/" e ".csv"))
+                     r))
+                  (list
+                   (http-download
+                    "getting-db"
+                    "http://192.168.2.1:8889/symbai.db"
+                    (string-append "/sdcard/symbai/symbai.db"))
+                   )
+                  entity-types)
+                 (list))))
+     (mbutton-scale 'sync-export
+               (lambda ()
+                 (debug! "Sending mail")
+                 (list
+                  (send-mail
+                   ""
+                   "From Symbai" "Please find attached your mongoose data"
+                   (cons
+                    "/sdcard/symbai/symbai.db"
+                    (map
+                     (lambda (e)
+                       (string-append "/sdcard/symbai/" e ".csv"))
+                     entity-types))))))
+     (mbutton-scale 'email-local
+               (lambda ()
+                 (debug! "Sending mail")
+                 (list
+                  (send-mail
+                   ""
+                   "From symbai" "Please find attached your local data"
+                   (list "/sdcard/symbai/local-symbai.db")))))
+     )
+    (spacer 10)
+    (mtitle 'debug)
+    (scroll-view-vert
+     0 (layout 'fill-parent 200 1 'left 0)
+     (list
+      (vert
+       (debug-text-view (make-id "sync-debug") "..." 15 (layout 'fill-parent 400 1 'left 0)))))
+    (spacer 10)
+    (horiz
+     (mbutton-scale 'sync-back (lambda () (list (finish-activity 1))))
+     (mbutton-scale 'sync-prof (lambda () (prof-print) (list))))
     )
 
    (lambda (activity arg)
@@ -986,13 +1099,16 @@
       (debug-timer-cb)
       (list
        (update-widget 'debug-text-view (get-id "sync-debug") 'text (get-current 'debug-text ""))
-       (update-widget 'text-view (get-id "sync-dirty") 'text (build-dirty))
+       (update-widget 'text-view (get-id "sync-dirty") 'text (build-dirty db))
        )))
    (lambda (activity) '())
    (lambda (activity) (list (delayed "debug-timer" 1000 (lambda () '()))))
    (lambda (activity) (list (delayed "debug-timer" 1000 (lambda () '()))))
    (lambda (activity) '())
    (lambda (activity requestcode resultcode) '()))
+
+
+
 
 
 

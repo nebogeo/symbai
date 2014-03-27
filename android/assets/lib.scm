@@ -548,11 +548,11 @@
   (id-map-get name))
 
 (define (make-id name)
-  (msg "making id for" name)
+  ;;(msg "making id for" name)
   (let ((id (id-map-get name)))
     (cond
      ((zero? id)
-      (msg "this is a new id")
+      ;;(msg "this is a new id")
      ; (prof-start "make-id")
       (id-map-add name current-id)
       (set! current-id (+ current-id 1))
@@ -561,7 +561,7 @@
      (else
       ;; seems scheme is shut down while the id store keeps going?
       (when (> id current-id) (set! current-id (+ id 1)))
-      (msg "we have seen this one before")
+      ;;(msg "we have seen this one before")
       id))))
 
 (define prof-map '())
