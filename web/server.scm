@@ -109,10 +109,10 @@
    ))
 
 (define (start request)
-  (msg "request")
   (let ((values (url-query (request-uri request))))
     (if (not (null? values))   ; do we have some parameters?
         (let ((name (assq 'fn values)))
+	  (msg values)
           (if name           ; is this a well formed request?
 	      (request-dispatch
 	       registered-requests
