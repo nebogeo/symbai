@@ -48,7 +48,6 @@
 
 ;;;;;;;;;;;;; i18n ;;;;;;;;;;;;;;;;;;;;;;
 
-(define i18n-lang 0)
 
 (define i18n-text
   (list
@@ -130,18 +129,22 @@
    (list 'default-individual-name (list "A person"))
    (list 'default-family-name (list "A family"))
    (list 'default-photo-id (list "???"))
-   (list 'details (list "Details"))
-   (list 'family (list "Family"))
-   (list 'migration (list "Migration"))
-   (list 'income (list "Income"))
-   (list 'geneaology (list "Geneaology"))
-   (list 'social (list "Social"))
-   (list 'agreement (list "Agreement"))
+   (list 'name-display (list "Name"))
+   (list 'photo-id-display (list "Photo ID"))
+   (list 'family-display (list "Family"))
+   (list 'details-button (list "Details"))
+   (list 'family-button (list "Family"))
+   (list 'migration-button (list "Migration"))
+   (list 'income-button (list "Income"))
+   (list 'geneaology-button (list "Geneaology"))
+   (list 'social-button (list "Social"))
+   (list 'agreement-button (list "Agreement"))
 
    ;; details
    (list 'change-photo (list "Change photo"))
-   (list 'name (list "Name"))
-   (list 'photo-id (list "Photo ID"))
+   (list 'details-name (list "Name"))
+   (list 'details-photo-id (list "Photo ID"))
+   (list 'details-family (list "Family"))
    (list 'tribe (list "Tribe"))
    (list 'sub-tribe (list "Sub tribe"))
    (list 'other (list "Other"))
@@ -219,170 +222,6 @@
    (list 'sex (list "Sex"))
    ))
 
-(define (mtext-lookup id)
-  (define (_ l)
-    (cond
-     ((null? l) (string-append (symbol->string id) " not translated"))
-     ((eq? (car (car l)) id)
-      (let ((translations (cadr (car l))))
-        (if (<= (length translations) i18n-lang)
-            (string-append (symbol->string id) " not translated")
-            (list-ref translations i18n-lang))))
-     (else (_ (cdr l)))))
-  (_ i18n-text))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define (symbol->id id)
-  (when (not (symbol? id))
-        (msg "symbol->id: [" id "] is not a symbol"))
-  (make-id (symbol->string id)))
-
-(define (get-symbol-id id)
-  (when (not (symbol? id))
-        (msg "symbol->id: [" id "] is not a symbol"))
-  (get-id (symbol->string id)))
-
-(define (mbutton id fn)
-  (button (symbol->id id)
-          (mtext-lookup id)
-          40 (layout 'fill-parent 'wrap-content -1 'centre 5) fn))
-
-(define (mbutton-scale id fn)
-  (button (symbol->id id)
-          (mtext-lookup id)
-          40 (layout 'fill-parent 'wrap-content 1 'centre 5) fn))
-
-(define (mtoggle-button id fn)
-  (toggle-button (symbol->id id)
-                 (mtext-lookup id)
-                 30 (layout 'fill-parent 'wrap-content -1 'centre 0) "fancy" fn))
-
-(define (mtoggle-button-scale id fn)
-  (toggle-button (symbol->id id)
-                 (mtext-lookup id)
-                 30 (layout 'fill-parent 'wrap-content 1 'centre 0) "fancy" fn))
-
-(define (mtext id)
-  (text-view (symbol->id id)
-             (mtext-lookup id)
-             30 (layout 'wrap-content 'wrap-content -1 'centre 0)))
-
-(define (mtext-fixed w id)
-  (text-view (symbol->id id)
-             (mtext-lookup id)
-             30 (layout w 'wrap-content -1 'centre 0)))
-
-(define (mtext-small id)
-  (text-view (symbol->id id)
-             (mtext-lookup id)
-             20 (layout 'wrap-content 'wrap-content -1 'centre 0)))
-
-(define (mtext-scale id)
-  (text-view (symbol->id id)
-             (mtext-lookup id)
-             30 (layout 'wrap-content 'wrap-content 1 'centre 0)))
-
-(define (mtitle id)
-  (text-view (symbol->id id)
-             (mtext-lookup id)
-             50 (layout 'fill-parent 'wrap-content -1 'centre 5)))
-
-(define (mtitle-scale id)
-  (text-view (symbol->id id)
-             (mtext-lookup id)
-             50 (layout 'fill-parent 'wrap-content 1 'centre 5)))
-
-(define (medit-text id type fn)
-  (vert
-   (text-view 0 (mtext-lookup id)
-              30 (layout 'wrap-content 'wrap-content -1 'centre 0))
-   (edit-text (symbol->id id) "" 30 type
-              (layout 'fill-parent 'wrap-content -1 'centre 0)
-              fn)))
-
-(define (medit-text-scale id type fn)
-  (vert
-   (text-view 0 (mtext-lookup id)
-              30 (layout 'wrap-content 'wrap-content 1 'centre 0))
-   (edit-text (symbol->id id) "" 30 type
-              (layout 'fill-parent 'wrap-content 1 'centre 0)
-              fn)))
-
-(define (mspinner id types fn)
-  (vert
-   (text-view (symbol->id id)
-              (mtext-lookup id)
-              30 (layout 'wrap-content 'wrap-content 1 'centre 10))
-   (spinner (make-id (string-append (symbol->string id) "-spinner"))
-            (map mtext-lookup types)
-            (layout 'wrap-content 'wrap-content 1 'centre 0)
-            (lambda (c) (fn c)))))
-
-(define (mspinner-other id types fn)
-  (horiz
-   (vert
-    (text-view (symbol->id id)
-               (mtext-lookup id)
-               30 (layout 'wrap-content 'wrap-content 1 'centre 10))
-    (spinner (make-id (string-append (symbol->string id) "-spinner"))
-             (map mtext-lookup types)
-             (layout 'wrap-content 'wrap-content 1 'centre 0)
-             (lambda (c) (fn c))))
-   (vert
-    (mtext-scale 'other)
-    (edit-text (make-id (string-append (symbol->string id) "-edit-text"))
-               "" 30 "normal"
-               (layout 'fill-parent 'wrap-content 1 'centre 0)
-               (lambda (t) (fn t))))))
-
-
-(define (mclear-toggles id-list)
-  (map
-   (lambda (id)
-     (update-widget 'toggle-button (get-id id) 'checked 0))
-   id-list))
-
-(define (mclear-toggles-not-me me id-list)
-  (foldl
-   (lambda (id r)
-     (if (equal? me id)
-         r (cons (update-widget 'toggle-button (get-id id) 'checked 0) r)))
-   '() id-list))
-
-
-;; fill out the widget from the current entity in the memory store
-;; dispatches based on widget type
-(define (mupdate widget-type id-symbol key)
-  (cond
-   ((or (eq? widget-type 'edit-text) (eq? widget-type 'text-view))
-    (update-widget widget-type (get-symbol-id id-symbol) 'text
-                   (entity-get-value key)))
-   ((eq? widget-type 'toggle-button)
-    (update-widget widget-type (get-symbol-id id-symbol) 'selected
-                   (entity-get-value key)))
-   ((eq? widget-type 'image-view)
-    (let ((image-name (entity-get-value key)))
-      (msg "updating widget: " image-name)
-      (if (equal? image-name "none")
-          (update-widget widget-type (get-symbol-id id-symbol) 'image "face")
-          (update-widget widget-type (get-symbol-id id-symbol) 'external-image
-                         (string-append dirname "files/" image-name)))))
-   (else (msg "mupdate-widget unhandled widget type" widget-type))))
-
-;;;;
-;; (y m d h m s)
-(define (date-minus-months d ms)
-  (let ((year (list-ref d 0))
-        (month (- (list-ref d 1) 1)))
-    (let ((new-month (- month ms)))
-      (list
-       (if (< new-month 0) (- year 1) year)
-       (+ (if (< new-month 0) (+ new-month 12) new-month) 1)
-       (list-ref d 2)
-       (list-ref d 3)
-       (list-ref d 4)
-       (list-ref d 5)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -689,15 +528,6 @@
        (medit-text 'district "normal" (lambda () '()))
        (mtoggle-button-scale 'car (lambda () '())))
 
-      (vert
-       (image-view (make-id "photo") "face" (layout 240 320 -1 'centre 10))
-       (mbutton
-        'change-photo
-        (lambda ()
-          (list
-           (take-photo (string-append dirname "files/" (entity-get-value "unique_id") "-face.jpg") photo-code))
-          )))
-
       (mbutton 'household-list
                (lambda ()
                  (list (start-activity "household-list" 0
@@ -724,25 +554,12 @@
       (mupdate 'edit-text 'village-name "name")
       (mupdate 'edit-text 'block "block")
       (mupdate 'edit-text 'district "district")
-      (mupdate 'toggle-button 'car "car")
-      (mupdate 'image-view 'photo "photo")))
+      (mupdate 'toggle-button 'car "car")))
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
-   (lambda (activity requestcode resultcode)
-     (msg "back from camera")
-     (cond
-      ((eqv? requestcode photo-code)
-       ;; todo: means we save when the camera happens
-       ;; need to do this before init is called again in on-start,
-       ;; which happens next
-       (entity-set-value! "photo" "file" (string-append (entity-get-value "unique_id") "-face.jpg"))
-       (entity-update-values!)
-       (list
-        (mupdate 'image-view 'photo "photo")))
-      (else
-       '()))))
+   (lambda (activity requestcode resultcode) '()))
 
 
   (activity
@@ -796,7 +613,14 @@
      (list
       (ktv "name" "varchar" (mtext-lookup 'default-individual-name))
       (ktv "family" "varchar" (mtext-lookup 'default-family-name))
-      (ktv "photo-id" "varchar" (mtext-lookup 'default-photo-id)))))
+      (ktv "photo-id" "varchar" (mtext-lookup 'default-photo-id))
+      (ktv "photo" "file" "none")
+      (ktv "tribe" "varchar" "none")
+      (ktv "subtribe" "varchar" "none")
+      (ktv "age" "int" 0)
+      (ktv "gender" "varchar" "female")
+      (ktv "education" "varchar" "none")))
+    (delete-button))
    (lambda (activity arg)
      (set-current! 'activity-title "Household")
      (activity-layout activity))
@@ -820,19 +644,21 @@
     (horiz
      (image-view (make-id "photo") "face" (layout 240 320 -1 'centre 10))
      (vert
-      (mtext 'name)
-      (mtext 'family)
-      (mtext 'photo-id)))
+      (mtext 'name-display)
+      (mtext 'family-display)
+      (mtext 'photo-id-display)))
     (mbutton 'agreement (lambda () (list (start-activity "agreement" 0 ""))))
     (horiz
-     (mbutton-scale 'details (lambda () (list (start-activity "details" 0 ""))))
-     (mbutton-scale 'family (lambda () (list (start-activity "family" 0 "")))))
+     (mbutton-scale 'details-button (lambda () (list (start-activity "details" 0 ""))))
+     (mbutton-scale 'family-button (lambda () (list (start-activity "family" 0 "")))))
     (horiz
-     (mbutton-scale 'migration (lambda () (list (start-activity "migration" 0 ""))))
-     (mbutton-scale 'income (lambda () (list (start-activity "income" 0 "")))))
+     (mbutton-scale 'migration-button (lambda () (list (start-activity "migration" 0 ""))))
+     (mbutton-scale 'income-button (lambda () (list (start-activity "income" 0 "")))))
     (horiz
-     (mbutton-scale 'geneaology (lambda () (list (start-activity "geneaology" 0 ""))))
-     (mbutton-scale 'social (lambda () (list (start-activity "social" 0 ""))))))
+     (mbutton-scale 'geneaology-button (lambda () (list (start-activity "geneaology" 0 ""))))
+     (mbutton-scale 'social-button (lambda () (list (start-activity "social" 0 "")))))
+
+    (delete-button))
 
    (lambda (activity arg)
      (set-current! 'activity-title "Individual")
@@ -841,9 +667,11 @@
      (entity-init! db "sync" "individual" (get-entity-by-unique db "sync" arg))
      (set-current! 'individual arg)
      (list
-      (mupdate 'text-view 'name "name")
-      (mupdate 'text-view 'family "family")
-      (mupdate 'text-view 'photo-id "photo-id")))
+      (mupdate 'text-view 'name-display "name")
+      (mupdate 'text-view 'family-display "family")
+      (mupdate 'text-view 'photo-id-display "photo-id")
+      ;;(mupdate 'image-view 'photo "photo")
+      ))
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
@@ -854,16 +682,20 @@
    "details"
    (build-activity
     (horiz
+
      (vert
-      (image-view (make-id "image") "face" (layout 240 320 -1 'centre 10))
+      (image-view (make-id "photo") "face" (layout 240 320 -1 'centre 10))
       (mbutton
        'change-photo
        (lambda ()
-         (list (take-photo (string-append dirname "photo.jpg") photo-code)))))
+         (list
+          (take-photo (string-append dirname "files/" (entity-get-value "unique_id") "-face.jpg") photo-code))
+         )))
+
      (vert
-      (medit-text 'name "normal" (lambda (v) '()))
-      (medit-text 'family "normal" (lambda (v) '()))
-      (medit-text 'photo-id "normal" (lambda (v) '()))))
+      (medit-text 'details-name "normal" (lambda (v) '()))
+      (medit-text 'details-family "normal" (lambda (v) '()))
+      (medit-text 'details-photo-id "normal" (lambda (v) '()))))
     (mspinner-other 'tribe '(one two three) (lambda (v) '()))
     (mspinner-other 'sub-tribe '(one two three) (lambda (v) '()))
     (horiz
@@ -874,12 +706,30 @@
    (lambda (activity arg)
      (set-current! 'activity-title "Individual details")
      (activity-layout activity))
-   (lambda (activity arg) '())
+   (lambda (activity arg)
+     (list
+      (mupdate 'edit-text 'details-name "name")
+      (mupdate 'edit-text 'details-family "family")
+      (mupdate 'edit-text 'details-photo-id "photo-id")
+      ;;(mupdate 'image-view 'photo "photo")
+      ))
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
-   (lambda (activity requestcode resultcode) '()))
+   (lambda (activity requestcode resultcode)
+     (msg "back from camera")
+     (cond
+      ((eqv? requestcode photo-code)
+       ;; todo: means we save when the camera happens
+       ;; need to do this before init is called again in on-start,
+       ;; which happens next
+       (entity-set-value! "photo" "file" (string-append (entity-get-value "unique_id") "-face.jpg"))
+       (entity-update-values!)
+       (list
+        (mupdate 'image-view 'photo "photo")))
+      (else
+       '()))))
 
   (activity
    "family"

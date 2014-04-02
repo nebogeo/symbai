@@ -81,6 +81,7 @@
 (define (entity-get-value key)
   (ktv-get (get-current 'entity-values '()) key))
 
+
 ;; version to check the entity has the key
 (define (entity-set-value! key type value)
   (msg "entity-set-value!")
@@ -373,3 +374,178 @@
        (list
         ;;(update-widget 'text-view (get-id "sync-connect") 'text state)
         ))))))
+
+
+
+
+(define i18n-lang 0)
+
+(define i18n-text
+  (list))
+
+(msg 123)
+
+(define (mtext-lookup id)
+  (define (_ l)
+    (cond
+     ((null? l) (string-append (symbol->string id) " not translated"))
+     ((eq? (car (car l)) id)
+      (let ((translations (cadr (car l))))
+        (if (<= (length translations) i18n-lang)
+            (string-append (symbol->string id) " not translated")
+            (list-ref translations i18n-lang))))
+     (else (_ (cdr l)))))
+  (_ i18n-text))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (symbol->id id)
+  (when (not (symbol? id))
+        (msg "symbol->id: [" id "] is not a symbol"))
+  (make-id (symbol->string id)))
+
+(define (get-symbol-id id)
+  (when (not (symbol? id))
+        (msg "symbol->id: [" id "] is not a symbol"))
+  (get-id (symbol->string id)))
+
+(define (mbutton id fn)
+  (button (symbol->id id)
+          (mtext-lookup id)
+          40 (layout 'fill-parent 'wrap-content -1 'centre 5) fn))
+
+(define (mbutton-scale id fn)
+  (button (symbol->id id)
+          (mtext-lookup id)
+          40 (layout 'fill-parent 'wrap-content 1 'centre 5) fn))
+
+(define (mtoggle-button id fn)
+  (toggle-button (symbol->id id)
+                 (mtext-lookup id)
+                 30 (layout 'fill-parent 'wrap-content -1 'centre 0) "fancy" fn))
+
+(define (mtoggle-button-scale id fn)
+  (toggle-button (symbol->id id)
+                 (mtext-lookup id)
+                 30 (layout 'fill-parent 'wrap-content 1 'centre 0) "fancy" fn))
+
+(define (mtext id)
+  (text-view (symbol->id id)
+             (mtext-lookup id)
+             30 (layout 'wrap-content 'wrap-content -1 'centre 0)))
+
+(define (mtext-fixed w id)
+  (text-view (symbol->id id)
+             (mtext-lookup id)
+             30 (layout w 'wrap-content -1 'centre 0)))
+
+(define (mtext-small id)
+  (text-view (symbol->id id)
+             (mtext-lookup id)
+             20 (layout 'wrap-content 'wrap-content -1 'centre 0)))
+
+(define (mtext-scale id)
+  (text-view (symbol->id id)
+             (mtext-lookup id)
+             30 (layout 'wrap-content 'wrap-content 1 'centre 0)))
+
+(define (mtitle id)
+  (text-view (symbol->id id)
+             (mtext-lookup id)
+             50 (layout 'fill-parent 'wrap-content -1 'centre 5)))
+
+(define (mtitle-scale id)
+  (text-view (symbol->id id)
+             (mtext-lookup id)
+             50 (layout 'fill-parent 'wrap-content 1 'centre 5)))
+
+(define (medit-text id type fn)
+  (vert
+   (text-view 0 (mtext-lookup id)
+              30 (layout 'wrap-content 'wrap-content -1 'centre 0))
+   (edit-text (symbol->id id) "" 30 type
+              (layout 'fill-parent 'wrap-content -1 'centre 0)
+              fn)))
+
+(define (medit-text-scale id type fn)
+  (vert
+   (text-view 0 (mtext-lookup id)
+              30 (layout 'wrap-content 'wrap-content 1 'centre 0))
+   (edit-text (symbol->id id) "" 30 type
+              (layout 'fill-parent 'wrap-content 1 'centre 0)
+              fn)))
+
+(define (mspinner id types fn)
+  (vert
+   (text-view (symbol->id id)
+              (mtext-lookup id)
+              30 (layout 'wrap-content 'wrap-content 1 'centre 10))
+   (spinner (make-id (string-append (symbol->string id) "-spinner"))
+            (map mtext-lookup types)
+            (layout 'wrap-content 'wrap-content 1 'centre 0)
+            (lambda (c) (fn c)))))
+
+(define (mspinner-other id types fn)
+  (horiz
+   (vert
+    (text-view (symbol->id id)
+               (mtext-lookup id)
+               30 (layout 'wrap-content 'wrap-content 1 'centre 10))
+    (spinner (make-id (string-append (symbol->string id) "-spinner"))
+             (map mtext-lookup types)
+             (layout 'wrap-content 'wrap-content 1 'centre 0)
+             (lambda (c) (fn c))))
+   (vert
+    (mtext-scale 'other)
+    (edit-text (make-id (string-append (symbol->string id) "-edit-text"))
+               "" 30 "normal"
+               (layout 'fill-parent 'wrap-content 1 'centre 0)
+               (lambda (t) (fn t))))))
+
+
+(define (mclear-toggles id-list)
+  (map
+   (lambda (id)
+     (update-widget 'toggle-button (get-id id) 'checked 0))
+   id-list))
+
+(define (mclear-toggles-not-me me id-list)
+  (foldl
+   (lambda (id r)
+     (if (equal? me id)
+         r (cons (update-widget 'toggle-button (get-id id) 'checked 0) r)))
+   '() id-list))
+
+
+;; fill out the widget from the current entity in the memory store
+;; dispatches based on widget type
+(define (mupdate widget-type id-symbol key)
+  (cond
+   ((or (eq? widget-type 'edit-text) (eq? widget-type 'text-view))
+    (update-widget widget-type (get-symbol-id id-symbol) 'text
+                   (entity-get-value key)))
+   ((eq? widget-type 'toggle-button)
+    (update-widget widget-type (get-symbol-id id-symbol) 'selected
+                   (entity-get-value key)))
+   ((eq? widget-type 'image-view)
+    (let ((image-name (entity-get-value key)))
+      (msg "updating image widget to: " image-name)
+      (if (equal? image-name "none")
+          (update-widget widget-type (get-symbol-id id-symbol) 'image "face")
+          (update-widget widget-type (get-symbol-id id-symbol) 'external-image
+                         (string-append dirname "files/" image-name)))))
+   (else (msg "mupdate-widget unhandled widget type" widget-type))))
+
+;;;;
+;; (y m d h m s)
+(define (date-minus-months d ms)
+  (let ((year (list-ref d 0))
+        (month (- (list-ref d 1) 1)))
+    (let ((new-month (- month ms)))
+      (list
+       (if (< new-month 0) (- year 1) year)
+       (+ (if (< new-month 0) (+ new-month 12) new-month) 1)
+       (list-ref d 2)
+       (list-ref d 3)
+       (list-ref d 4)
+       (list-ref d 5)))))
