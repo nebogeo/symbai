@@ -101,7 +101,8 @@
    (list 'school (list "School"))
    (list 'present (list "Present"))
    (list 'closest-access (list "Closest place of access"))
-   (list 'gps (list "GPS"))
+   (list 'house-gps (list "GPS"))
+   (list 'toilet-gps (list "GPS"))
    (list 'school (list "School"))
    (list 'hospital (list "Hospital/Health care centre"))
    (list 'post-office (list "Post Office"))
@@ -441,7 +442,7 @@
        (lambda (v)
          (cond
           ((eqv? v 1)
-           (entity-set-value! "deleted" "int" 1)
+           (entity-add-value! "deleted" "int" 1)
            (entity-update-values!)
            (list (finish-activity 1)))
           (else
@@ -484,14 +485,19 @@
       (ktv "name" "varchar" (mtext-lookup 'default-village-name))
       (ktv "block" "varchar" "")
       (ktv "district" "varchar" "test")
-      (ktv "car" "int" 0)
-      (ktv "photo" "file" "none"))))
+      (ktv "car" "int" 0))))
 
    (lambda (activity arg)
      (set-current! 'activity-title "Main screen")
      (activity-layout activity))
    (lambda (activity arg)
-     (list (update-list-widget db "sync" "village" "village" #f)))
+     (list
+      (gps-start "gps" (lambda (loc)
+                         (set-current! 'location loc)
+                         (list (toast (string-append
+                                       (number->string (car loc)) ", "
+                                       (number->string (cadr loc)))))))
+      (update-list-widget db "sync" "village" "village" #f)))
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
@@ -516,17 +522,16 @@
              (mtoggle-button-scale id (lambda (v) '()))
              (medit-text-scale 'closest-access "normal" (lambda (v) '()))
              (vert
-              (mbutton-scale 'gps (lambda () '()))
+              (mbutton-scale 'gps (lambda ()  '()))
               (mtext-small 'test-num)
               (mtext-small 'test-num))))))
      (build-activity
       (horiz
-       (medit-text 'village-name "normal"
-                   (lambda (v) (entity-set-value! "name" "varchar" v) '()))
-       (medit-text 'block "normal" (lambda () '())))
+       (medit-text 'village-name "normal" (lambda (v) (entity-add-value! "name" "varchar" v) '()))
+       (medit-text 'block "normal" (lambda (v) (entity-add-value! "block" "varchar" v) '())))
       (horiz
-       (medit-text 'district "normal" (lambda () '()))
-       (mtoggle-button-scale 'car (lambda () '())))
+       (medit-text 'district "normal" (lambda (v) (entity-add-value! "district" "varchar" v) '()))
+       (mtoggle-button-scale 'car (lambda (v) (entity-add-value! "car" "int" v) '())))
 
       (mbutton 'household-list
                (lambda ()
@@ -591,22 +596,20 @@
    "household"
    (build-activity
     (horiz
-     (medit-text 'household-name "normal" (lambda (v) '()))
-     (medit-text 'num-pots "numeric" (lambda (v) '())))
+     (medit-text 'household-name "normal" (lambda (v) (entity-add-value! "name" "varchar" v) '()))
+     (medit-text 'num-pots "numeric" (lambda (v) (entity-add-value! "num-pots" "int" v) '())))
     (horiz
-     (mtext 'location)
      (vert
-      (mbutton 'GPS (lambda () '()))
-      (mtext-small 'test-num)
-      (mtext-small 'test-num))
-     (medit-text 'elevation "numeric" (lambda (v) '())))
-    (horiz
-     (mtext 'toilet-location)
+      (mtext 'location)
+      (mbutton 'house-gps (lambda () (do-gps 'house "house")))
+      (mtext-small 'house-lat)
+      (mtext-small 'house-lon))
      (vert
-      (mbutton 'GPS (lambda () '()))
-      (mtext-small 'test-num)
-      (mtext-small 'test-num))
-     (medit-text 'elevation "numeric" (lambda (v) '())))
+      (mtext 'toilet-location)
+      (mbutton 'toilet-gps (lambda () (do-gps 'toilet "toilet")))
+      (mtext-small 'toilet-lat)
+      (mtext-small 'toilet-lon)))
+
 
     (build-list-widget
      db "sync" 'individuals "individual" "individual" (lambda () (get-current 'household #f))
@@ -627,10 +630,13 @@
    (lambda (activity arg)
      (entity-init! db "sync" "household" (get-entity-by-unique db "sync" arg))
      (set-current! 'household arg)
-     (list
-      (update-list-widget db "sync" "individual" "individual" arg)
-      (mupdate 'edit-text 'household-name "name")
-      (mupdate 'edit-text 'num-pots "num-pots")))
+     (append
+      (list
+       (update-list-widget db "sync" "individual" "individual" arg)
+       (mupdate 'edit-text 'household-name "name")
+       (mupdate 'edit-text 'num-pots "num-pots"))
+      (mupdate-gps 'house "house")
+      (mupdate-gps 'toilet "toilet")))
 
    (lambda (activity) '())
    (lambda (activity) '())

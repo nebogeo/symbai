@@ -570,3 +570,30 @@
        (list-ref d 3)
        (list-ref d 4)
        (list-ref d 5)))))
+
+(define (do-gps display-id key-prepend)
+  (let ((loc (get-current 'location '(0 0))))
+    (entity-add-value! (string-append key-prepend "-lat") "real" (car loc))
+    (entity-add-value! (string-append key-prepend "-lon") "real" (cadr loc))
+    (list
+     (update-widget
+      'text-view
+      (get-id (string-append (symbol->string display-id) "-lat"))
+      'text
+      (number->string (car loc)))
+     (update-widget
+      'text-view
+      (get-id (string-append (symbol->string display-id) "-lon"))
+      'text
+      (number->string (cadr loc))))))
+
+(define (mupdate-gps display-id key-prepend)
+  (list
+   (update-widget
+    'text-view (get-id (string-append (symbol->string display-id) "-lat"))
+    'text (number->string
+           (entity-get-value (string-append key-prepend "-lat")) "real" 0))
+   (update-widget
+    'text-view (get-id (string-append (symbol->string display-id) "-lon"))
+    'text (number->string
+           (entity-get-value (string-append key-prepend "-lon")) "real" 0))))
