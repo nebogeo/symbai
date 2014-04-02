@@ -422,12 +422,15 @@
 (define (mtoggle-button id fn)
   (toggle-button (symbol->id id)
                  (mtext-lookup id)
-                 30 (layout 'fill-parent 'wrap-content -1 'centre 0) "fancy" fn))
+                 30 (layout 'fill-parent 'wrap-content -1 'centre 0) "fancy"
+                 ;; convert to 0/1 for easier db storage
+                 (lambda (v) (fn (if v 1 0)))))
 
 (define (mtoggle-button-scale id fn)
   (toggle-button (symbol->id id)
                  (mtext-lookup id)
-                 30 (layout 'fill-parent 'wrap-content 1 'centre 0) "fancy" fn))
+                 30 (layout 'fill-parent 'wrap-content 1 'centre 0) "fancy"
+                 (lambda (v) (fn (if v 1 0)))))
 
 (define (mtext id)
   (text-view (symbol->id id)
@@ -525,7 +528,7 @@
     (update-widget widget-type (get-symbol-id id-symbol) 'text
                    (entity-get-value key)))
    ((eq? widget-type 'toggle-button)
-    (update-widget widget-type (get-symbol-id id-symbol) 'selected
+    (update-widget widget-type (get-symbol-id id-symbol) 'checked
                    (entity-get-value key)))
    ((eq? widget-type 'image-view)
     (let ((image-name (entity-get-value key)))
@@ -543,7 +546,11 @@
         (update-widget 'spinner
                        (get-id (string-append (symbol->string id-symbol) "-spinner"))
                        'selection index)
-        (msg "spinner item in db " val " not found in list of items"))))
+        (begin
+          (msg "spinner item in db " val " not found in list of items")
+          (update-widget 'spinner
+                         (get-id (string-append (symbol->string id-symbol) "-spinner"))
+                         'selection 0)))))
 
 (define (mupdate-spinner-other id-symbol key choices)
   (msg "update spinner other...")
