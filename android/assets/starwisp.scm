@@ -62,7 +62,7 @@
    (list 'individual (list "Individual"))
    (list 'individuals (list "Individuals"))
 
-   (list 'add-item (list "+"))
+   (list 'add-item-to-list (list "+"))
    (list 'default-village-name (list "New village"))
 
    (list 'title (list "Symbai" "Symbai" "Symbai"))
@@ -393,8 +393,8 @@
       (mtitle-scale title)
       (button
        (make-id (string-append (symbol->string title) "-add"))
-       (mtext-lookup title)
-       40 (layout 'fill-parent 'wrap-content 1 'centre 5)
+       (mtext-lookup 'add-item-to-list)
+       40 (layout 100 'wrap-content 1 'centre 5)
        (lambda ()
          (entity-init! db table entity-type ktv-default)
          (entity-add-value! "parent" "varchar" (parent-fn))
@@ -647,7 +647,7 @@
       (mtext 'name-display)
       (mtext 'family-display)
       (mtext 'photo-id-display)))
-    (mbutton 'agreement (lambda () (list (start-activity "agreement" 0 ""))))
+    (mbutton 'agreement-button (lambda () (list (start-activity "agreement" 0 ""))))
     (horiz
      (mbutton-scale 'details-button (lambda () (list (start-activity "details" 0 ""))))
      (mbutton-scale 'family-button (lambda () (list (start-activity "family" 0 "")))))
@@ -657,7 +657,7 @@
     (horiz
      (mbutton-scale 'geneaology-button (lambda () (list (start-activity "geneaology" 0 ""))))
      (mbutton-scale 'social-button (lambda () (list (start-activity "social" 0 "")))))
-
+    (spacer 20)
     (delete-button))
 
    (lambda (activity arg)
@@ -670,8 +670,7 @@
       (mupdate 'text-view 'name-display "name")
       (mupdate 'text-view 'family-display "family")
       (mupdate 'text-view 'photo-id-display "photo-id")
-      ;;(mupdate 'image-view 'photo "photo")
-      ))
+      (mupdate 'image-view 'photo "photo")))
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
@@ -693,15 +692,15 @@
          )))
 
      (vert
-      (medit-text 'details-name "normal" (lambda (v) '()))
-      (medit-text 'details-family "normal" (lambda (v) '()))
-      (medit-text 'details-photo-id "normal" (lambda (v) '()))))
-    (mspinner-other 'tribe '(one two three) (lambda (v) '()))
-    (mspinner-other 'sub-tribe '(one two three) (lambda (v) '()))
+      (medit-text 'details-name "normal" (lambda (v) (entity-add-value! "name" "varchar" v) '()))
+      (medit-text 'details-family "normal" (lambda (v) (entity-add-value! "family" "varchar" v) '()))
+      (medit-text 'details-photo-id "normal" (lambda (v) (entity-add-value! "photo-id" "varchar" v) '()))))
+    (mspinner-other 'tribe '(one two three) (lambda (v) (msg "tribe now:" v) (entity-add-value! "tribe" "varchar" v) '()))
+    (mspinner-other 'sub-tribe '(one two three) (lambda (v) (entity-add-value! "subtribe" "varchar" v) '()))
     (horiz
-     (medit-text 'age "numeric" (lambda (v) '()))
-     (mspinner 'gender '(male female) (lambda (v) '()))
-     (mspinner 'education '(one two three) (lambda (v) '())))
+     (medit-text 'age "numeric" (lambda (v) (entity-add-value! "age" "int" v) '()))
+     (mspinner 'gender '(male female) (lambda (v) (entity-add-value! "gender" "varchar" v) '()))
+     (mspinner 'education '(one two three) (lambda (v) (entity-add-value! "education" "varchar" v) '())))
     )
    (lambda (activity arg)
      (set-current! 'activity-title "Individual details")
@@ -711,7 +710,12 @@
       (mupdate 'edit-text 'details-name "name")
       (mupdate 'edit-text 'details-family "family")
       (mupdate 'edit-text 'details-photo-id "photo-id")
-      ;;(mupdate 'image-view 'photo "photo")
+      (mupdate 'image-view 'photo "photo")
+      (mupdate-spinner-other 'tribe "tribe" '(one two three))
+      (mupdate-spinner-other 'sub-tribe "subtribe" '(one two three))
+      (mupdate 'edit-text 'age "age")
+      (mupdate-spinner 'gender "gender" '(male female))
+      (mupdate-spinner 'education "education" '(one two three))
       ))
    (lambda (activity) '())
    (lambda (activity) '())
@@ -724,8 +728,11 @@
        ;; todo: means we save when the camera happens
        ;; need to do this before init is called again in on-start,
        ;; which happens next
-       (entity-set-value! "photo" "file" (string-append (entity-get-value "unique_id") "-face.jpg"))
-       (entity-update-values!)
+       (let ((unique-id (entity-get-value "unique_id")))
+         (entity-add-value! "photo" "file" (string-append unique-id "-face.jpg"))
+         (entity-update-values!)
+         ;; need to reset the individual from the db now (as update reset it)
+         (entity-init! db "sync" "individual" (get-entity-by-unique db "sync" unique-id)))
        (list
         (mupdate 'image-view 'photo "photo")))
       (else

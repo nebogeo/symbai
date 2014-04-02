@@ -62,6 +62,15 @@
     ((eqv? n (car (car l))) (car l))
     (else (findv n (cdr l)))))
 
+;; find the index of an item in a flat list
+(define (index-find n l)
+  (define (_ l i)
+    (cond
+     ((null? l) #f)
+     ((equal? n (car l)) i)
+     (else (_ (cdr l) (+ i 1)))))
+  (_ l 0))
+
 (define (sorted-add l i)
   (cond
    ((null? l) (list i))

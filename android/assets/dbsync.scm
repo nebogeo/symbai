@@ -530,11 +530,32 @@
    ((eq? widget-type 'image-view)
     (let ((image-name (entity-get-value key)))
       (msg "updating image widget to: " image-name)
-      (if (equal? image-name "none")
+      (if (or (not image-name) (equal? image-name "none"))
           (update-widget widget-type (get-symbol-id id-symbol) 'image "face")
           (update-widget widget-type (get-symbol-id id-symbol) 'external-image
                          (string-append dirname "files/" image-name)))))
    (else (msg "mupdate-widget unhandled widget type" widget-type))))
+
+(define (mupdate-spinner id-symbol key choices)
+  (let* ((val (entity-get-value key))
+         (index (index-find val (map mtext-lookup choices))))
+    (if index
+        (update-widget 'spinner
+                       (get-id (string-append (symbol->string id-symbol) "-spinner"))
+                       'selection index)
+        (msg "spinner item in db " val " not found in list of items"))))
+
+(define (mupdate-spinner-other id-symbol key choices)
+  (msg "update spinner other...")
+  (let* ((val (entity-get-value key))
+         (index (index-find val (map mtext-lookup choices))))
+    (if index
+        (update-widget 'spinner
+                       (get-id (string-append (symbol->string id-symbol) "-spinner"))
+                       'selection index)
+        (update-widget 'edit-text
+                       (get-id (string-append (symbol->string id-symbol) "-edit-text"))
+                       'selection index))))
 
 ;;;;
 ;; (y m d h m s)
