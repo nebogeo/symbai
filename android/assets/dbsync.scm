@@ -604,3 +604,67 @@
     'text-view (get-id (string-append (symbol->string display-id) "-lon"))
     'text (number->string
            (entity-get-value (string-append key-prepend "-lon")) "real" 0))))
+
+
+;; a standard builder for list widgets of entities and a
+;; make new button, to add defaults to the list
+(define (build-list-widget db table title entity-type edit-activity parent-fn ktv-default)
+    (vert-colour
+     colour-two
+     (horiz
+      (mtitle-scale title)
+      (button
+       (make-id (string-append (symbol->string title) "-add"))
+       (mtext-lookup 'add-item-to-list)
+       40 (layout 100 'wrap-content 1 'centre 5)
+       (lambda ()
+         (entity-init! db table entity-type ktv-default)
+         (entity-add-value! "parent" "varchar" (parent-fn))
+         (entity-record-values!)
+         (list (update-list-widget db table entity-type edit-activity (parent-fn))))))
+     (linear-layout
+      (make-id (string-append entity-type "-list"))
+      'vertical
+      (layout 'fill-parent 'wrap-content 1 'centre 20)
+      (list 0 0 0 0)
+      (list))))
+
+;; pull db data into list of button widgets
+(define (update-list-widget db table entity-type edit-activity parent)
+  (let ((search-results
+         (if parent
+             (db-with-parent db table entity-type parent)
+             (db-all db table entity-type))))
+    (update-widget
+     'linear-layout
+     (get-id (string-append entity-type "-list"))
+     'contents
+     (if (null? search-results)
+         (list (mtext 'list-empty))
+         (map
+          (lambda (e)
+            (button
+             (make-id (string-append "list-button-" (ktv-get e "unique_id")))
+             (or (ktv-get e "name") "Unamed item")
+             40 (layout 'fill-parent 'wrap-content 1 'centre 5)
+             (lambda ()
+               (msg "sending start act" (ktv-get e "unique_id"))
+               (list (start-activity edit-activity 0 (ktv-get e "unique_id"))))))
+          search-results)))))
+
+(define (delete-button)
+  (mbutton
+   'delete
+   (lambda ()
+     (list
+      (alert-dialog
+       "delete-check"
+       (mtext-lookup 'delete-are-you-sure)
+       (lambda (v)
+         (cond
+          ((eqv? v 1)
+           (entity-add-value! "deleted" "int" 1)
+           (entity-update-values!)
+           (list (finish-activity 1)))
+          (else
+           (list)))))))))

@@ -256,6 +256,62 @@
          (cdr s)))))
 
 
+;; filter is list of (attribute-key type op arg) e.g. ("gender" "varchar" "=" "Female")
+;; note: only one filter per key..
+
+(define (make-filter k t o a) (list k t o a))
+(define (filter-key f) (list-ref f 0))
+(define (filter-type f) (list-ref f 1))
+(define (filter-op f) (list-ref f 2))
+(define (filter-arg f) (list-ref f 3))
+
+(define (build-query table filter)
+  (string-append
+   (foldl
+    (lambda (i r)
+      (let ((var (string-append (filter-key i) "_var")))
+        ;; add a query chunk
+        (string-append
+         r "join " table "_value_" (filter-type i) " "
+         "as " var " on "
+         var ".entity_id = e.entity_id and " var ".attribute_id = '" (filter-key i) "' and "
+         var ".value " (filter-op i) " ? ")))
+
+    ;; boilerplate query start
+    (string-append
+     "select e.entity_id from " table "_entity as e "
+     ;; order by name
+     "join " table "_value_varchar "
+     "as n on n.entity_id = e.entity_id and n.attribute_id = 'name' "
+     ;; ignore deleted
+     "join " table "_value_int "
+     "as d on d.entity_id = e.entity_id and d.attribute_id = 'deleted' and "
+     "d.value = 0 ")
+    filter)
+   "order by n.value"))
+
+(define (build-args filter)
+  (map
+   (lambda (i)
+     (filter-arg i))
+   filter))
+
+(define (filter-entities db table type filter)
+  (let ((s (apply
+            db-select
+            (dbg (append
+                  (list db (build-query table filter))
+                  (build-args filter))))))
+    (msg (db-status db))
+    (if (null? s)
+        '()
+        (map
+         (lambda (i)
+           (vector-ref i 0))
+         (cdr s)))))
+
+
+
 
 (define (validate db)
   ;; check attribute for duplicate entity-id/attribute-ids
@@ -297,6 +353,11 @@
      (get-entity db table i))
    (all-entities-with-parent db table type parent)))
 
+(define (db-filter db table type filter)
+  (map
+   (lambda (i)
+     (get-entity db table i))
+   (filter-entities db table type filter)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; updating data

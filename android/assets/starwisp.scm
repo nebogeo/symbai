@@ -401,70 +401,6 @@
      (spacer 5)
      (build-fragment "bottom" (make-id "bottom") fillwrap)))))
 
-
-;; a standard builder for list widgets of entities and a
-;; make new button, to add defaults to the list
-(define (build-list-widget db table title entity-type edit-activity parent-fn ktv-default)
-    (vert-colour
-     colour-two
-     (horiz
-      (mtitle-scale title)
-      (button
-       (make-id (string-append (symbol->string title) "-add"))
-       (mtext-lookup 'add-item-to-list)
-       40 (layout 100 'wrap-content 1 'centre 5)
-       (lambda ()
-         (entity-init! db table entity-type ktv-default)
-         (entity-add-value! "parent" "varchar" (parent-fn))
-         (entity-record-values!)
-         (list (update-list-widget db table entity-type edit-activity (parent-fn))))))
-     (linear-layout
-      (make-id (string-append entity-type "-list"))
-      'vertical
-      (layout 'fill-parent 'wrap-content 1 'centre 20)
-      (list 0 0 0 0)
-      (list))))
-
-;; pull db data into list of button widgets
-(define (update-list-widget db table entity-type edit-activity parent)
-  (let ((search-results
-         (if parent
-             (db-with-parent db table entity-type parent)
-             (db-all db table entity-type))))
-    (update-widget
-     'linear-layout
-     (get-id (string-append entity-type "-list"))
-     'contents
-     (if (null? search-results)
-         (list (mtext 'list-empty))
-         (map
-          (lambda (e)
-            (button
-             (make-id (string-append "list-button-" (ktv-get e "unique_id")))
-             (or (ktv-get e "name") "Unamed item")
-             40 (layout 'fill-parent 'wrap-content 1 'centre 5)
-             (lambda ()
-               (msg "sending start act" (ktv-get e "unique_id"))
-               (list (start-activity edit-activity 0 (ktv-get e "unique_id"))))))
-          search-results)))))
-
-(define (delete-button)
-  (mbutton
-   'delete
-   (lambda ()
-     (list
-      (alert-dialog
-       "delete-check"
-       (mtext-lookup 'delete-are-you-sure)
-       (lambda (v)
-         (cond
-          ((eqv? v 1)
-           (entity-add-value! "deleted" "int" 1)
-           (entity-update-values!)
-           (list (finish-activity 1)))
-          (else
-           (list)))))))))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; activities
 
@@ -481,21 +417,7 @@
      (mbutton-scale 'sync (lambda () (list (start-activity "sync" 0 "")))))
 
     (mspinner 'languages (list 'english 'khasi 'hindi) (lambda (c) (list)))
-    (mbutton 'test-upload (lambda ()
-                            (list
-                             (network-connect
-                              "network"
-                              "mongoose-web"
-                              (lambda (state)
-                                (msg state)
-                                (if (equal? state "Connected")
-                                    (list
-                                     (http-upload
-                                      "test-upload"
-                                      "http://192.168.2.1:8889/symbai?fn=upload"
-                                      "/sdcard/symbai/photo.jpg"))
-                                    '()))
-                              ))))
+    (mbutton 'find-individual (lambda () (list (start-activity "individual-chooser" 0 ""))))
     (build-list-widget
      db "sync" 'villages "village" "village" (lambda () #f)
      (list
@@ -639,7 +561,7 @@
       (ktv "tribe" "varchar" "none")
       (ktv "subtribe" "varchar" "none")
       (ktv "age" "int" 0)
-      (ktv "gender" "varchar" "female")
+      (ktv "gender" "varchar" "Female")
       (ktv "education" "varchar" "none")
       (ktv "head-of-house" "varchar" "none")
       (ktv "marital-status" "varchar" "none")
@@ -700,7 +622,9 @@
      (image-view (make-id "photo") "face" (layout 240 320 -1 'centre 10))
      (vert
       (mtext 'name-display)
+      (spacer 20)
       (mtext 'family-display)
+      (spacer 20)
       (mtext 'photo-id-display)))
     (mbutton 'agreement-button (lambda () (list (start-activity "agreement" 0 ""))))
     (horiz
@@ -977,11 +901,31 @@
   (activity
    "individual-chooser"
    (build-activity
+    (vert
+     (linear-layout
+      (make-id "choose-pics") 'vertical
+      (layout 'fill-parent 'wrap-content 0.75 'centre 0)
+      (list 0 0 0 0)
+      (list))
+     (mtext 'filter-stuff))
     )
    (lambda (activity arg)
      (set-current! 'activity-title "Individual chooser")
      (activity-layout activity))
-   (lambda (activity arg) '())
+   (lambda (activity arg)
+     (list
+      (update-widget
+       'linear-layout (get-id "choose-pics") 'contents
+       (map
+        (lambda (e)
+          (msg (ktv-get e "gender"))
+          (let ((gender (ktv-get e "gender")))
+            (text-view
+             (make-id (string-append "chooser-" (ktv-get e "unique_id")))
+             (string-append (ktv-get e "unique_id") ": " (if (null? gender) "not set" gender))
+             30 (layout 'wrap-content 'wrap-content 1 'centre 5))))
+        (db-filter db "sync" "individual"
+                   (list (make-filter "gender" "varchar" "=" "female")))))))
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
