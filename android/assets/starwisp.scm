@@ -76,13 +76,20 @@
    (list 'khasi (list "Khasi" "Khasi" "Khasi"))
    (list 'hindi (list "Hindi" "Hindi" "Hindi"))
    (list 'user-id (list "Your user ID" "User ID" "User ID"))
-   (list 'ok (list "Ok" "Ok" "Ok"))
-   (list 'cancel (list "Cancel" "Cancel" "Cancel"))
+   (list 'save (list "Save" "Save" "Save"))
+   (list 'back (list "Back" "Back" "Back"))
+   (list 'off (list "Off" "Off" "Off"))
    (list 'villages (list "Villages" "Villages" "Villages"))
    (list 'list-empty (list "List empty"))
    (list 'delete (list "Delete"))
    (list 'delete-are-you-sure (list "Are you sure you want to delete this?"))
    (list 'save-are-you-sure (list "Are you sure you want to save changes?"))
+
+   ;; filter
+   (list 'find-individual (list "Find individual"))
+   (list 'filter (list "Filter"))
+   (list 'off (list "Off" "Off" "Off"))
+   (list 'name (list "Name"))
 
    ;; sync
    (list 'sync-all (list "Sync me!"))
@@ -354,7 +361,7 @@
     (list 0 0 0 0)
     (list
      (mbutton-scale
-      'ok
+      'save
       (lambda ()
         (list
          (alert-dialog
@@ -364,10 +371,10 @@
             (cond
              ((eqv? v 1)
               (entity-update-values!)
-              (list (finish-activity 1)))
+              (list))
              (else
               (list))))))))
-     (mbutton-scale 'cancel (lambda () (list (finish-activity 1))))))
+     (mbutton-scale 'back (lambda () (list (finish-activity 1))))))
    (lambda (fragment arg)
      (activity-layout fragment))
    (lambda (fragment arg)
@@ -401,10 +408,72 @@
      (spacer 5)
      (build-fragment "bottom" (make-id "bottom") fillwrap)))))
 
+
+(define (grid-ify widgets n)
+  (map
+   (lambda (w)
+     (linear-layout
+      0 'horizontal
+      (layout 'wrap-content 'wrap-content 1 'left 0)
+      (list 0 0 0 0)
+      w))
+   (chop widgets n)))
+
+(define (filter-set! l)
+  (set-current! 'individual-filter l))
+
+(define (filter-clear!)
+  (filter-set! '()))
+
+(define (filter-add! f)
+  (set-current!
+   'individual-filter
+   (merge-filter f (get-current 'individual-filter '()))))
+
+(define (filter-remove! key)
+  (set-current!
+   'individual-filter
+   (delete-filter key (get-current 'individual-filter '()))))
+
+(define (filter-get)
+  (get-current 'individual-filter '()))
+
+(define button-size (list (inexact->exact (round (* 192 0.9)))
+                          (inexact->exact (round (* 256 0.9)))))
+
+(define (update-individual-filter)
+  (update-widget
+   'linear-layout (get-id "choose-pics") 'contents
+   (grid-ify
+    (map
+     (lambda (e)
+       (let* ((id (ktv-get e "unique_id"))
+              (image-name (ktv-get e "photo"))
+              (image (if (or (null? image-name)
+                             (not image-name)
+                             (equal? image-name "none"))
+                         "face" (string-append "/sdcard/symbai/files/" image-name))))
+         (if (equal? image "face")
+             (button
+              (make-id (string-append "chooser-" id))
+              (ktv-get e "name") 30 (layout (car button-size) (cadr button-size) 1 'centre 5)
+              (lambda ()
+                (set-current! 'choose-result id)
+                (list (finish-activity 0))))
+             (image-button
+              (make-id (string-append "chooser-" id))
+              image (layout (car button-size) (cadr button-size) 1 'centre 5)
+              (lambda ()
+                (set-current! 'choose-result id)
+                (list (finish-activity 0)))))))
+     (db-filter db "sync" "individual" (filter-get)))
+    3)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; activities
 
 (define photo-code 999)
+(define choose-code 998)
 
 (define-activity-list
 
@@ -416,8 +485,9 @@
      (medit-text 'user-id "normal" (lambda () (list)))
      (mbutton-scale 'sync (lambda () (list (start-activity "sync" 0 "")))))
 
-    (mspinner 'languages (list 'english 'khasi 'hindi) (lambda (c) (list)))
-    (mbutton 'find-individual (lambda () (list (start-activity "individual-chooser" 0 ""))))
+    (horiz
+     (mspinner 'languages (list 'english 'khasi 'hindi) (lambda (c) (list)))
+     (mbutton-scale 'find-individual (lambda () (list (start-activity "individual-chooser" choose-code "")))))
     (build-list-widget
      db "sync" 'villages "village" "village" (lambda () #f)
      (list
@@ -443,6 +513,8 @@
    (lambda (activity) '())
    (lambda (activity requestcode resultcode)
      (cond
+      ((eqv? requestcode choose-code)
+       (list (start-activity "individual" 0 (get-current 'choose-result 0))))
       ((eqv? requestcode photo-code)
        (msg "camera returned" resultcode)
        (list (update-widget
@@ -666,8 +738,10 @@
       (mbutton
        'change-photo
        (lambda ()
+         (set-current!
+          'photo-name (string-append (entity-get-value "unique_id") "-" (get-unique "p") "-face.jpg"))
          (list
-          (take-photo (string-append dirname "files/" (entity-get-value "unique_id") "-face.jpg") photo-code))
+          (take-photo (string-append dirname "files/" (get-current 'photo-name "")) photo-code))
          )))
 
      (vert
@@ -708,7 +782,7 @@
        ;; need to do this before init is called again in on-start,
        ;; which happens next
        (let ((unique-id (entity-get-value "unique_id")))
-         (entity-add-value! "photo" "file" (string-append unique-id "-face.jpg"))
+         (entity-add-value! "photo" "file" (get-current 'photo-name "error no photo name!!"))
          (entity-update-values!)
          ;; need to reset the individual from the db now (as update reset it)
          (entity-init! db "sync" "individual" (get-entity-by-unique db "sync" unique-id)))
@@ -742,7 +816,7 @@
     (medit-text 'birth-order "numeric" (lambda (v) (entity-add-value! "birth-order" "int" v) '())))
    (lambda (activity arg)
      (set-current! 'activity-title "Individual family")
-     (activity-layout activity))
+      (activity-layout activity))
    (lambda (activity arg)
      (list
       (mupdate-spinner 'head-of-house "head-of-house" '(male female))
@@ -907,28 +981,29 @@
       (layout 'fill-parent 'wrap-content 0.75 'centre 0)
       (list 0 0 0 0)
       (list))
-     (mtext 'filter-stuff))
-    )
+     (mtitle 'filter)
+     (horiz
+      (mspinner 'gender '(off female male)
+                (lambda (v)
+                  (if (equal? v (mtext-lookup 'off))
+                      (filter-remove! "gender")
+                      (filter-add! (make-filter "gender" "varchar" "=" v)))
+                  (list (update-individual-filter))
+                  ))
+      (medit-text
+       'name "normal"
+       (lambda (v)
+         (if (equal? v "")
+             (filter-remove! "name")
+             (filter-add! (make-filter "name" "varchar" "like" (string-append v "%"))))
+         (list (update-individual-filter))
+         ))
+      )))
    (lambda (activity arg)
      (set-current! 'activity-title "Individual chooser")
      (activity-layout activity))
    (lambda (activity arg)
-     (list
-      (update-widget
-       'linear-layout (get-id "choose-pics") 'contents
-       (map
-        (lambda (e)
-          (msg (ktv-get e "gender"))
-          (let* ((image-name (ktv-get e "photo"))
-                 (image (if (or (not image-name) (equal? image-name "none"))
-                            "face" (string-append "/sdcard/symbai/files/" image-name))))
-            (msg image)
-            (image-button
-             (make-id (string-append "chooser-" (ktv-get e "unique_id")))
-             image (layout 'wrap-content 'wrap-content 1 'centre 5)
-             (lambda () '()))))
-        (db-filter db "sync" "individual"
-                   (list (make-filter "gender" "varchar" "=" "female")))))))
+     (list (update-individual-filter (list))))
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())

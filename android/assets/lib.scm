@@ -50,6 +50,16 @@
       (insert (car lst) fn
               (sort (cdr lst) fn))))
 
+;; (chop (1 2 3 4) 2) -> ((1 2) (3 4))
+(define (chop l n)
+  (define (_ in out c)
+    (display c)(newline)
+    (cond
+      ((null? in) out)
+      ((zero? c) (_ (cdr in) (cons (list (car in)) out) (- n 1)))
+      (else (_ (cdr in) (cons (cons (car in) (car out)) (cdr out)) (- c 1)))))
+  (reverse (map reverse (_ l '(()) n))))
+
 (define (find n l)
   (cond
     ((null? l) #f)

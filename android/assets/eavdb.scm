@@ -27,7 +27,6 @@
 ;; entity-attribut-value system for sqlite
 ;;
 
-
 ;; create eav tables (add types as required)
 (define (setup db table)
   (db-exec db (string-append "create table " table "_entity ( entity_id integer primary key autoincrement, entity_type varchar(256), unique_id varchar(256), dirty integer, version integer)"))
@@ -265,6 +264,20 @@
 (define (filter-op f) (list-ref f 2))
 (define (filter-arg f) (list-ref f 3))
 
+(define (merge-filter f fl)
+  (cond
+   ((null? fl) (list f))
+   ((equal? (filter-key (car fl)) (filter-key f))
+    (cons f (cdr fl)))
+   (else (cons (car fl) (merge-filter f (cdr fl))))))
+
+(define (delete-filter key fl)
+  (cond
+   ((null? fl) '())
+   ((equal? (filter-key (car fl)) key)
+    (cdr fl))
+   (else (cons (car fl) (delete-filter key (cdr fl))))))
+
 (define (build-query table filter)
   (string-append
    (foldl
@@ -288,7 +301,7 @@
      "as d on d.entity_id = e.entity_id and d.attribute_id = 'deleted' and "
      "d.value = 0 ")
     filter)
-   "order by n.value"))
+   "where e.entity_type = ? order by n.value"))
 
 (define (build-args filter)
   (map
@@ -301,7 +314,8 @@
             db-select
             (dbg (append
                   (list db (build-query table filter))
-                  (build-args filter))))))
+                  (build-args filter)
+                  (list type))))))
     (msg (db-status db))
     (if (null? s)
         '()
