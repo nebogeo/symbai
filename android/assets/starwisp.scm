@@ -879,7 +879,7 @@
      ;; BIDIRECTIONAL AUTOSPOUSE
      (when (and (eqv? requestcode spouse-request-code)
                 (get-current 'choose-result #f))
-           (update-entity db "sync" (entity-id-from-unique db table (get-current 'choose-result #f))
+           (update-entity db "sync" (entity-id-from-unique db "sync" (get-current 'choose-result #f))
                           (list (ktv "id-spouse" "varchar" (entity-get-value "unique_id"))))
            (msg "done..."))
 
