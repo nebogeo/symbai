@@ -311,8 +311,6 @@
          (cdr s)))))
 
 
-
-
 (define (validate db)
   ;; check attribute for duplicate entity-id/attribute-ids
   0)

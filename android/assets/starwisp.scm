@@ -919,11 +919,14 @@
        (map
         (lambda (e)
           (msg (ktv-get e "gender"))
-          (let ((gender (ktv-get e "gender")))
-            (text-view
+          (let* ((image-name (ktv-get e "photo"))
+                 (image (if (or (not image-name) (equal? image-name "none"))
+                            "face" (string-append "/sdcard/symbai/files/" image-name))))
+            (msg image)
+            (image-button
              (make-id (string-append "chooser-" (ktv-get e "unique_id")))
-             (string-append (ktv-get e "unique_id") ": " (if (null? gender) "not set" gender))
-             30 (layout 'wrap-content 'wrap-content 1 'centre 5))))
+             image (layout 'wrap-content 'wrap-content 1 'centre 5)
+             (lambda () '()))))
         (db-filter db "sync" "individual"
                    (list (make-filter "gender" "varchar" "=" "female")))))))
    (lambda (activity) '())

@@ -519,7 +519,6 @@
          r (cons (update-widget 'toggle-button (get-id id) 'checked 0) r)))
    '() id-list))
 
-
 ;; fill out the widget from the current entity in the memory store
 ;; dispatches based on widget type
 (define (mupdate widget-type id-symbol key)
