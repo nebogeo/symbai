@@ -179,6 +179,7 @@
 
    ;; family
    (list 'spouse (list "Spouse"))
+   (list 'change-id (list "Update ID"))
    (list 'head-of-house (list "Head of house"))
    (list 'marital-status (list "Marital status"))
    (list 'ever-married (list "Ever married"))
@@ -441,6 +442,7 @@
 (define button-size (list (inexact->exact (round (* 192 0.9)))
                           (inexact->exact (round (* 256 0.9)))))
 
+
 (define (update-individual-filter)
   (update-widget
    'linear-layout (get-id "choose-pics") 'contents
@@ -449,9 +451,7 @@
      (lambda (e)
        (let* ((id (ktv-get e "unique_id"))
               (image-name (ktv-get e "photo"))
-              (image (if (or (null? image-name)
-                             (not image-name)
-                             (equal? image-name "none"))
+              (image (if (image-invalid? image-name)
                          "face" (string-append "/sdcard/symbai/files/" image-name))))
          (if (equal? image "face")
              (button
@@ -469,11 +469,49 @@
      (db-filter db "sync" "individual" (filter-get)))
     3)))
 
+(define (image-from-unique-id db table unique-id)
+  (let ((e (get-entity-by-unique db table unique-id)))
+    (ktv-get e "photo")))
+
+(define (build-person-selector id key filter request-code)
+  (vert
+   (mtitle id)
+   (image-view (make-id (string-append (symbol->string id) "-image"))
+               "face" (layout 240 320 -1 'centre 0))
+   (button
+    (make-id (string-append "change-" (symbol->string id)))
+    (mtext-lookup 'change-id)
+    40 (layout 'fill-parent 'wrap-content -1 'centre 5)
+    (lambda ()
+      (filter-set! filter)
+      (list (start-activity "individual-chooser" request-code ""))))))
+
+;; from activity on result with request id: choose-code
+;; todo determine *which* selector this came from...
+(define (person-selector-return request-code key choose-code)
+  (when (eqv? request-code choose-code)
+        (entity-add-value! key "varchar" (get-current 'choose-result "not set"))))
+
+;; need to load from across entities, so need db, table
+(define (update-person-selector db table id key)
+  (msg "update-person-selector" key)
+  (let ((entity-id (entity-get-value key)))
+    (msg "entity-id is" entity-id)
+    (let ((image-name (image-from-unique-id db table entity-id))
+          (id (get-id (string-append (symbol->string id) "-image"))))
+      (msg "image-name is" image-name)
+      (if (image-invalid? image-name)
+          (update-widget 'image-view id 'image "face")
+          (update-widget 'image-view id 'external-image (string-append dirname "files/" image-name))))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; activities
 
 (define photo-code 999)
 (define choose-code 998)
+(define spouse-request-code 997)
+(define mother-request-code 996)
+(define father-request-code 995)
 
 (define-activity-list
 
@@ -799,10 +837,9 @@
       (mspinner 'head-of-house '(male female) (lambda (v) (entity-add-value! "head-of-house" "varchar" v) '()))
       (mspinner 'marital-status married-list (lambda (v) (entity-add-value! "marital-status" "varchar" v) '()))
       (medit-text 'times-married "numeric" (lambda (v) (entity-add-value! "times-married" "int" v) '())))
-     (vert
-      (mtitle 'spouse)
-      (image-view (make-id "spouse-image") "face" (layout 240 320 -1 'centre 0))
-      (mbutton 'change-spouse (lambda () '()))))
+
+     (build-person-selector 'spouse "id-spouse" (list) spouse-request-code)
+     )
 
     (mtitle 'children)
     (horiz
@@ -819,6 +856,7 @@
       (activity-layout activity))
    (lambda (activity arg)
      (list
+      (update-person-selector db "sync" 'spouse "id-spouse")
       (mupdate-spinner 'head-of-house "head-of-house" '(male female))
       (mupdate-spinner 'marital-status "marital-status" married-list)
       (mupdate 'edit-text 'times-married "times-married")
@@ -834,7 +872,9 @@
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
-   (lambda (activity requestcode resultcode) '()))
+   (lambda (activity requestcode resultcode)
+     (person-selector-return requestcode "id-spouse" spouse-request-code)
+     '()))
 
 
   (activity
@@ -919,14 +959,8 @@
    "geneaology"
    (build-activity
     (horiz
-     (vert
-      (mtitle 'mother)
-      (image-view (make-id "image") "face" (layout 240 320 -1 'centre 0))
-      (mbutton 'change-mother (lambda () '())))
-     (vert
-      (mtitle 'father)
-      (image-view (make-id "image") "face" (layout 240 320 -1 'centre 0))
-      (mbutton 'change-father (lambda () '()))))
+     (build-person-selector 'mother "id-mother" (list) mother-request-code)
+     (build-person-selector 'father "id-father" (list) father-request-code))
     (mtitle 'children)
     (horiz
      (medit-text 'name "normal" (lambda (v) '()))
@@ -937,12 +971,19 @@
    (lambda (activity arg)
      (set-current! 'activity-title "Individual geneaology")
      (activity-layout activity))
-   (lambda (activity arg) '())
+   (lambda (activity arg)
+     (list
+      (update-person-selector db "sync" 'mother "id-mother")
+      (update-person-selector db "sync" 'father "id-father")))
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
-   (lambda (activity requestcode resultcode) '()))
+   (lambda (activity requestcode resultcode)
+     (msg requestcode)
+     (person-selector-return requestcode "id-mother" mother-request-code)
+     (person-selector-return requestcode "id-father" father-request-code)
+     '()))
 
   (activity
    "social"

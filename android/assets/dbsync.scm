@@ -519,6 +519,11 @@
          r (cons (update-widget 'toggle-button (get-id id) 'checked 0) r)))
    '() id-list))
 
+(define (image-invalid? image-name)
+  (or (null? image-name)
+      (not image-name)
+      (equal? image-name "none")))
+
 ;; fill out the widget from the current entity in the memory store
 ;; dispatches based on widget type
 (define (mupdate widget-type id-symbol key)
