@@ -874,6 +874,21 @@
    (lambda (activity) '())
    (lambda (activity requestcode resultcode)
      (person-selector-return requestcode "id-spouse" spouse-request-code)
+
+     ;; intercept a spouse setting and set the other individual
+     ;; BIDIRECTIONAL AUTOSPOUSE
+     (when (and (eqv? requestcode spouse-request-code)
+                (get-current 'choose-result #f))
+           (update-entity db "sync" (entity-id-from-unique db table (get-current 'choose-result #f))
+                          (list (ktv "id-spouse" "varchar" (entity-get-value "unique_id"))))
+           (msg "done..."))
+
+     ;; save and reinit otherwise we can get out of sync here with the spouse :/
+     (let ((unique-id (entity-get-value "unique_id")))
+       (entity-update-values!)
+       ;; need to reset the individual from the db now (as update reset it)
+       (entity-init! db "sync" "individual" (get-entity-by-unique db "sync" unique-id)))
+
      '()))
 
 
