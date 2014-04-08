@@ -75,12 +75,22 @@
     (get-current 'entity-values '())
     (ktv key type value))))
 
+;; internal version for checking version numbers are propagating properly
+;; this is for automatically added ktv data (and adds 0 version)
+;; rather than from the ui (which adds -999 by default)
+(define (entity-add-value-create! key type value)
+  (set-current!
+   'entity-values
+   (ktv-set
+    (get-current 'entity-values '())
+    (ktv-create key type value))))
+
+
 (define (entity-set! ktv-list)
   (set-current! 'entity-values ktv-list))
 
 (define (entity-get-value key)
   (ktv-get (get-current 'entity-values '()) key))
-
 
 ;; version to check the entity has the key
 (define (entity-set-value! key type value)
@@ -110,11 +120,11 @@
         (table (get-current 'table #f))
         (type (get-current 'entity-type #f)))
     ;; standard bits
-    (entity-add-value! "user" "varchar" (get-current 'user-id "none"))
-    (entity-add-value! "time" "varchar" (date-time->string (date-time)))
-    (entity-add-value! "lat" "real" (car (get-current 'location '(0 0))))
-    (entity-add-value! "lon" "real" (cadr (get-current 'location '(0 0))))
-    (entity-add-value! "deleted" "int" 0)
+    (entity-add-value-create! "user" "varchar" (get-current 'user-id "none"))
+    (entity-add-value-create! "time" "varchar" (date-time->string (date-time)))
+    (entity-add-value-create! "lat" "real" (car (get-current 'location '(0 0))))
+    (entity-add-value-create! "lon" "real" (cadr (get-current 'location '(0 0))))
+    (entity-add-value-create! "deleted" "int" 0)
     (let ((values (get-current 'entity-values '())))
       (cond
        ((not (null? values))
@@ -165,7 +175,7 @@
 (msg "url")
 
 (define (build-url-from-ktv ktv)
-  (string-append "&" (ktv-key ktv) ":" (ktv-type ktv) "=" (stringify-value-url ktv)))
+  (string-append "&" (ktv-key ktv) ":" (ktv-type ktv) ":" (number->string (ktv-version ktv)) "=" (stringify-value-url ktv)))
 
 (define (build-url-from-ktvlist ktvlist)
   (foldl
@@ -201,13 +211,12 @@
          r))
    '() ktvlist))
 
-(msg "spit")
-
-
 ;; spit all dirty entities to server
 (define (spit db table entities)
+  (msg "running spit")
   (foldl
    (lambda (e r)
+     (msg (car (car e)))
      (debug! (string-append "Sending a " (car (car e)) " to Raspberry Pi"))
      (append
       (list
@@ -272,6 +281,8 @@
             (ktvlist (list-ref data 1))
             (unique-id (list-ref entity 1))
             (exists (entity-exists? db table unique-id)))
+       (msg "from server...:")
+       (msg ktvlist)
        ;; need to check exists again here, due to delays back and forth
        (if (not exists)
            (insert-entity-wholesale
@@ -537,7 +548,7 @@
    ((eq? widget-type 'image-view)
     (let ((image-name (entity-get-value key)))
       (msg "updating image widget to: " image-name)
-      (if (or (not image-name) (equal? image-name "none"))
+      (if (image-invalid? image-name)
           (update-widget widget-type (get-symbol-id id-symbol) 'image "face")
           (update-widget widget-type (get-symbol-id id-symbol) 'external-image
                          (string-append dirname "files/" image-name)))))
@@ -584,8 +595,8 @@
 
 (define (do-gps display-id key-prepend)
   (let ((loc (get-current 'location '(0 0))))
-    (entity-add-value! (string-append key-prepend "-lat") "real" (car loc))
-    (entity-add-value! (string-append key-prepend "-lon") "real" (cadr loc))
+    (entity-add-value-create! (string-append key-prepend "-lat") "real" (car loc))
+    (entity-add-value-create! (string-append key-prepend "-lon") "real" (cadr loc))
     (list
      (update-widget
       'text-view
@@ -623,7 +634,7 @@
        40 (layout 100 'wrap-content 1 'centre 5)
        (lambda ()
          (entity-init! db table entity-type ktv-default)
-         (entity-add-value! "parent" "varchar" (parent-fn))
+         (entity-add-value-create! "parent" "varchar" (parent-fn))
          (entity-record-values!)
          (list (update-list-widget db table entity-type edit-activity (parent-fn))))))
      (linear-layout
