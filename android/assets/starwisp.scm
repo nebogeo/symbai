@@ -85,7 +85,9 @@
    (list 'delete-are-you-sure (list "Are you sure you want to delete this?"))
    (list 'save-are-you-sure (list "Are you sure you want to save changes?"))
 
-   ;; filter
+   ;; individual filter
+   (list 'quick-name (list "New person name"))
+   (list 'quick-add (list "Quick add"))
    (list 'find-individual (list "Find individual"))
    (list 'filter (list "Filter"))
    (list 'off (list "Off" "Off" "Off"))
@@ -249,6 +251,48 @@
    (list 'sex (list "Sex"))
    ))
 
+(define individual-ktvlist
+  (list
+   (ktv-create "name" "varchar" (mtext-lookup 'default-individual-name))
+   (ktv-create "family" "varchar" (mtext-lookup 'default-family-name))
+   (ktv-create "photo-id" "varchar" (mtext-lookup 'default-photo-id))
+   (ktv-create "photo" "file" "none")
+   (ktv-create "tribe" "varchar" "none")
+   (ktv-create "subtribe" "varchar" "none")
+   (ktv-create "child" "int" 0)
+   (ktv-create "age" "int" 0)
+   (ktv-create "gender" "varchar" "Female")
+   (ktv-create "education" "varchar" "none")
+   (ktv-create "head-of-house" "varchar" "none")
+   (ktv-create "marital-status" "varchar" "none")
+   (ktv-create "times-married" "int" 0)
+   (ktv-create "id-spouse" "varchar" "none")
+   (ktv-create "children-living" "int" 0)
+   (ktv-create "children-dead" "int" 0)
+   (ktv-create "children-together" "int" 0)
+   (ktv-create "children-apart" "int" 0)
+   (ktv-create "residence-after-marriage" "varchar" "none")
+   (ktv-create "num-siblings" "int" 0)
+   (ktv-create "birth-order" "int" 0)
+   (ktv-create "length-time" "int" 0)
+   (ktv-create "place-of-birth" "varchar" "none")
+   (ktv-create "num-residence-changes" "int" 0)
+   (ktv-create "village-visits-month" "int" 0)
+   (ktv-create "village-visits-year" "int" 0)
+   (ktv-create "occupation" "varchar" "none")
+   (ktv-create "contribute" "int" 0)
+   (ktv-create "own-land" "int" 0)
+   (ktv-create "rent-land" "int" 0)
+   (ktv-create "hire-land" "int" 0)
+   (ktv-create "house-type" "varchar" "none")
+   (ktv-create "loan" "int" 0)
+   (ktv-create "earning" "int" 0)
+   (ktv-create "radio" "int" 0)
+   (ktv-create "tv" "int" 0)
+   (ktv-create "mobile" "int" 0)
+   (ktv-create "visit-market" "int" 0)
+   (ktv-create "town-sell" "int" 0)
+   ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -664,47 +708,7 @@
     (build-list-widget
      db "sync" 'individuals "individual" "individual"
      (lambda () (get-current 'household #f))
-     (list
-      (ktv-create "name" "varchar" (mtext-lookup 'default-individual-name))
-      (ktv-create "family" "varchar" (mtext-lookup 'default-family-name))
-      (ktv-create "photo-id" "varchar" (mtext-lookup 'default-photo-id))
-      (ktv-create "photo" "file" "none")
-      (ktv-create "tribe" "varchar" "none")
-      (ktv-create "subtribe" "varchar" "none")
-      (ktv-create "child" "int" 0)
-      (ktv-create "age" "int" 0)
-      (ktv-create "gender" "varchar" "Female")
-      (ktv-create "education" "varchar" "none")
-      (ktv-create "head-of-house" "varchar" "none")
-      (ktv-create "marital-status" "varchar" "none")
-      (ktv-create "times-married" "int" 0)
-      (ktv-create "id-spouse" "varchar" "none")
-      (ktv-create "children-living" "int" 0)
-      (ktv-create "children-dead" "int" 0)
-      (ktv-create "children-together" "int" 0)
-      (ktv-create "children-apart" "int" 0)
-      (ktv-create "residence-after-marriage" "varchar" "none")
-      (ktv-create "num-siblings" "int" 0)
-      (ktv-create "birth-order" "int" 0)
-      (ktv-create "length-time" "int" 0)
-      (ktv-create "place-of-birth" "varchar" "none")
-      (ktv-create "num-residence-changes" "int" 0)
-      (ktv-create "village-visits-month" "int" 0)
-      (ktv-create "village-visits-year" "int" 0)
-      (ktv-create "occupation" "varchar" "none")
-      (ktv-create "contribute" "int" 0)
-      (ktv-create "own-land" "int" 0)
-      (ktv-create "rent-land" "int" 0)
-      (ktv-create "hire-land" "int" 0)
-      (ktv-create "house-type" "varchar" "none")
-      (ktv-create "loan" "int" 0)
-      (ktv-create "earning" "int" 0)
-      (ktv-create "radio" "int" 0)
-      (ktv-create "tv" "int" 0)
-      (ktv-create "mobile" "int" 0)
-      (ktv-create "visit-market" "int" 0)
-      (ktv-create "town-sell" "int" 0)
-      ))
+     individual-ktvlist)
 
     (delete-button))
    (lambda (activity arg)
@@ -1038,6 +1042,30 @@
    "individual-chooser"
    (build-activity
     (vert
+     (horiz
+      (medit-text 'quick-name "normal" (lambda (v) (set-current! 'chooser-quick-name v) '()))
+      (mbutton-scale
+       'quick-add
+       (lambda ()
+         (list
+          (alert-dialog
+           "quick-add-check"
+           (mtext-lookup 'add-are-you-sure)
+           (lambda (v)
+             (cond
+              ((eqv? v 1)
+               (set-current!
+                'choose-result
+                (entity-create!
+                 db "sync" "individual"
+                 (ktvlist-merge
+                  individual-ktvlist
+                  (list
+                   (ktv "name" "varchar" (get-current 'chooser-quick-name (mtext-lookup 'no-name)))
+                   (ktv "parent" "varchar" (get-current 'household #f))))))
+               (list (finish-activity 0))))))))))
+
+
      (linear-layout
       (make-id "choose-pics") 'vertical
       (layout 'fill-parent 'wrap-content 0.75 'centre 0)

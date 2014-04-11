@@ -66,6 +66,21 @@
      (msg "unsupported ktv type in ktv-eq?: " (ktv-type a))
      #f))))
 
+;; replace or insert a ktv
+(define (ktvlist-replace ktv ktvlist)
+  (cond
+   ((null? ktvlist)
+    (list ktv))
+   ((equal? (ktv-key (car ktvlist)) (ktv-key ktv))
+    (cons ktv (cdr ktvlist)))
+   (else (cons (car ktvlist) (ktvlist-replace ktv (cdr ktvlist))))))
+
+(define (ktvlist-merge a b)
+  (foldl
+   (lambda (ktv r)
+     (ktvlist-replace ktv r))
+   a b))
+
 ;; stringify based on type (for url)
 (define (stringify-value ktv)
   (cond

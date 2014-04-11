@@ -105,6 +105,7 @@
           (entity-add-value-create! key type value)))
     (msg "done entity-set-value!")))
 
+
 (define (date-time->string dt)
   (string-append
    (number->string (list-ref dt 0)) "-"
@@ -120,23 +121,26 @@
         (table (get-current 'table #f))
         (type (get-current 'entity-type #f)))
     ;; standard bits
-    (entity-add-value-create! "user" "varchar" (get-current 'user-id "none"))
-    (entity-add-value-create! "time" "varchar" (date-time->string (date-time)))
-    (entity-add-value-create! "lat" "real" (car (get-current 'location '(0 0))))
-    (entity-add-value-create! "lon" "real" (cadr (get-current 'location '(0 0))))
-    (entity-add-value-create! "deleted" "int" 0)
-    (let ((values (get-current 'entity-values '())))
-      (cond
-       ((not (null? values))
-        (let ((r (insert-entity/get-unique
-                  db table type (get-current 'user-id "no id")
-                  values)))
-          (msg "inserted a " type)
-          (entity-reset!) r))
-       (else
-        (msg "no values to add as entity!") #f)))
-    ;; just to be on the safe side
-    (entity-reset!)))
+    (let ((r (entity-create! db table type (get-current 'entity-values '()))))
+      (entity-reset!) r)))
+
+
+(define (entity-create! db table entity-type ktv-list)
+  (let ((values
+         (append
+          (list
+           (ktv-create "user" "varchar" (get-current 'user-id "none"))
+           (ktv-create "time" "varchar" (date-time->string (date-time)))
+           (ktv-create "lat" "real" (car (get-current 'location '(0 0))))
+           (ktv-create "lon" "real" (cadr (get-current 'location '(0 0))))
+           (ktv-create "deleted" "int" 0))
+          ktv-list)))
+    (let ((r (insert-entity/get-unique
+              db table entity-type (get-current 'user-id "no id")
+              values)))
+      (msg "entity-create: " entity-type)
+      r)))
+
 
 (define (entity-update-values!)
   (let ((db (get-current 'db #f))
@@ -603,8 +607,8 @@
 
 (define (do-gps display-id key-prepend)
   (let ((loc (get-current 'location '(0 0))))
-    (entity-add-value-create! (string-append key-prepend "-lat") "real" (car loc))
-    (entity-add-value-create! (string-append key-prepend "-lon") "real" (cadr loc))
+    (entity-set-value! (string-append key-prepend "-lat") "real" (car loc))
+    (entity-set-value! (string-append key-prepend "-lon") "real" (cadr loc))
     (list
      (update-widget
       'text-view
@@ -641,9 +645,11 @@
        (mtext-lookup 'add-item-to-list)
        40 (layout 100 'wrap-content 1 'centre 5)
        (lambda ()
-         (entity-init! db table entity-type ktv-default)
-         (entity-add-value-create! "parent" "varchar" (parent-fn))
-         (entity-record-values!)
+         (entity-create!
+          db table entity-type
+          (ktvlist-merge
+           ktv-default
+           (list (ktv "parent" "varchar" (parent-fn)))))
          (list (update-list-widget db table entity-type edit-activity (parent-fn))))))
      (linear-layout
       (make-id (string-append entity-type "-list"))
@@ -686,7 +692,7 @@
        (lambda (v)
          (cond
           ((eqv? v 1)
-           (entity-add-value! "deleted" "int" 1)
+           (entity-set-value! "deleted" "int" 1)
            (entity-update-values!)
            (list (finish-activity 1)))
           (else
