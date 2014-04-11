@@ -151,7 +151,9 @@
         (update-entity db table (entity-id-from-unique db table unique-id) values)
         (msg "updated " unique-id)
         (msg values)
-        (entity-reset!))
+        ;; removed due to save button no longer exiting activity - need to keep!
+        ;;(entity-reset!)
+        )
        (else
         (msg "no values or no id to update as entity:" unique-id "values:" values))))))
 

@@ -628,15 +628,15 @@
 (define (update-social-connection db table id key type request-code)
   (let ((id-text (string-append (symbol->string id))))
     (list
-     ;;(update-person-selector db table id key)
+     (update-person-selector db table id key)
      (mupdate-spinner-other
       (string->symbol (string-append id-text "-relationship"))
       (string-append key "-relationship")
       social-relationship-list)
-;     (mupdate-spinner-other
-;      (string->symbol (string-append id-text "-residence"))
-;      (string-append key "-residence")
-;      social-residence-list)
+     (mupdate-spinner-other
+      (string->symbol (string-append id-text "-residence"))
+      (string-append key "-residence")
+      social-residence-list)
 ;     (mupdate-spinner
 ;      (string->symbol (dbg (string-append id-text "-strength")))
 ;      (string-append key "-strength")
