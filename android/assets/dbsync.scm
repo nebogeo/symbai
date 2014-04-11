@@ -68,23 +68,20 @@
 
 
 ;; store a ktv, replaces existing with same key
-(define (entity-add-value! key type value)
-  (set-current!
-   'entity-values
-   (ktv-set
-    (get-current 'entity-values '())
-    (ktv key type value))))
+;;(define (entity-add-value! key type value)
+;;  (set-current!
+;;   'entity-values
+;;   (ktv-set
+;;    (get-current 'entity-values '())
+;;    (ktv key type value))))
 
-;; internal version for checking version numbers are propagating properly
-;; this is for automatically added ktv data (and adds 0 version)
-;; rather than from the ui (which adds -999 by default)
 (define (entity-add-value-create! key type value)
+  (msg "entity-add-value-create!" key type value)
   (set-current!
    'entity-values
    (ktv-set
     (get-current 'entity-values '())
     (ktv-create key type value))))
-
 
 (define (entity-set! ktv-list)
   (set-current! 'entity-values ktv-list))
@@ -102,7 +99,10 @@
          (ktv-set
           (get-current 'entity-values '())
           (ktv key type value)))
-        (msg "entity-set-value -" key "of type" type "doesn't exist on this entity"))
+        ;;
+        (begin
+          (msg "entity-set-value! - adding new " key "of type" type "to entity")
+          (entity-add-value-create! key type value)))
     (msg "done entity-set-value!")))
 
 (define (date-time->string dt)

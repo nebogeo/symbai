@@ -131,7 +131,7 @@
   ;; use type to dispatch insert to correct value table
   (db-insert db (string-append "insert into " table "_value_" (ktv-type ktv)
                                " values (null, ?, ?, ?, ?, ?)")
-             entity-id (ktv-key ktv) (ktv-value ktv) dirty (ktv-version ktv)))
+             entity-id (ktv-key ktv) (ktv-value ktv) (if dirty 1 0) (ktv-version ktv)))
 
 (define (get-unique user)
   (let ((t (time-of-day)))
@@ -262,13 +262,16 @@
 
 ;; get an entire entity, as a list of key/value pairs, only dirty values
 (define (get-entity-plain-for-sync db table entity-id)
+  (msg "gepfs")
   (let* ((entity-type (get-entity-type db table entity-id)))
     (cond
       ((null? entity-type) (msg "entity" entity-id "not found!") '())
       (else
        (foldl
         (lambda (kt r)
+          (msg kt)
           (let ((vdv (get-value db table entity-id kt)))
+            (msg vdv)
             (cond
 			 ((null? vdv)
 			  (msg "ERROR: get-entity-plain-for-sync: no value found for " entity-id " " (ktv-key kt))

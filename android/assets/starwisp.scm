@@ -151,6 +151,7 @@
    (list 'geneaology-button (list "Geneaology"))
    (list 'social-button (list "Social"))
    (list 'agreement-button (list "Agreement"))
+   (list 'is-a-child (list "Child"))
 
    ;; details
    (list 'change-photo (list "Change photo"))
@@ -490,7 +491,7 @@
 ;; todo determine *which* selector this came from...
 (define (person-selector-return request-code key choose-code)
   (when (eqv? request-code choose-code)
-        (entity-add-value! key "varchar" (get-current 'choose-result "not set"))))
+        (entity-set-value! key "varchar" (get-current 'choose-result "not set"))))
 
 ;; need to load from across entities, so need db, table
 (define (update-person-selector db table id key)
@@ -576,11 +577,11 @@
               (mtext-small 'test-num))))))
      (build-activity
       (horiz
-       (medit-text 'village-name "normal" (lambda (v) (entity-add-value! "name" "varchar" v) '()))
-       (medit-text 'block "normal" (lambda (v) (entity-add-value! "block" "varchar" v) '())))
+       (medit-text 'village-name "normal" (lambda (v) (entity-set-value! "name" "varchar" v) '()))
+       (medit-text 'block "normal" (lambda (v) (entity-set-value! "block" "varchar" v) '())))
       (horiz
-       (medit-text 'district "normal" (lambda (v) (entity-add-value! "district" "varchar" v) '()))
-       (mtoggle-button-scale 'car (lambda (v) (entity-add-value! "car" "int" v) '())))
+       (medit-text 'district "normal" (lambda (v) (entity-set-value! "district" "varchar" v) '()))
+       (mtoggle-button-scale 'car (lambda (v) (entity-set-value! "car" "int" v) '())))
 
       (mbutton 'household-list
                (lambda ()
@@ -645,8 +646,8 @@
    "household"
    (build-activity
     (horiz
-     (medit-text 'household-name "normal" (lambda (v) (entity-add-value! "name" "varchar" v) '()))
-     (medit-text 'num-pots "numeric" (lambda (v) (entity-add-value! "num-pots" "int" v) '())))
+     (medit-text 'household-name "normal" (lambda (v) (entity-set-value! "name" "varchar" v) '()))
+     (medit-text 'num-pots "numeric" (lambda (v) (entity-set-value! "num-pots" "int" v) '())))
     (horiz
      (vert
       (mtext 'location)
@@ -670,6 +671,7 @@
       (ktv-create "photo" "file" "none")
       (ktv-create "tribe" "varchar" "none")
       (ktv-create "subtribe" "varchar" "none")
+      (ktv-create "child" "int" 0)
       (ktv-create "age" "int" 0)
       (ktv-create "gender" "varchar" "Female")
       (ktv-create "education" "varchar" "none")
@@ -735,7 +737,10 @@
       (spacer 20)
       (mtext 'family-display)
       (spacer 20)
-      (mtext 'photo-id-display)))
+      (mtext 'photo-id-display)
+      (spacer 20)
+      (mtoggle-button-scale 'is-a-child (lambda (v) (entity-set-value! "child" "int" v) '()))
+      ))
     (mbutton 'agreement-button (lambda () (list (start-activity "agreement" 0 ""))))
     (horiz
      (mbutton-scale 'details-button (lambda () (list (start-activity "details" 0 ""))))
@@ -759,7 +764,8 @@
       (mupdate 'text-view 'name-display "name")
       (mupdate 'text-view 'family-display "family")
       (mupdate 'text-view 'photo-id-display "photo-id")
-      (mupdate 'image-view 'photo "photo")))
+      (mupdate 'image-view 'photo "photo")
+      (mupdate 'toggle-button 'is-a-child "child")))
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
@@ -783,15 +789,15 @@
          )))
 
      (vert
-      (medit-text 'details-name "normal" (lambda (v) (entity-add-value! "name" "varchar" v) '()))
-      (medit-text 'details-family "normal" (lambda (v) (entity-add-value! "family" "varchar" v) '()))
-      (medit-text 'details-photo-id "normal" (lambda (v) (entity-add-value! "photo-id" "varchar" v) '()))))
-    (mspinner-other 'tribe tribes-list (lambda (v) (msg "tribe now:" v) (entity-add-value! "tribe" "varchar" v) '()))
-    (mspinner-other 'sub-tribe subtribe-list (lambda (v) (entity-add-value! "subtribe" "varchar" v) '()))
+      (medit-text 'details-name "normal" (lambda (v) (entity-set-value! "name" "varchar" v) '()))
+      (medit-text 'details-family "normal" (lambda (v) (entity-set-value! "family" "varchar" v) '()))
+      (medit-text 'details-photo-id "normal" (lambda (v) (entity-set-value! "photo-id" "varchar" v) '()))))
+    (mspinner-other 'tribe tribes-list (lambda (v) (msg "tribe now:" v) (entity-set-value! "tribe" "varchar" v) '()))
+    (mspinner-other 'sub-tribe subtribe-list (lambda (v) (entity-set-value! "subtribe" "varchar" v) '()))
     (horiz
-     (medit-text 'age "numeric" (lambda (v) (entity-add-value! "age" "int" v) '()))
-     (mspinner 'gender '(male female) (lambda (v) (entity-add-value! "gender" "varchar" v) '()))
-     (mspinner 'education education-list (lambda (v) (entity-add-value! "education" "varchar" v) '())))
+     (medit-text 'age "numeric" (lambda (v) (entity-set-value! "age" "int" v) '()))
+     (mspinner 'gender '(male female) (lambda (v) (entity-set-value! "gender" "varchar" v) '()))
+     (mspinner 'education education-list (lambda (v) (entity-set-value! "education" "varchar" v) '())))
     )
    (lambda (activity arg)
      (set-current! 'activity-title "Individual details")
@@ -820,7 +826,7 @@
        ;; need to do this before init is called again in on-start,
        ;; which happens next
        (let ((unique-id (entity-get-value "unique_id")))
-         (entity-add-value! "photo" "file" (get-current 'photo-name "error no photo name!!"))
+         (entity-set-value! "photo" "file" (get-current 'photo-name "error no photo name!!"))
          (entity-update-values!)
          ;; need to reset the individual from the db now (as update reset it)
          (entity-init! db "sync" "individual" (get-entity-by-unique db "sync" unique-id)))
@@ -834,23 +840,23 @@
    (build-activity
     (horiz
      (vert
-      (mspinner 'head-of-house '(male female) (lambda (v) (entity-add-value! "head-of-house" "varchar" v) '()))
-      (mspinner 'marital-status married-list (lambda (v) (entity-add-value! "marital-status" "varchar" v) '()))
-      (medit-text 'times-married "numeric" (lambda (v) (entity-add-value! "times-married" "int" v) '())))
+      (mspinner 'head-of-house '(male female) (lambda (v) (entity-set-value! "head-of-house" "varchar" v) '()))
+      (mspinner 'marital-status married-list (lambda (v) (entity-set-value! "marital-status" "varchar" v) '()))
+      (medit-text 'times-married "numeric" (lambda (v) (entity-set-value! "times-married" "int" v) '())))
 
      (build-person-selector 'spouse "id-spouse" (list) spouse-request-code)
      )
 
     (mtitle 'children)
     (horiz
-     (medit-text 'children-living "numeric" (lambda (v) (entity-add-value! "children-living" "int" v) '()))
-     (medit-text 'children-dead "numeric" (lambda (v) (entity-add-value! "children-dead" "int" v) '())))
+     (medit-text 'children-living "numeric" (lambda (v) (entity-set-value! "children-living" "int" v) '()))
+     (medit-text 'children-dead "numeric" (lambda (v) (entity-set-value! "children-dead" "int" v) '())))
     (horiz
-     (medit-text 'children-together "numeric" (lambda (v) (entity-add-value! "children-together" "int" v) '()))
-     (medit-text 'children-apart "numeric" (lambda (v) (entity-add-value! "children-apart" "int" v) '())))
+     (medit-text 'children-together "numeric" (lambda (v) (entity-set-value! "children-together" "int" v) '()))
+     (medit-text 'children-apart "numeric" (lambda (v) (entity-set-value! "children-apart" "int" v) '())))
     (mspinner-other 'residence-after-marriage '(birthplace spouse-village) (lambda (v) '()))
-    (medit-text 'num-siblings "numeric" (lambda (v) (entity-add-value! "num-siblings" "int" v) '()))
-    (medit-text 'birth-order "numeric" (lambda (v) (entity-add-value! "birth-order" "int" v) '())))
+    (medit-text 'num-siblings "numeric" (lambda (v) (entity-set-value! "num-siblings" "int" v) '()))
+    (medit-text 'birth-order "numeric" (lambda (v) (entity-set-value! "birth-order" "int" v) '())))
    (lambda (activity arg)
      (set-current! 'activity-title "Individual family")
       (activity-layout activity))
@@ -895,11 +901,11 @@
   (activity
    "migration"
    (build-activity
-    (medit-text 'length-time "numeric" (lambda (v) (entity-add-value! "length-time" "int" v) '()))
-    (medit-text 'place-of-birth "normal" (lambda (v) (entity-add-value! "place-of-birth" "varchar" v) '()))
-    (medit-text 'num-residence-changes "numeric" (lambda (v) (entity-add-value! "num-residence-changes" "int" v) '()))
-    (medit-text 'village-visits-month "numeric" (lambda (v) (entity-add-value! "village-visits-month" "int" v) '()))
-    (medit-text 'village-visits-year "numeric" (lambda (v) (entity-add-value! "village-visits-year" "int" v) '()))
+    (medit-text 'length-time "numeric" (lambda (v) (entity-set-value! "length-time" "int" v) '()))
+    (medit-text 'place-of-birth "normal" (lambda (v) (entity-set-value! "place-of-birth" "varchar" v) '()))
+    (medit-text 'num-residence-changes "numeric" (lambda (v) (entity-set-value! "num-residence-changes" "int" v) '()))
+    (medit-text 'village-visits-month "numeric" (lambda (v) (entity-set-value! "village-visits-month" "int" v) '()))
+    (medit-text 'village-visits-year "numeric" (lambda (v) (entity-set-value! "village-visits-year" "int" v) '()))
     )
    (lambda (activity arg)
      (set-current! 'activity-title "Individual migration")
@@ -921,13 +927,13 @@
    "income"
    (build-activity
     (mspinner 'occupation '(agriculture gathering labour cows fishing other)
-              (lambda (v) (entity-add-value! "occupation" "varchar" v) '()))
+              (lambda (v) (entity-set-value! "occupation" "varchar" v) '()))
     (horiz
-     (mtoggle-button-scale 'contribute (lambda (v) (entity-add-value! "contribute" "int" v) '()))
-     (mtoggle-button-scale 'own-land (lambda (v) (entity-add-value! "own-land" "int" v) '())))
+     (mtoggle-button-scale 'contribute (lambda (v) (entity-set-value! "contribute" "int" v) '()))
+     (mtoggle-button-scale 'own-land (lambda (v) (entity-set-value! "own-land" "int" v) '())))
     (horiz
-     (mtoggle-button-scale 'rent-land (lambda (v) (entity-add-value! "rent-land" "int" v) '()))
-     (mtoggle-button-scale 'hire-land (lambda (v) (entity-add-value! "hire-land" "int" v) '())))
+     (mtoggle-button-scale 'rent-land (lambda (v) (entity-set-value! "rent-land" "int" v) '()))
+     (mtoggle-button-scale 'hire-land (lambda (v) (entity-set-value! "hire-land" "int" v) '())))
     (mtitle 'crops)
     ;; todo ->
     ;;    (horiz
@@ -935,16 +941,16 @@
     ;;     (mtext-scale 'used-or-eaten) (mtext-scale 'sold) (mtext-scale 'seed))
     (mspinner-other 'house-type '(concrete tin thatched) (lambda (v) '()))
     (horiz
-     (medit-text 'loan "numeric" (lambda (v) (entity-add-value! "loan" "int" v) '()))
-     (medit-text 'earning "numeric" (lambda (v) (entity-add-value! "earning" "int" v) '())))
+     (medit-text 'loan "numeric" (lambda (v) (entity-set-value! "loan" "int" v) '()))
+     (medit-text 'earning "numeric" (lambda (v) (entity-set-value! "earning" "int" v) '())))
     (mtext 'in-the-home)
     (horiz
-     (mtoggle-button-scale 'radio (lambda (v) (entity-add-value! "radio" "int" v) '()))
-     (mtoggle-button-scale 'tv (lambda (v) (entity-add-value! "tv" "int" v) '()))
-     (mtoggle-button-scale 'mobile (lambda (v) (entity-add-value! "mobile" "int" v) '())))
+     (mtoggle-button-scale 'radio (lambda (v) (entity-set-value! "radio" "int" v) '()))
+     (mtoggle-button-scale 'tv (lambda (v) (entity-set-value! "tv" "int" v) '()))
+     (mtoggle-button-scale 'mobile (lambda (v) (entity-set-value! "mobile" "int" v) '())))
     (horiz
-     (medit-text 'visit-market "numeric" (lambda (v) (entity-add-value! "visit-market" "int" v) '()))
-     (medit-text 'town-sell "numeric" (lambda (v) (entity-add-value! "town-sell" "int" v) '())))
+     (medit-text 'visit-market "numeric" (lambda (v) (entity-set-value! "visit-market" "int" v) '()))
+     (medit-text 'town-sell "numeric" (lambda (v) (entity-set-value! "town-sell" "int" v) '())))
     )
    (lambda (activity arg)
      (set-current! 'activity-title "Individual income")
