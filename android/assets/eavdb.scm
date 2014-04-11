@@ -261,18 +261,20 @@
 
 ;; get an entire entity, as a list of key/value pairs
 (define (get-entity-plain db table entity-id)
-  (msg "get-entity-plain")
   (let* ((entity-type (get-entity-type db table entity-id)))
     (cond
       ((null? entity-type) (msg "entity" entity-id "not found!") '())
       (else
-       (map
-        (lambda (kt)
+       (foldl
+        (lambda (kt r)
 		  (let ((vdv (get-value db table entity-id kt)))
 			(if (null? vdv)
-				(msg "ERROR: get-entity-plain: no value found for " entity-id " " (ktv-key kt))
-				(list (ktv-key kt) (ktv-type kt)
-					  (list-ref vdv 0) (list-ref vdv 2)))))
+				(begin
+                  (msg "ERROR: get-entity-plain: no value found for " entity-id " " (ktv-key kt))
+                  r)
+				(cons (list (ktv-key kt) (ktv-type kt)
+                            (list-ref vdv 0) (list-ref vdv 2)) r))))
+        '()
         (get-attribute-ids/types db table entity-type))))))
 
 ;; get an entire entity, as a list of key/value pairs, only dirty values

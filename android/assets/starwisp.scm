@@ -47,6 +47,10 @@
 (define education-list   '(illiterate literate primary middle high secondary university))
 (define married-list '(ever-married currently-married currently-single seperated))
 
+(define social-relationship-list '(mother father sister brother spouse children co-wife spouse-mother spouse-father spouse-brother-wife spouse-sister-husband friend neighbour other))
+(define social-residence-list '(same other))
+(define social-strength-list '(daily weekly monthly less))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; user interface abstraction
 
@@ -182,7 +186,7 @@
 
    ;; family
    (list 'spouse (list "Spouse"))
-   (list 'change-id (list "Update ID"))
+   (list 'change-id (list "Change"))
    (list 'head-of-house (list "Head of house"))
    (list 'marital-status (list "Marital status"))
    (list 'ever-married (list "Ever married"))
@@ -242,13 +246,41 @@
    (list 'town-sell (list "Town or city visits"))
 
    ;; geneaology
-
    (list 'mother (list "Mother"))
    (list 'father (list "Father"))
    (list 'change-mother (list "Change mother"))
    (list 'change-father (list "Change father"))
    (list 'alive (list "Alive"))
    (list 'sex (list "Sex"))
+
+   ;; social
+   (list 'social-one (list "One"))
+   (list 'social-two (list "Two"))
+   (list 'social-three (list "Three"))
+   (list 'social-four (list "Four"))
+   (list 'social-five (list "Five"))
+   (list 'social-relationship (list "Relationship"))
+   (list 'social-residence (list "Residence"))
+   (list 'social-strength (list "Strength"))
+   (list 'mother (list "Mother"))
+   (list 'father (list "Father"))
+   (list 'sister (list "Sister"))
+   (list 'brother (list "Brother"))
+   (list 'spouse (list "Spouse"))
+   (list 'children (list "Children"))
+   (list 'co-wife (list "Co-wife"))
+   (list 'spouse-mother (list "Spouse's mother"))
+   (list 'spouse-father (list "Spouse's father"))
+   (list 'spouse-brother-wife (list "Spouse's brother's wife"))
+   (list 'spouse-sister-husband (list "Spouse's sister's husband"))
+   (list 'friend (list "Friend"))
+   (list 'neighbour (list "Neighbour"))
+   (list 'same (list "Same"))
+   (list 'daily (list "Daily"))
+   (list 'weekly (list "Weekly"))
+   (list 'monthly (list "Monthly"))
+   (list 'less (list "Less"))
+
    ))
 
 (define individual-ktvlist
@@ -531,6 +563,20 @@
       (filter-set! filter)
       (list (start-activity "individual-chooser" request-code ""))))))
 
+(define (build-small-person-selector id key filter request-code)
+  (vert
+   (mtitle id)
+   (image-view (make-id (string-append (symbol->string id) "-image"))
+               "face" (layout 120 160 -1 'centre 0))
+   (button
+    (make-id (string-append "change-" (symbol->string id)))
+    (mtext-lookup 'change-id)
+    40 (layout 'fill-parent 'wrap-content -1 'centre 5)
+    (lambda ()
+      (filter-set! filter)
+      (list (start-activity "individual-chooser" request-code ""))))))
+
+
 ;; from activity on result with request id: choose-code
 ;; todo determine *which* selector this came from...
 (define (person-selector-return request-code key choose-code)
@@ -549,6 +595,54 @@
           (update-widget 'image-view id 'image "face")
           (update-widget 'image-view id 'external-image (string-append dirname "files/" image-name))))))
 
+(define (build-social-connection id key type request-code)
+  (let ((id-text (string-append (symbol->string id))))
+    (horiz
+     (build-small-person-selector id key (list) request-code)
+     (mspinner-other-vert
+      (string->symbol (string-append id-text "-relationship"))
+      'social-relationship
+      social-relationship-list
+      (lambda (v)
+        (entity-set-value! (string-append key "-relationship") "varchar" v) '()))
+     (mspinner-other-vert
+      (string->symbol (string-append id-text "-residence"))
+      'social-residence
+      social-residence-list
+      (lambda (v)
+        (entity-set-value! (string-append key "-residence") "varchar" v) '()))
+     (vert
+      (text-view 0 (mtext-lookup 'social-strength)
+                 30 (layout 'wrap-content 'wrap-content 1 'centre 10))
+      (spinner
+       (make-id (dbg (string-append id-text "-strength")))
+       (map mtext-lookup  social-strength-list)
+       (layout 'wrap-content 'wrap-content 1 'centre 0)
+       (lambda (v)
+         (entity-set-value! (string-append key "-strength") "varchar" v) '()))))))
+
+(define (social-connection-return request-code key choose-code)
+  (when (eqv? request-code choose-code)
+        (entity-set-value! key "varchar" (get-current 'choose-result "not set"))))
+
+(define (update-social-connection db table id key type request-code)
+  (let ((id-text (string-append (symbol->string id))))
+    (list
+     ;;(update-person-selector db table id key)
+     (mupdate-spinner-other
+      (string->symbol (string-append id-text "-relationship"))
+      (string-append key "-relationship")
+      social-relationship-list)
+;     (mupdate-spinner-other
+;      (string->symbol (string-append id-text "-residence"))
+;      (string-append key "-residence")
+;      social-residence-list)
+;     (mupdate-spinner
+;      (string->symbol (dbg (string-append id-text "-strength")))
+;      (string-append key "-strength")
+;      social-strength-list)
+     )))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; activities
 
@@ -557,6 +651,12 @@
 (define spouse-request-code 997)
 (define mother-request-code 996)
 (define father-request-code 995)
+
+(define social-request-code-one 994)
+(define social-request-code-two 993)
+(define social-request-code-three 992)
+(define social-request-code-four 991)
+(define social-request-code-five 990)
 
 (define-activity-list
 
@@ -1013,16 +1113,33 @@
   (activity
    "social"
    (build-activity
+    (build-social-connection 'social-one "social-one" "friend" social-request-code-one)
+    (build-social-connection 'social-two "social-two" "friend" social-request-code-two)
+    (build-social-connection 'social-three "social-three" "friend" social-request-code-three)
+    (build-social-connection 'social-four "social-four" "friend" social-request-code-four)
+    (build-social-connection 'social-five "social-five" "friend" social-request-code-five)
     )
    (lambda (activity arg)
      (set-current! 'activity-title "Individual social network")
      (activity-layout activity))
-   (lambda (activity arg) '())
+   (lambda (activity arg)
+     (append
+      (update-social-connection db "sync" 'social-one "social-one" "friend" social-request-code-one)
+      (update-social-connection db "sync" 'social-two "social-two" "friend" social-request-code-two)
+      (update-social-connection db "sync" 'social-three "social-three" "friend" social-request-code-three)
+      (update-social-connection db "sync" 'social-four "social-four" "friend" social-request-code-four)
+      (update-social-connection db "sync" 'social-five "social-five" "friend" social-request-code-five)))
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
-   (lambda (activity requestcode resultcode) '()))
+   (lambda (activity requestcode resultcode)
+     (social-connection-return requestcode "social-one" social-request-code-one)
+     (social-connection-return requestcode "social-two" social-request-code-two)
+     (social-connection-return requestcode "social-three" social-request-code-three)
+     (social-connection-return requestcode "social-four" social-request-code-four)
+     (social-connection-return requestcode "social-five" social-request-code-five)
+     '()))
 
   (activity
    "agreement"
@@ -1036,7 +1153,8 @@
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
-   (lambda (activity requestcode resultcode) '()))
+   (lambda (activity requestcode resultcode)
+     '()))
 
   (activity
    "individual-chooser"

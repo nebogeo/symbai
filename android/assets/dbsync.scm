@@ -91,7 +91,6 @@
 
 ;; version to check the entity has the key
 (define (entity-set-value! key type value)
-  (msg "entity-set-value!")
   (let ((existing-type (ktv-get-type (get-current 'entity-values '()) key)))
     (if (equal? existing-type type)
         (set-current!
@@ -102,8 +101,7 @@
         ;;
         (begin
           (msg "entity-set-value! - adding new " key "of type" type "to entity")
-          (entity-add-value-create! key type value)))
-    (msg "done entity-set-value!")))
+          (entity-add-value-create! key type value)))))
 
 
 (define (date-time->string dt)
@@ -528,6 +526,25 @@
                (layout 'fill-parent 'wrap-content 1 'centre 0)
                (lambda (t) (fn t))))))
 
+(define (mspinner-other-vert id text-id types fn)
+  (linear-layout
+   0 'vertical
+   (layout 'fill-parent 'wrap-content 1 'centre 5)
+   (list 0 0 0 0)
+   (list
+    (text-view (symbol->id id)
+               (mtext-lookup text-id)
+               30 (layout 'wrap-content 'wrap-content 1 'centre 5))
+    (spinner (make-id (string-append (symbol->string id) "-spinner"))
+             (map mtext-lookup types)
+             (layout 'wrap-content 'wrap-content 1 'centre 0)
+             (lambda (c) (fn c)))
+    (mtext-scale 'other)
+    (edit-text (make-id (string-append (symbol->string id) "-edit-text"))
+               "" 30 "normal"
+               (layout 'fill-parent 'wrap-content 1 'centre 0)
+               (lambda (t) (fn t))))))
+
 
 (define (mclear-toggles id-list)
   (map
@@ -559,7 +576,6 @@
                    (entity-get-value key)))
    ((eq? widget-type 'image-view)
     (let ((image-name (entity-get-value key)))
-      (msg "updating image widget to: " image-name)
       (if (image-invalid? image-name)
           (update-widget widget-type (get-symbol-id id-symbol) 'image "face")
           (update-widget widget-type (get-symbol-id id-symbol) 'external-image
