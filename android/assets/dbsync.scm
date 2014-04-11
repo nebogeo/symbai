@@ -216,7 +216,7 @@
   (msg "running spit")
   (foldl
    (lambda (e r)
-     (msg (car (car e)))
+     ;;(msg (car (car e)))
      (debug! (string-append "Sending a " (car (car e)) " to Raspberry Pi"))
      (append
       (list
@@ -310,6 +310,7 @@
     "new-entities-req"
     (string-append url "fn=entity-versions&table=" table)
     (lambda (data)
+      (msg "entity-versions:" data)
       (let ((r (foldl
                 (lambda (i r)
                   (let* ((unique-id (car i))
@@ -321,6 +322,13 @@
                                           db table
                                           (get-entity-id db table unique-id)))
                               #f)))
+                    (msg "suck check entity old=" old)
+                    (msg "version there" version)
+                    (when exists
+                          (msg "version here" (get-entity-version
+                                               db table
+                                               (get-entity-id db table unique-id))))
+
                     ;; if we don't have this entity or the version on the server is newer
                     (if (or (not exists) old)
                         (cons (suck-entity-from-server db table unique-id) r)

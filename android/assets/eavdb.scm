@@ -188,20 +188,19 @@
             '())))) ;;(msg "values for" (ktv-key ktv) "are the same (" (ktv-value ktv) "==" s ")")))))
 
 ;; don't make dirty or update version here
-(define (update-value-from-sync db table entity-id ktv version)
+(define (update-value-from-sync db table entity-id ktv)
   (let ((s (select-first
             db (string-append
                 "select value from " table "_value_" (ktv-type ktv) " where entity_id = ? and attribute_id = ?")
             entity-id (ktv-key ktv))))
-	(msg "uvfs")
-	(msg (ktv-value ktv))
-	(msg s)
     (if (null? s)
         (insert-value db table entity-id ktv #t)
-        (db-exec
-         db (string-append "update " table "_value_" (ktv-type ktv)
-                           " set value=?, dirty=0, version=? where entity_id = ? and attribute_id = ?")
-         (ktv-value ktv) entity-id (ktv-key ktv) (ktv-version ktv)))))
+        (begin
+          (msg "actually updating (fs)" (ktv-key ktv) "to" (ktv-value ktv))
+          (db-exec
+           db (string-append "update " table "_value_" (ktv-type ktv)
+                             " set value=?, dirty=0, version=? where entity_id = ? and attribute_id = ?")
+           (ktv-value ktv) (ktv-version ktv) entity-id (ktv-key ktv))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; getting data out
@@ -244,7 +243,7 @@
 		(list (vector-ref (cadr s) 0)
 			  (vector-ref (cadr s) 1)
 			  (vector-ref (cadr s) 2)))))
-	
+
 ;; get an entire entity, as a list of key/value pairs
 (define (get-entity-plain db table entity-id)
   (msg "get-entity-plain")
@@ -255,7 +254,6 @@
        (map
         (lambda (kt)
 		  (let ((vdv (get-value db table entity-id kt)))
-			(msg vdv)
 			(if (null? vdv)
 				(msg "ERROR: get-entity-plain: no value found for " entity-id " " (ktv-key kt))
 				(list (ktv-key kt) (ktv-type kt)
@@ -270,17 +268,16 @@
       (else
        (foldl
         (lambda (kt r)
-          (msg "kt is" kt)
           (let ((vdv (get-value db table entity-id kt)))
-            (cond 
-			 ((null? vdv) 			  
-			  (msg "ERROR: get-entity-plain-for-sync: no value found for " entity-id " " (ktv-key kt))				
+            (cond
+			 ((null? vdv)
+			  (msg "ERROR: get-entity-plain-for-sync: no value found for " entity-id " " (ktv-key kt))
 			  r)
 			 ;; only return if dirty
 			 ((not (zero? (cadr vdv)))
 			  (msg "value-dirty-version found" vdv)
 			  (cons
-			   (list (ktv-key kt) (ktv-type kt) (list-ref vdv 0) (list-ref vdv 2)) 
+			   (list (ktv-key kt) (ktv-type kt) (list-ref vdv 0) (list-ref vdv 2))
 			   r))
 			 (else r))))
         '()
@@ -543,11 +540,12 @@
        "update " table "_entity set dirty=?, version=version+1 where entity_id = ?")
    1 entity-id))
 
+;; set from a sync, so clear dirty - should be anyway
 (define (update-entity-version db table entity-id version)
   (db-exec
    db (string-append
-       "update " table "_entity set dirty=?, version=? where entity_id = ?")
-   1 version entity-id))
+       "update " table "_entity set dirty=0, version=? where entity_id = ?")
+   version entity-id))
 
 (define (update-entity-clean db table unique-id)
   (msg "cleaning")
