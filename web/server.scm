@@ -32,6 +32,7 @@
 ;         "scripts/input.ss"
 	 )
 
+
 ; a utility to change the process owner,
 ; assuming mzscheme is called by root.
 ;;(unsafe!)
@@ -42,6 +43,9 @@
 (open-log "log.txt")
 
 ;(write-db db "sync" "/home/dave/code/mongoose-web/web/input.csv")
+
+(msg (csv db "sync" "individual"))
+
 
 (define registered-requests
   (list
@@ -63,7 +67,18 @@
       (pluto-response (scheme->txt '("ok")))))
 
    ;; http://localhost:8888/mongoose?fn=sync&table=sync&entity-type=mongoose&unique-id=dave1234&dirty=1&version=0&next:varchar=%22foo%22&blah:int=20
-
+   
+   ;; all dirty entities are sent to this function from the android in
+   ;; general - we shouldn't care about version numbers from this
+   ;; point locally they are dirty, and that should be it?  
+   ;;
+   ;; * perhaps they are very old changes from a tablet that hasn't
+   ;; been updated?
+   ;;
+   ;; * is this the place to flag problems?
+   ;;
+   ;; * sometimes this is not called for dirty entities - in the case
+   ;; of a full db update thing
    (register
     (req 'sync '(table entity-type unique-id dirty version))
     (lambda (req table entity-type unique-id dirty version . data)
@@ -76,7 +91,8 @@
          unique-id
          (string->number dirty)
          (string->number version) data)))))
-
+   
+   ;; returns a table of all entities and their corresponding versions
    (register
     (req 'entity-versions '(table))
     (lambda (req table)
@@ -84,6 +100,8 @@
        (scheme->txt
         (entity-versions db table)))))
 
+   ;; returns the entity - the android requests these based on the version numbers
+   ;; (request all ones that are newer than it's stored version)
    (register
     (req 'entity '(table unique-id))
     (lambda (req table unique-id)
@@ -110,9 +128,9 @@
 
 (define (start request)
   (let ((values (url-query (request-uri request))))
+    (msg values)
     (if (not (null? values))   ; do we have some parameters?
         (let ((name (assq 'fn values)))
-	  (msg values)
           (if name           ; is this a well formed request?
 	      (request-dispatch
 	       registered-requests
