@@ -643,7 +643,13 @@
   (let ((lat (entity-get-value (string-append key-prepend "-lat")))
         (lon (entity-get-value (string-append key-prepend "-lon"))))
     (if (or (not lat) (not lon))
-        '()
+        (list
+         (update-widget
+          'text-view (get-id (string-append (symbol->string display-id) "-lat"))
+          'text "O")
+         (update-widget
+          'text-view (get-id (string-append (symbol->string display-id) "-lon"))
+          'text "0"))
         (list
          (update-widget
           'text-view (get-id (string-append (symbol->string display-id) "-lat"))
