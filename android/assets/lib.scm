@@ -50,6 +50,16 @@
       (insert (car lst) fn
               (sort (cdr lst) fn))))
 
+;; (chop (1 2 3 4) 2) -> ((1 2) (3 4))
+(define (chop l n)
+  (define (_ in out c)
+    (display c)(newline)
+    (cond
+      ((null? in) out)
+      ((zero? c) (_ (cdr in) (cons (list (car in)) out) (- n 1)))
+      (else (_ (cdr in) (cons (cons (car in) (car out)) (cdr out)) (- c 1)))))
+  (reverse (map reverse (_ l '(()) n))))
+
 (define (find n l)
   (cond
     ((null? l) #f)
@@ -61,6 +71,15 @@
     ((null? l) #f)
     ((eqv? n (car (car l))) (car l))
     (else (findv n (cdr l)))))
+
+;; find the index of an item in a flat list
+(define (index-find n l)
+  (define (_ l i)
+    (cond
+     ((null? l) #f)
+     ((equal? n (car l)) i)
+     (else (_ (cdr l) (+ i 1)))))
+  (_ l 0))
 
 (define (sorted-add l i)
   (cond
@@ -448,6 +467,8 @@
 (define (edit-text-listener t) (list-ref t 6))
 (define (button id text text-size layout listener) (list "button" id text text-size layout listener))
 (define (button-listener t) (list-ref t 5))
+(define (image-button id image layout listener) (list "image-button" id image layout listener))
+(define (image-button-listener t) (list-ref t 4))
 (define (toggle-button id text text-size layout style listener) (list "toggle-button" id text text-size layout style listener))
 (define (toggle-button-listener t) (list-ref t 6))
 (define (seek-bar id max layout listener) (list "seek-bar" id max layout listener))
@@ -720,6 +741,7 @@
   (cond
    ((equal? (widget-type w) "edit-text") (edit-text-listener w))
    ((equal? (widget-type w) "button") (button-listener w))
+   ((equal? (widget-type w) "image-button") (image-button-listener w))
    ((equal? (widget-type w) "toggle-button") (toggle-button-listener w))
    ((equal? (widget-type w) "seek-bar") (seek-bar-listener w))
    ((equal? (widget-type w) "spinner") (spinner-listener w))
@@ -875,6 +897,8 @@
                 ((equal? (callback-type cb) "edit-text")
                  ((callback-fn cb) (car args)))
                 ((equal? (callback-type cb) "button")
+                 ((callback-fn cb)))
+                ((equal? (callback-type cb) "image-button")
                  ((callback-fn cb)))
                 ((equal? (callback-type cb) "toggle-button")
                  ((callback-fn cb) (car args)))
