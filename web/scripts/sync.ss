@@ -27,12 +27,13 @@
      (msg i)
      (let ((kv (string-split (symbol->string (car i)) '(#\:))))
        (list
-        (car kv) (cadr kv) (cdr i))))
+        (car kv) (cadr kv) (cdr i) (string->number (list-ref kv 2)))))
    data))
 
 (define (sync-update db table entity-type unique-id dirty version data)
   (let ((entity-id (entity-id-from-unique db table unique-id))
         (ktvlist (dbg (request-args->ktvlist data))))
+    (msg "sync-update" ktvlist)
     (update-to-version db table entity-id version ktvlist)
     (list "updated" unique-id)))
 
@@ -48,47 +49,80 @@
      (list table entity-type entity-id unique-id current-version)
      (get-entity db table entity-id))))
 
+(define (merge-n-bump current-version db table entity-type unique-id dirty version data)
+  (let ((entity-id (entity-id-from-unique db table unique-id)))
+    (msg "merge start:" (get-entity-version db table entity-id))
+    (let ((r (sync-update db table entity-type unique-id dirty version data)))
+      (msg "merge post:" (get-entity-version db table entity-id))
+      ;; must be one newer than highest in the system
+      (update-entity-version db table entity-id (+ current-version 1))
+      (msg "merge over:" (get-entity-version db table entity-id))
+      r)))
+
 (define (check-for-sync db table entity-type unique-id dirty version data)
   (let ((current-version (entity-version-from-unique db table unique-id)))
     (if (not (null? current-version))
+(begin	(msg "versions" version "vs previous " current-version)
+
         ;; if it exists
         (cond
-         ;; everything matches - no change
-         ((and (eq? dirty 0) (eq? version current-version))
-          (list "no change" unique-id))
 
-         ;; dirty but matches, should be ok (timeout causes this)
-         ((and (eq? dirty 1) (eq? version current-version))
-          (list "match" unique-id))
+	 ;; dirty path - basically merge it whatever...
 
          ;; need to update existing data, newer version from android
          ((and (eq? dirty 1) (> version current-version) )
-          (sync-update db table entity-type unique-id dirty version data))
+	  (msg "NEWER - merging...")
+	  ;; bump the version as this is a new entity post-merge
+	  (merge-n-bump version db table entity-type unique-id dirty version data))
+
+         ;; dirty but matches, should be ok (timeout causes this)
+         ((and (eq? dirty 1) (eq? version current-version))
+	  (msg "MATCHES, merging...")
+	  ;;(list "match" unique-id))
+	  ;; bump the version number so others get merged version
+	  (merge-n-bump current-version db table entity-type unique-id dirty version data))
+
+         ;; it's changed, but has an old or same version = conflict!!??
+	 ;; still merge, but complicated...
+         ((and (eq? dirty 1) (< version current-version))
+	  (msg "CONFLICT, merging")
+          (list "CONFLICT" unique-id)
+	  ;; bump the version number so others get merged version
+	  (merge-n-bump current-version db table entity-type unique-id dirty version data))
+
+	 ;; not dirty path (avoid doing stuff here as it's probably a bug)
+
+         ;; android version is newer than existing but not changed??
+         ((and (eq? dirty 0) (> version current-version))
+	  (msg "MISMATCH")
+          (list "MISMATCH" unique-id))
+        
+         ;; everything matches - no change
+         ((and (eq? dirty 0) (eq? version current-version))
+	  (msg "NOT DIRTY, WHY SENT? (eq)")
+          (list "no change" unique-id))
 
          ;; need to send update
          ((and (eq? dirty 0) (< version current-version))
-          (send-version db table entity-type unique-id current-version))
-
-         ;; it's changed, but has an old or same version = conflict!!??
-         ((and (eq? dirty 1) (<= version current-version))
-          (list "CONFLICT" unique-id))
-
-         ;; android version is newer but not changed??
-         ((and (eq? dirty 0) (> version current-version))
-          (list "MISMATCH" unique-id))
+	  (msg "NOT DIRTY, WHY SENT? (older)")
+          (list "no change" unique-id))
 
          (else
-          (list "WAT?" unique-id)))
+	  (msg "WAT?")
+          (list "WAT?" unique-id))))
 
         ;; doesnt exist yet, so insert it
         (sync-insert db table entity-type unique-id dirty version data))))
 
 (define (entity-versions db table)
-  (map
-   (lambda (i)
-     (list (vector-ref i 0) (vector-ref i 1)))
-   (cdr (db-select
-         db (string-append "select unique_id, version from " table "_entity;")))))
+  (let ((s (db-select
+	    db (string-append "select unique_id, version from " table "_entity;"))))
+    (if (null? s) 
+	'()
+	(map
+	 (lambda (i)
+	   (list (vector-ref i 0) (vector-ref i 1)))
+	 (cdr s)))))
 
 (define (send-entity db table unique-id)
   (let* ((entity-id (entity-id-from-unique db table unique-id))
