@@ -47,6 +47,7 @@
 (define education-list   '(illiterate literate primary middle high secondary university))
 (define married-list '(ever-married currently-married currently-single seperated))
 
+(define social-types-list '(friendship knowledge prestige))
 (define social-relationship-list '(mother father sister brother spouse children co-wife spouse-mother spouse-father spouse-brother-wife spouse-sister-husband friend neighbour other))
 (define social-residence-list '(same other))
 (define social-strength-list '(daily weekly monthly less))
@@ -254,6 +255,10 @@
    (list 'sex (list "Sex"))
 
    ;; social
+   (list 'social-type (list "Type"))
+   (list 'friendship (list "Friendship"))
+   (list 'knowledge (list "Knowledge"))
+   (list 'prestige (list "Prestige"))
    (list 'social-one (list "One"))
    (list 'social-two (list "Two"))
    (list 'social-three (list "Three"))
@@ -1113,6 +1118,7 @@
   (activity
    "social"
    (build-activity
+    (mspinner 'social-type social-types-list (lambda (v) (entity-set-value! "social-type" "varchar" v) '()))
     (build-social-connection 'social-one "social-one" "friend" social-request-code-one)
     (build-social-connection 'social-two "social-two" "friend" social-request-code-two)
     (build-social-connection 'social-three "social-three" "friend" social-request-code-three)
@@ -1124,6 +1130,8 @@
      (activity-layout activity))
    (lambda (activity arg)
      (append
+      (list
+       (mupdate-spinner 'social-type "social-type" social-types-list))
       (update-social-connection db "sync" 'social-one "social-one" "friend" social-request-code-one)
       (update-social-connection db "sync" 'social-two "social-two" "friend" social-request-code-two)
       (update-social-connection db "sync" 'social-three "social-three" "friend" social-request-code-three)
