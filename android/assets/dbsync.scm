@@ -640,15 +640,17 @@
       (number->string (cadr loc))))))
 
 (define (mupdate-gps display-id key-prepend)
-  (list
-   (update-widget
-    'text-view (get-id (string-append (symbol->string display-id) "-lat"))
-    'text (number->string
-           (entity-get-value (string-append key-prepend "-lat")) "real" 0))
-   (update-widget
-    'text-view (get-id (string-append (symbol->string display-id) "-lon"))
-    'text (number->string
-           (entity-get-value (string-append key-prepend "-lon")) "real" 0))))
+  (let ((lat (entity-get-value (string-append key-prepend "-lat")))
+        (lon (entity-get-value (string-append key-prepend "-lon"))))
+    (if (or (not lat) (not lon))
+        '()
+        (list
+         (update-widget
+          'text-view (get-id (string-append (symbol->string display-id) "-lat"))
+          'text (number->string lat))
+         (update-widget
+          'text-view (get-id (string-append (symbol->string display-id) "-lon"))
+          'text (number->string lon))))))
 
 
 ;; a standard builder for list widgets of entities and a

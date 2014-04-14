@@ -38,7 +38,7 @@
  (list
   (ktv "user-id" "varchar" "No name yet...")))
 
-(define entity-types (list "village"))
+(define entity-types (list "village" "household" "individual"))
 
 ;;(display (db-all db "local" "app-settings"))(newline)
 
@@ -648,6 +648,40 @@
       social-strength-list)
      )))
 
+(define (build-amenity-widgets id shade)
+  (let ((id-text (symbol->string id)))
+    (horiz-colour
+     (if shade colour-one colour-two)
+     (mtoggle-button-scale
+      id (lambda (v)
+           (entity-set-value! id-text "int" v) '()))
+     (medit-text-scale
+      (string->symbol (string-append id-text "-closest-access"))
+      "normal" (lambda (v) (entity-set-value!
+                            (string-append id-text "-closest-access")
+                            "varchar" v) '()))
+     (vert
+      (mbutton-scale
+       (string->symbol (string-append id-text "-gps"))
+       (lambda ()  (do-gps
+                    (string->symbol (string-append id-text "-gps"))
+                    (string-append id-text "-gps"))))
+      (mtext-small (string->symbol (string-append id-text "-lat")))
+      (mtext-small (string->symbol (string-append id-text "-lat")))))))
+
+(define (update-amenity-widgets id)
+  (let ((id-text (symbol->string id)))
+    (append
+     (list
+      (mupdate 'toggle-button id id-text)
+      (mupdate 'edit-text
+               (string->symbol (string-append id-text "-closest-access"))
+               (string-append id-text "-closest-access")))
+     (mupdate-gps
+      (string->symbol (string-append id-text "-gps"))
+      (string-append id-text "-gps")))))
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; activities
 
@@ -714,16 +748,6 @@
 
   (activity
    "village"
-   (let ((place-widgets
-          (lambda (id shade)
-            (horiz-colour
-             (if shade colour-one colour-two)
-             (mtoggle-button-scale id (lambda (v) '()))
-             (medit-text-scale 'closest-access "normal" (lambda (v) '()))
-             (vert
-              (mbutton-scale 'gps (lambda ()  '()))
-              (mtext-small 'test-num)
-              (mtext-small 'test-num))))))
      (build-activity
       (horiz
        (medit-text 'village-name "normal" (lambda (v) (entity-set-value! "name" "varchar" v) '()))
@@ -738,27 +762,38 @@
                                        (get-current 'village #f)))))
 
       (mtitle 'amenities)
-      (place-widgets 'school #t)
-      (place-widgets 'hospital #f)
-      (place-widgets 'post-office #t)
-      (place-widgets 'railway-station #f)
-      (place-widgets 'state-bus-service #t)
-      (place-widgets 'district-bus-service #f)
-      (place-widgets 'panchayat #t)
-      (place-widgets 'NGO #f)
-      (place-widgets 'market #t)
-      (delete-button)))
+      (build-amenity-widgets 'school #t)
+      (build-amenity-widgets 'hospital #f)
+      (build-amenity-widgets 'post-office #t)
+      (build-amenity-widgets 'railway-station #f)
+      (build-amenity-widgets 'state-bus-service #t)
+      (build-amenity-widgets 'district-bus-service #f)
+      (build-amenity-widgets 'panchayat #t)
+      (build-amenity-widgets 'NGO #f)
+      (build-amenity-widgets 'market #t)
+      (delete-button))
    (lambda (activity arg)
      (set-current! 'activity-title "Village")
      (activity-layout activity))
    (lambda (activity arg)
      (entity-init! db "sync" "village" (get-entity-by-unique db "sync" arg))
      (set-current! 'village arg)
-     (list
-      (mupdate 'edit-text 'village-name "name")
-      (mupdate 'edit-text 'block "block")
-      (mupdate 'edit-text 'district "district")
-      (mupdate 'toggle-button 'car "car")))
+     (append
+      (list
+       (mupdate 'edit-text 'village-name "name")
+       (mupdate 'edit-text 'block "block")
+       (mupdate 'edit-text 'district "district")
+       (mupdate 'toggle-button 'car "car"))
+      (update-amenity-widgets 'school)
+      (update-amenity-widgets 'hospital)
+      (update-amenity-widgets 'post-office)
+      (update-amenity-widgets 'railway-station)
+      (update-amenity-widgets 'state-bus-service)
+      (update-amenity-widgets 'district-bus-service)
+      (update-amenity-widgets 'panchayat)
+      (update-amenity-widgets 'NGO)
+      (update-amenity-widgets 'market)))
+
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
