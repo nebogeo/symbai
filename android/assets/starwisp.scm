@@ -1305,8 +1305,8 @@
                     (cons
                      (http-download
                       (string-append "getting-" e)
-                      (string-append url "fn=entity-csv&table=stream&type=" e)
-                      (string-append "/sdcard/mongoose/" e ".csv"))
+                      (string-append url "fn=entity-csv&table=sync&type=" e)
+                      (string-append "/sdcard/symbai/" e ".csv"))
                      r))
                   (list
                    (http-download
@@ -1322,7 +1322,7 @@
                  (list
                   (send-mail
                    ""
-                   "From Symbai" "Please find attached your mongoose data"
+                   "From Symbai" "Please find attached your data"
                    (cons
                     "/sdcard/symbai/symbai.db"
                     (map
