@@ -32,6 +32,7 @@
 ;         "scripts/input.ss"
 	 )
 
+
 ; a utility to change the process owner,
 ; assuming mzscheme is called by root.
 ;;(unsafe!)
@@ -42,6 +43,9 @@
 (open-log "log.txt")
 
 ;(write-db db "sync" "/home/dave/code/mongoose-web/web/input.csv")
+
+(msg (csv db "sync" "individual"))
+
 
 (define registered-requests
   (list

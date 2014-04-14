@@ -68,6 +68,13 @@
      (msg "unsupported ktv type in ktv-eq?: " (ktv-type a))
      #f))))
 
+(define (null-value-for-type type)
+  (cond
+   ((equal? type "varchar") "not set")
+   ((equal? type "int") 0)
+   ((equal? type "real") 0)
+   ((equal? type "file") "not set")))
+
 ;; stringify based on type (for url)
 (define (stringify-value ktv)
   (cond
@@ -255,20 +262,24 @@
 	      (vector-ref (cadr s) 1)
 	      (vector-ref (cadr s) 2)))))
 
+
 ;; get an entire entity, as a list of key/value pairs
 (define (get-entity-plain db table entity-id)
   (let* ((entity-type (get-entity-type db table entity-id)))
     (cond
       ((null? entity-type) (msg "entity" entity-id "not found!") '())
       (else
-       (map
-        (lambda (kt)
-          (let ((vdv (get-value db table entity-id kt)))
-            (if (null? vdv) 
-		(msg "ERROR: get-entity-plain: no value found for " entity-id " " (ktv-key kt))		
-		(list (ktv-key kt) (ktv-type kt) 
-		      (list-ref vdv 0) (list-ref vdv 2)))))
-        (get-attribute-ids/types db table entity-type))))))
+       (foldl
+        (lambda (kt r)
+	    (let ((vdv (get-value db table entity-id kt)))
+	      (if (null? vdv)
+		  (begin
+		    (msg "ERROR: get-entity-plain: no value found for " entity-id " " (ktv-key kt))
+		    (cons (list (ktv-key kt) (ktv-type kt) (null-value-for-type (ktv-type kt))) r))
+		  (cons (list (ktv-key kt) (ktv-type kt)
+			      (list-ref vdv 0) (list-ref vdv 2)) r))))
+        '()
+        (reverse (get-attribute-ids/types db table entity-type)))))))
 
 ;; get an entire entity, as a list of key/value pairs, only dirty values                               
 (define (get-entity-plain-for-sync db table entity-id)
@@ -685,7 +696,7 @@
    (lambda (kt r)
      (if (equal? r "") (string-append "\"" (ktv-key kt) "\"")
          (string-append r ", \"" (ktv-key kt) "\"")))
-   "id, "
+   "id "
    (get-attribute-ids/types db table entity-type)))
 
 (define (csv db table entity-type)
@@ -700,7 +711,7 @@
             ((equal? (ktv-key ktv) "unique_id") r)
             ((null? (ktv-value ktv))
              (msg "value not found in csv for " (ktv-key ktv))
-             r)
+             (string-append r ", NULL"))
             ;; dereferences lists of ids
             ((and
               (> (string-length (ktv-key ktv)) 8)
@@ -709,8 +720,12 @@
             ;; look for unique ids and dereference them
             ((and
               (> (string-length (ktv-key ktv)) 3)
-              (equal? (substring (ktv-key ktv) 0 3) "id-"))
-             (string-append r ", \"" (get-entity-name db "sync" (ktv-value ktv)) "\""))
+              (equal? (substring (ktv-key ktv) 0 3) "id-")
+	      (not (equal? (ktv-value ktv) "none")))
+	     (let ((name (get-entity-name db "sync" (ktv-value ktv))))
+	       (if (null? name)
+		   "\"nobody\""
+		   (string-append r ", \"" name "\""))))
             (else
              (string-append r ", \"" (stringify-value-url ktv) "\""))))
          (vector-ref res 1) ;; unique_id
