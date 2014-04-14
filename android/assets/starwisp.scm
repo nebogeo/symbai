@@ -615,7 +615,7 @@
       (text-view 0 (mtext-lookup 'social-strength)
                  30 (layout 'wrap-content 'wrap-content 1 'centre 10))
       (spinner
-       (make-id (dbg (string-append id-text "-strength")))
+       (make-id (dbg (string-append id-text "-strength-spinner")))
        (map mtext-lookup  social-strength-list)
        (layout 'wrap-content 'wrap-content 1 'centre 0)
        (lambda (v)
@@ -637,10 +637,10 @@
       (string->symbol (string-append id-text "-residence"))
       (string-append key "-residence")
       social-residence-list)
-;     (mupdate-spinner
-;      (string->symbol (dbg (string-append id-text "-strength")))
-;      (string-append key "-strength")
-;      social-strength-list)
+     (mupdate-spinner
+      (string->symbol (dbg (string-append id-text "-strength")))
+      (string-append key "-strength")
+      social-strength-list)
      )))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
