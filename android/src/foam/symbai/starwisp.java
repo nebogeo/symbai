@@ -74,7 +74,7 @@ public class starwisp extends StarwispActivity
         ActivityManager.RegisterActivity("social",SocialActivity.class);
         ActivityManager.RegisterActivity("individual-chooser",IndividualChooserActivity.class);
         ActivityManager.RegisterActivity("sync",SyncActivity.class);
-
+        ActivityManager.RegisterActivity("crop",CropActivity.class);
     };
 
     /** Called when the activity is first created. */
@@ -106,6 +106,7 @@ public class starwisp extends StarwispActivity
         m_Scheme.eval("(define dirname \"/sdcard/"+dirname+"\")(define date-day "+day+") (define date-month "+month+") (define date-year "+year+")");
 
         Log.i("starwisp","started, now running starwisp.scm...");
+        m_Scheme.eval(m_Scheme.readRawTextFile(this, "translations.scm"));
         m_Scheme.eval(m_Scheme.readRawTextFile(this, "starwisp.scm"));
 
         super.onCreate(savedInstanceState);

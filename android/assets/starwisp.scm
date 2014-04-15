@@ -34,9 +34,12 @@
 (setup db "stream")
 
 (insert-entity-if-not-exists
- db "local" "app-settings" "null" 1
+ db "local" "app-settings2" "null" 1
  (list
-  (ktv "user-id" "varchar" "No name yet...")))
+  (ktv "user-id" "varchar" "No name yet...")
+  (ktv "language" "int" 0)
+  (ktv "house-count" "int" 0)
+  (ktv "photo-id-count" "int" 0)))
 
 (define entity-types (list "village" "household" "individual"))
 
@@ -51,259 +54,6 @@
 (define social-relationship-list '(mother father sister brother spouse children co-wife spouse-mother spouse-father spouse-brother-wife spouse-sister-husband friend neighbour other))
 (define social-residence-list '(same other))
 (define social-strength-list '(daily weekly monthly less))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; user interface abstraction
-
-;;;;;;;;;;;;; i18n ;;;;;;;;;;;;;;;;;;;;;;
-
-
-(define i18n-text
-  (list
-   (list 'test-num (list "1.0000000" "1.0000000" "1.0000000"))
-   (list 'test-text (list "I am test text" "I am test text" "I am test text"))
-   (list 'one (list "one"))
-   (list 'two (list "two"))
-   (list 'three (list "three"))
-   (list 'village (list "Village"))
-   (list 'household (list "Household"))
-   (list 'households (list "Households"))
-   (list 'individual (list "Individual"))
-   (list 'individuals (list "Individuals"))
-
-   (list 'add-item-to-list (list "+"))
-   (list 'default-village-name (list "New village"))
-
-   (list 'title (list "Symbai" "Symbai" "Symbai"))
-   (list 'sync (list "Sync" "Sync" "Sync"))
-   (list 'languages (list "Choose language" "Choose language" "Choose language"))
-   (list 'english (list "English" "English" "English"))
-   (list 'khasi (list "Khasi" "Khasi" "Khasi"))
-   (list 'hindi (list "Hindi" "Hindi" "Hindi"))
-   (list 'user-id (list "Your user ID" "User ID" "User ID"))
-   (list 'save (list "Save" "Save" "Save"))
-   (list 'back (list "Back" "Back" "Back"))
-   (list 'off (list "Off" "Off" "Off"))
-   (list 'villages (list "Villages" "Villages" "Villages"))
-   (list 'list-empty (list "List empty"))
-   (list 'delete (list "Delete"))
-   (list 'delete-are-you-sure (list "Are you sure you want to delete this?"))
-   (list 'save-are-you-sure (list "Are you sure you want to save changes?"))
-
-   ;; individual filter
-   (list 'quick-name (list "New person name"))
-   (list 'quick-add (list "Quick add"))
-   (list 'find-individual (list "Find individual"))
-   (list 'filter (list "Filter"))
-   (list 'off (list "Off" "Off" "Off"))
-   (list 'name (list "Name"))
-
-   ;; sync
-   (list 'sync-all (list "Sync me!"))
-   (list 'sync-syncall (list "Sync everything"))
-   (list 'export-data (list "Exporting data"))
-   (list 'sync-download (list "Download main DB"))
-   (list 'sync-export (list "Email main DB"))
-   (list 'email-local (list "Email local DB"))
-   (list 'debug (list "Debug"))
-   (list 'sync-back (list "Back"))
-   (list 'sync-prof (list "Profile"))
-
-   ;; village screen
-   (list 'village-name (list "Village name" "Village name" "Village name"))
-   (list 'block (list "Block" "Block" "Block"))
-   (list 'district (list "District" "District" "District"))
-   (list 'car (list "Accessible by car"))
-   (list 'household-list (list "Household list"))
-   (list 'amenities (list "Amenities"))
-   (list 'school (list "School"))
-   (list 'present (list "Present"))
-   (list 'closest-access (list "Closest place of access"))
-   (list 'house-gps (list "GPS"))
-   (list 'toilet-gps (list "GPS"))
-   (list 'school (list "School"))
-   (list 'school-closest-access (list "Access"))
-   (list 'school-gps (list "GPS"))
-   (list 'hospital (list "Hospital/Health care centre"))
-   (list 'hospital-closest-access (list "Access"))
-   (list 'hospital-gps (list "GPS"))
-   (list 'post-office (list "Post Office"))
-   (list 'post-office-closest-access (list "Access"))
-   (list 'post-office-gps (list "GPS"))
-   (list 'railway-station (list "Railway station"))
-   (list 'railway-station-closest-access (list "Access"))
-   (list 'railway-station-gps (list "GPS"))
-   (list 'state-bus-service (list "Inter-state bus service"))
-   (list 'state-bus-service-closest-access (list "Access"))
-   (list 'state-bus-service-gps (list "GPS"))
-   (list 'district-bus-service (list "Inter-village/district bus service"))
-   (list 'district-bus-service-closest-access (list "Access"))
-   (list 'district-bus-service-gps (list "GPS"))
-   (list 'panchayat (list "Village Panchayat Office"))
-   (list 'panchayat-closest-access (list "Access"))
-   (list 'panchayat-gps (list "GPS"))
-   (list 'NGO (list "Presence of NGO's working with them"))
-   (list 'NGO-closest-access (list "Access"))
-   (list 'NGO-gps (list "GPS"))
-   (list 'market (list "Market"))
-   (list 'market-closest-access (list "Access"))
-   (list 'market-gps (list "GPS"))
-
-   ;; household
-   (list 'household-name (list "Household name"))
-   (list 'default-household-name (list "A household"))
-   (list 'location (list "House location"))
-   (list 'elevation (list "Elevation"))
-   (list 'toilet-location (list "Toilet location"))
-   (list 'children (list "Children"))
-   (list 'male (list "Male"))
-   (list 'female (list "Female"))
-   (list 'num-pots (list "Number of pots"))
-   (list 'adults (list "Adults"))
-   (list 'add-individual (list "Add individual"))
-
-   ;; individual
-   (list 'default-individual-name (list "A person"))
-   (list 'default-family-name (list "A family"))
-   (list 'default-photo-id (list "???"))
-   (list 'name-display (list "Name"))
-   (list 'photo-id-display (list "Photo ID"))
-   (list 'family-display (list "Family"))
-   (list 'details-button (list "Details"))
-   (list 'family-button (list "Family"))
-   (list 'migration-button (list "Migration"))
-   (list 'income-button (list "Income"))
-   (list 'geneaology-button (list "Geneaology"))
-   (list 'social-button (list "Social"))
-   (list 'agreement-button (list "Agreement"))
-   (list 'is-a-child (list "Child"))
-
-   ;; details
-   (list 'change-photo (list "Change photo"))
-   (list 'details-name (list "Name"))
-   (list 'details-photo-id (list "Photo ID"))
-   (list 'details-family (list "Family"))
-   (list 'tribe (list "Tribe"))
-   (list 'sub-tribe (list "Sub tribe"))
-   (list 'khasi (list "Khasi"))
-   (list 'khynriam (list "Khynriam"))
-   (list 'pnar (list "Pnar"))
-   (list 'bhoi (list "Bhoi"))
-   (list 'war (list "War"))
-   (list 'other (list "Other"))
-   (list 'age (list "Age"))
-   (list 'gender (list "Gender"))
-   (list 'education (list "Education"))
-   (list 'illiterate (list "Illiterate"))
-   (list 'literate (list "Literate"))
-   (list 'primary (list "Primary 1-5"))
-   (list 'middle (list "Middle 6-8"))
-   (list 'high (list "High 9-10"))
-   (list 'secondary (list "Higher Secondary"))
-   (list 'university (list "University"))
-
-
-   ;; family
-   (list 'spouse (list "Spouse"))
-   (list 'change-id (list "Change"))
-   (list 'head-of-house (list "Head of house"))
-   (list 'marital-status (list "Marital status"))
-   (list 'ever-married (list "Ever married"))
-   (list 'currently-married (list "Currently married"))
-   (list 'currently-single (list "Currently single"))
-   (list 'seperated (list "Seperated/divorced"))
-   (list 'times-married (list "How many times married"))
-   (list 'change-spouse (list "Change/add spouse"))
-   (list 'children-living (list "Living"))
-   (list 'children-dead (list "Dead"))
-   (list 'children-together (list "Living together"))
-   (list 'children-apart (list "Living apart"))
-   (list 'residence-after-marriage (list "Residence after marriage"))
-   (list 'birthplace (list "Birthplace"))
-   (list 'spouse-village (list "Spouses natal village"))
-   (list 'num-siblings (list "Number of living siblings of the same sex born from same mother"))
-   (list 'birth-order (list "Birth order amoung currently living same sex siblings born from same mother"))
-
-   ;; migration
-   (list 'length-time (list "Length of time lived in this village (years)"))
-   (list 'place-of-birth (list "Place of birth"))
-   (list 'num-residence-changes (list "Number of time place of residence changed since birth"))
-   (list 'village-visits-month (list "Number of times you have visited another village in the last month"))
-   (list 'village-visits-year (list "Number of times you have visited another village in the last year (i.e. betwen last summer and this summer)"))
-
-   ;; income
-   (list 'occupation (list "Occupation"))
-   (list 'occupation (list "Occupation"))
-   (list 'agriculture (list "Agriculture"))
-   (list 'gathering (list "Gathering"))
-   (list 'labour (list "Labour"))
-   (list 'cows (list "Cows"))
-   (list 'fishing (list "Fishing"))
-   (list 'num-people-in-house (list "People living in house"))
-   (list 'contribute (list "Contribute to family earnings?"))
-   (list 'own-land (list "Own land?"))
-   (list 'rent-land (list "Rent out your land?"))
-   (list 'hire-land (list "Hire land?"))
-   (list 'crops (list "Crops"))
-   (list 'crop (list "Crop"))
-   (list 'unit (list "Unit"))
-   (list 'quantity (list "Quantity"))
-   (list 'used-or-eaten (list "Used/Eaten"))
-   (list 'sold (list "Sold"))
-   (list 'seed (list "Seed (hybrid/local)"))
-   (list 'house-type (list "House type"))
-   (list 'concrete (list "Concrete"))
-   (list 'tin (list "Tin"))
-   (list 'thatched (list "Thatched"))
-   (list 'loan (list "Outstanding loans"))
-   (list 'earning (list "One day's earnings"))
-   (list 'in-the-home (list "In the home"))
-   (list 'radio (list "Radio"))
-   (list 'tv (list "TV"))
-   (list 'mobile (list "Mobile phone"))
-   (list 'visit-market (list "Tribal market visits"))
-   (list 'town-sell (list "Town or city visits"))
-
-   ;; geneaology
-   (list 'mother (list "Mother"))
-   (list 'father (list "Father"))
-   (list 'change-mother (list "Change mother"))
-   (list 'change-father (list "Change father"))
-   (list 'alive (list "Alive"))
-   (list 'sex (list "Sex"))
-
-   ;; social
-   (list 'social-type (list "Type"))
-   (list 'friendship (list "Friendship"))
-   (list 'knowledge (list "Knowledge"))
-   (list 'prestige (list "Prestige"))
-   (list 'social-one (list "One"))
-   (list 'social-two (list "Two"))
-   (list 'social-three (list "Three"))
-   (list 'social-four (list "Four"))
-   (list 'social-five (list "Five"))
-   (list 'social-relationship (list "Relationship"))
-   (list 'social-residence (list "Residence"))
-   (list 'social-strength (list "Strength"))
-   (list 'mother (list "Mother"))
-   (list 'father (list "Father"))
-   (list 'sister (list "Sister"))
-   (list 'brother (list "Brother"))
-   (list 'spouse (list "Spouse"))
-   (list 'children (list "Children"))
-   (list 'co-wife (list "Co-wife"))
-   (list 'spouse-mother (list "Spouse's mother"))
-   (list 'spouse-father (list "Spouse's father"))
-   (list 'spouse-brother-wife (list "Spouse's brother's wife"))
-   (list 'spouse-sister-husband (list "Spouse's sister's husband"))
-   (list 'friend (list "Friend"))
-   (list 'neighbour (list "Neighbour"))
-   (list 'same (list "Same"))
-   (list 'daily (list "Daily"))
-   (list 'weekly (list "Weekly"))
-   (list 'monthly (list "Monthly"))
-   (list 'less (list "Less"))
-   ))
 
 (define village-ktvlist
   (list
@@ -363,6 +113,14 @@
    (ktv-create "visit-market" "int" 0)
    (ktv-create "town-sell" "int" 0)
    ))
+
+(define crop-ktvlist
+  (list
+   (ktv-create "name" "varchar" (mtext-lookup 'default-crop-name))
+   (ktv-create "unit" "varchar" "unit")
+   (ktv-create "used" "real" 0)
+   (ktv-create "sold" "real" 0)
+   (ktv-create "seed" "varchar" "none")))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -1131,11 +889,9 @@
     (horiz
      (mtoggle-button-scale 'rent-land (lambda (v) (entity-set-value! "rent-land" "int" v) '()))
      (mtoggle-button-scale 'hire-land (lambda (v) (entity-set-value! "hire-land" "int" v) '())))
-    (mtitle 'crops)
-    ;; todo ->
-    ;;    (horiz
-    ;;     (mtext-scale 'crop) (mtext-scale 'unit) (mtext-scale 'quantity)
-    ;;     (mtext-scale 'used-or-eaten) (mtext-scale 'sold) (mtext-scale 'seed))
+    (build-list-widget
+     db "sync" 'crops "crop" "crop" (lambda () (get-current 'individual #f))
+     crop-ktvlist)
     (mspinner-other 'house-type '(concrete tin thatched) (lambda (v) '()))
     (horiz
      (medit-text 'loan "numeric" (lambda (v) (entity-set-value! "loan" "int" v) '()))
@@ -1154,6 +910,7 @@
      (activity-layout activity))
    (lambda (activity arg)
      (list
+      (update-list-widget db "sync" "crop" "crop" (get-current 'individual #f))
       (mupdate-spinner 'occupation "occupation" '(agriculture gathering labour cows fishing other))
       (mupdate 'toggle-button 'contribute "contribute")
       (mupdate 'toggle-button 'own-land "own-land")
@@ -1172,6 +929,37 @@
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity requestcode resultcode) '()))
+
+  (activity
+   "crop"
+   (build-activity
+    (vert
+     (medit-text 'crop-name "normal" (lambda (v) (entity-set-value! "name" "varchar" v) '()))
+     (medit-text 'crop-unit "normal" (lambda (v) (entity-set-value! "unit" "varchar" v) '()))
+     (medit-text 'crop-used "numeric" (lambda (v) (entity-set-value! "used" "real" (string->number v)) '()))
+     (medit-text 'crop-sold "numeric" (lambda (v) (entity-set-value! "sold" "real" (string->number v)) '()))
+     (medit-text 'crop-seed "numeric" (lambda (v) (entity-set-value! "seed" "varchar" v) '()))
+     (delete-button)))
+   (lambda (activity arg)
+     (set-current! 'activity-title "Crop")
+     (activity-layout activity))
+   (lambda (activity arg)
+     (entity-init! db "sync" "crop" (get-entity-by-unique db "sync" arg))
+     (set-current! 'crop arg)
+     (list
+      (mupdate 'edit-text 'crop-name "name")
+      (mupdate 'edit-text 'crop-unit "unit")
+      (mupdate 'edit-text 'crop-used "used")
+      (mupdate 'edit-text 'crop-sold "sold")
+      (mupdate 'edit-text 'crop-seed "seed")
+      ))
+
+   (lambda (activity) '())
+   (lambda (activity) '())
+   (lambda (activity) '())
+   (lambda (activity) '())
+   (lambda (activity requestcode resultcode) '()))
+
 
   (activity
    "geneaology"
@@ -1257,7 +1045,8 @@
    (build-activity
     (vert
      (horiz
-      (medit-text 'quick-name "normal" (lambda (v) (set-current! 'chooser-quick-name v) '()))
+      (medit-text 'quick-name "normal"
+                  (lambda (v) (set-current! 'chooser-quick-name v) '()))
       (mbutton-scale
        'quick-add
        (lambda ()
@@ -1277,7 +1066,9 @@
                   (list
                    (ktv "name" "varchar" (get-current 'chooser-quick-name (mtext-lookup 'no-name)))
                    (ktv "parent" "varchar" (get-current 'household #f))))))
-               (list (finish-activity 0))))))))))
+               (list (finish-activity 0)))
+              (else
+               (list)))))))))
 
 
      (linear-layout

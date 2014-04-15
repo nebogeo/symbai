@@ -285,8 +285,8 @@
             (ktvlist (list-ref data 1))
             (unique-id (list-ref entity 1))
             (exists (entity-exists? db table unique-id)))
-       (msg "from server...:")
-       (msg ktvlist)
+       ;;(msg "from server...:")
+       ;;(msg ktvlist)
        ;; need to check exists again here, due to delays back and forth
        (if (not exists)
            (insert-entity-wholesale
@@ -326,12 +326,6 @@
                                           db table
                                           (get-entity-id db table unique-id)))
                               #f)))
-                    (msg "suck check entity old=" old)
-                    (msg "version there" version)
-                    (when exists
-                          (msg "version here" (get-entity-version
-                                               db table
-                                               (get-entity-id db table unique-id))))
 
                     ;; if we don't have this entity or the version on the server is newer
                     (if (and (or (not exists) old)
@@ -690,7 +684,9 @@
 (define (update-list-widget db table entity-type edit-activity parent)
   (let ((search-results
          (if parent
-             (db-with-parent db table entity-type parent)
+             (db-filter-only db table entity-type
+                             (list (list "parent" "varchar" "=" parent))
+                             (list (list "name" "varchar")))
              (db-all db table entity-type))))
     (update-widget
      'linear-layout

@@ -30,6 +30,7 @@
     <activity android:name="foam.symbai.AgreementActivity" android:configChanges="orientation"></activity>
     <activity android:name="foam.symbai.IndividualChooserActivity" android:configChanges="orientation"></activity>
     <activity android:name="foam.symbai.SyncActivity" android:configChanges="orientation"></activity>
+    <activity android:name="foam.symbai.CropActivity" android:configChanges="orientation"></activity>
 
   </application>
 
