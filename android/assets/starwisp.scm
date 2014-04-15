@@ -34,12 +34,26 @@
 (setup db "stream")
 
 (insert-entity-if-not-exists
- db "local" "app-settings2" "null" 1
+ db "local" "app-settings" "null" 2
  (list
   (ktv "user-id" "varchar" "No name yet...")
   (ktv "language" "int" 0)
   (ktv "house-count" "int" 0)
   (ktv "photo-id-count" "int" 0)))
+
+(define (get-setting-value name)
+  (ktv-get (get-entity db "local" 2) name))
+
+(define (set-setting! key type value)
+  (update-entity
+   db "local" 2 (list (ktv key type value))))
+
+(define (get/inc-setting key)
+  (let ((r (get-setting-value key)))
+    (set-setting! key "int" (+ r 1))
+    r))
+
+(set! i18n-lang (get-setting-value "language"))
 
 (define entity-types (list "village" "household" "individual"))
 
@@ -528,7 +542,15 @@
      (mbutton-scale 'sync (lambda () (list (start-activity "sync" 0 "")))))
 
     (horiz
-     (mspinner 'languages (list 'english 'khasi 'hindi) (lambda (c) (list)))
+     (mspinner 'languages (list 'english 'khasi 'hindi)
+               (lambda (c)
+                 (set-setting! "language" "int"
+                               (cond
+                                ((equal? c "English") 0)
+                                ((equal? c "Khasi") 1)
+                                ((equal? c "Hindi") 2)))
+                 (set! i18n-lang (get-setting-value "language"))
+                 (list)))
      (mbutton-scale 'find-individual (lambda () (list (start-activity "individual-chooser" choose-code "")))))
     (build-list-widget
      db "sync" 'villages "village" "village" (lambda () #f)
@@ -539,6 +561,8 @@
      (activity-layout activity))
    (lambda (activity arg)
      (list
+      (update-widget 'spinner (get-id "languages-spinner") 'selection
+                     (get-setting-value "language"))
       (gps-start "gps" (lambda (loc)
                          (set-current! 'location loc)
                          (list (toast (string-append

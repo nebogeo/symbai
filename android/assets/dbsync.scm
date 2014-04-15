@@ -402,8 +402,6 @@
 (define i18n-text
   (list))
 
-(msg 123)
-
 (define (mtext-lookup id)
   (define (_ l)
     (cond
@@ -412,7 +410,9 @@
       (let ((translations (cadr (car l))))
         (if (<= (length translations) i18n-lang)
             (string-append (symbol->string id) " not translated")
-            (list-ref translations i18n-lang))))
+            (let ((r (list-ref translations i18n-lang)))
+              (if (or (equal? r "") (equal? r " "))
+                  (list-ref translations 0) r)))))
      (else (_ (cdr l)))))
   (_ i18n-text))
 
