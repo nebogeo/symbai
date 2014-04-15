@@ -197,7 +197,7 @@
         ;; only update if the are different
         (if (not (ktv-eq? ktv (list (ktv-key ktv) (ktv-type ktv) s)))
             (begin
-              (msg "incrementing value version in update-value")
+              ;;(msg "incrementing value version in update-value")
               (db-exec
                db (string-append "update " table "_value_" (ktv-type ktv)
                                  " set value=?, dirty=1, version=version+1  where entity_id = ? and attribute_id = ?")
@@ -210,9 +210,9 @@
             db (string-append
                 "select value from " table "_value_" (ktv-type ktv) " where entity_id = ? and attribute_id = ?")
             entity-id (ktv-key ktv))))
-    (msg "update-value-from-sync" s)
-    (msg ktv)
-    (msg entity-id)
+    ;;(msg "update-value-from-sync" s)
+    ;;(msg ktv)
+    ;;(msg entity-id)
     (if (null? s)
         (insert-value db table entity-id ktv #t)
         (db-exec
@@ -489,7 +489,7 @@
            entity-id (ktv-key kt)))
 
 (define (clean-entity-values db table entity-id)
-  (msg "clean-entity-values")
+  ;;(msg "clean-entity-values")
   (let* ((entity-type (get-entity-type db table entity-id)))
     (cond
      ((null? entity-type)
@@ -497,7 +497,7 @@
      (else
       (for-each
        (lambda (kt)
-         (msg "cleaning" kt)
+         ;;(msg "cleaning" kt)
          (clean-value db table entity-id (list (ktv-key kt) (ktv-type kt))))
        (get-attribute-ids/types db table entity-type))))))
 
@@ -564,13 +564,13 @@
    version entity-id))
 
 (define (update-entity-clean db table unique-id)
-  (msg "cleaning")
+  ;;(msg "cleaning")
   ;; clean entity table
   (db-exec
    db (string-append "update " table "_entity set dirty=? where unique_id = ?")
    0 unique-id)
   ;; clean value tables for this entity
-  (msg "cleaning values")
+  ;;(msg "cleaning values")
   (clean-entity-values db table (entity-id-from-unique db table unique-id))  )
 
 (define (get-dirty-stats db table)
@@ -588,7 +588,7 @@
         '()
         (map
          (lambda (i)
-           (msg "dirty-entities")
+           ;;(msg "dirty-entities")
            (list
             ;; build according to url ([table] entity-type unique-id dirty version)
             (cdr (vector->list i))
