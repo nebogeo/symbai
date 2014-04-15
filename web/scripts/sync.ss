@@ -24,7 +24,6 @@
 (define (request-args->ktvlist data)
   (map
    (lambda (i)
-     (msg i)
      (let ((kv (string-split (symbol->string (car i)) '(#\:))))
        (list
         (car kv) (cadr kv) (cdr i) (string->number (list-ref kv 2)))))
@@ -32,13 +31,14 @@
 
 (define (sync-update db table entity-type unique-id dirty version data)
   (let ((entity-id (entity-id-from-unique db table unique-id))
-        (ktvlist (dbg (request-args->ktvlist data))))
-    (msg "sync-update" ktvlist)
+        (ktvlist (request-args->ktvlist data)))
+    (msg "sync-update")
     (update-to-version db table entity-id version ktvlist)
     (list "updated" unique-id)))
 
 (define (sync-insert db table entity-type unique-id dirty version data)
-  (let ((ktvlist (dbg (request-args->ktvlist data))))
+  (let ((ktvlist (request-args->ktvlist data)))
+    (msg "inserting new")
     (insert-entity-wholesale db table entity-type unique-id dirty version ktvlist)
     (list "inserted" unique-id)))
 
@@ -51,12 +51,12 @@
 
 (define (merge-n-bump current-version db table entity-type unique-id dirty version data)
   (let ((entity-id (entity-id-from-unique db table unique-id)))
-    (msg "merge start:" (get-entity-version db table entity-id))
+    ;;(msg "merge start:" (get-entity-version db table entity-id))
     (let ((r (sync-update db table entity-type unique-id dirty version data)))
-      (msg "merge post:" (get-entity-version db table entity-id))
+      ;;(msg "merge post:" (get-entity-version db table entity-id))
       ;; must be one newer than highest in the system
       (update-entity-version db table entity-id (+ current-version 1))
-      (msg "merge over:" (get-entity-version db table entity-id))
+      ;;(msg "merge over:" (get-entity-version db table entity-id))
       r)))
 
 (define (check-for-sync db table entity-type unique-id dirty version data)
@@ -117,6 +117,7 @@
 (define (entity-versions db table)
   (let ((s (db-select
 	    db (string-append "select unique_id, version from " table "_entity;"))))
+    (msg s)
     (if (null? s) 
 	'()
 	(map

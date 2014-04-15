@@ -44,7 +44,7 @@
 
 ;(write-db db "sync" "/home/dave/code/mongoose-web/web/input.csv")
 
-(msg (csv db "sync" "individual"))
+;(msg (csv db "sync" "individual"))
 
 
 (define registered-requests
