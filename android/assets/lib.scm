@@ -269,6 +269,9 @@
 (define random
   (random-maker 19781116))  ;; another arbitrarily chosen birthday
 
+(define (random-int n)
+  (abs (random n)))
+
 (define rndf random)
 
 (define (rndvec) (vector (rndf) (rndf) (rndf)))

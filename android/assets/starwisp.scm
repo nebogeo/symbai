@@ -303,8 +303,23 @@
    (list 'weekly (list "Weekly"))
    (list 'monthly (list "Monthly"))
    (list 'less (list "Less"))
-
    ))
+
+(define village-ktvlist
+  (list
+   (ktv-create "name" "varchar" (mtext-lookup 'default-village-name))
+   (ktv-create "block" "varchar" "")
+   (ktv-create "district" "varchar" "test")
+   (ktv-create "car" "int" 0)))
+
+(define household-ktvlist
+  (list
+   (ktv-create "name" "varchar" (mtext-lookup 'default-household-name))
+   (ktv-create "num-pots" "int" 0)
+   (ktv-create "house-lat" "real" 0) ;; get from current location?
+   (ktv-create "house-lon" "real" 0)
+   (ktv-create "toilet-lat" "real" 0)
+   (ktv-create "toilet-lon" "real" 0)))
 
 (define individual-ktvlist
   (list
@@ -371,10 +386,10 @@
         (append
          (list (toast "sync-cb"))
          (upload-dirty db)
-         (suck-new db "sync")))))
+         (if (have-dirty? db "sync") '() (suck-new db "sync"))))))
     (else '()))
    (list
-    (delayed "debug-timer" (+ 10000 (random 5000)) debug-timer-cb)
+    (delayed "debug-timer" (+ 30000 (random 5000)) debug-timer-cb)
     (update-debug))))
 
 
@@ -544,40 +559,61 @@
 
 
 (define (update-individual-filter)
-  (update-widget
-   'linear-layout (get-id "choose-pics") 'contents
-   (grid-ify
-    (map
-     (lambda (e)
-       (let* ((id (ktv-get e "unique_id"))
-              (image-name (ktv-get e "photo"))
-              (image (if (image-invalid? image-name)
-                         "face" (string-append "/sdcard/symbai/files/" image-name))))
-         (if (equal? image "face")
+  (let ((search (db-filter-only db "sync" "individual" (filter-get)
+                                (list
+                                 (list "photo" "file")
+                                 (list "name" "varchar")))))
+    (update-widget
+     'linear-layout (get-id "choose-pics") 'contents
+     (grid-ify
+      (map
+       (lambda (e)
+         (let* ((id (ktv-get e "unique_id"))
+                (image-name (ktv-get e "photo"))
+                (image (if (image-invalid? image-name)
+                           "face" (string-append "/sdcard/symbai/files/" image-name))))
+           (cond
+            ((> (length search) 50)
+             (button
+              (make-id (string-append "chooser-" id))
+              (ktv-get e "name") 30 (layout (car button-size) (/ (cadr button-size) 3) 1 'centre 5)
+              (lambda ()
+                (set-current! 'choose-result id)
+                (list (finish-activity 0)))))
+
+            ((equal? image "face")
              (button
               (make-id (string-append "chooser-" id))
               (ktv-get e "name") 30 (layout (car button-size) (cadr button-size) 1 'centre 5)
               (lambda ()
                 (set-current! 'choose-result id)
-                (list (finish-activity 0))))
-             (image-button
-              (make-id (string-append "chooser-" id))
-              image (layout (car button-size) (cadr button-size) 1 'centre 5)
-              (lambda ()
-                (set-current! 'choose-result id)
-                (list (finish-activity 0)))))))
-     (db-filter db "sync" "individual" (filter-get)))
-    3)))
+                (list (finish-activity 0)))))
 
-(define (image-from-unique-id db table unique-id)
+            (else
+             (vert
+              (image-button
+               (make-id (string-append "chooser-" id))
+               image (layout (car button-size) (cadr button-size) 1 'centre 5)
+               (lambda ()
+                 (set-current! 'choose-result id)
+                 (list (finish-activity 0))))
+              (text-view 0 (ktv-get e "name") 20 (layout 'wrap-content 'wrap-content -1 'centre 0)))
+             ))))
+       search)
+     3))))
+
+(define (image/name-from-unique-id db table unique-id)
   (let ((e (get-entity-by-unique db table unique-id)))
-    (ktv-get e "photo")))
+    (list
+     (ktv-get e "name")
+     (ktv-get e "photo"))))
 
 (define (build-person-selector id key filter request-code)
   (vert
    (mtitle id)
    (image-view (make-id (string-append (symbol->string id) "-image"))
                "face" (layout 240 320 -1 'centre 0))
+   (mtext-small (string->symbol (string-append (symbol->string id) "-text")))
    (button
     (make-id (string-append "change-" (symbol->string id)))
     (mtext-lookup 'change-id)
@@ -591,6 +627,7 @@
    (mtitle id)
    (image-view (make-id (string-append (symbol->string id) "-image"))
                "face" (layout 120 160 -1 'centre 0))
+   (mtext-small (string->symbol (string-append (symbol->string id) "-text")))
    (button
     (make-id (string-append "change-" (symbol->string id)))
     (mtext-lookup 'change-id)
@@ -611,12 +648,18 @@
   (msg "update-person-selector" key)
   (let ((entity-id (entity-get-value key)))
     (msg "entity-id is" entity-id)
-    (let ((image-name (image-from-unique-id db table entity-id))
-          (id (get-id (string-append (symbol->string id) "-image"))))
-      (msg "image-name is" image-name)
-      (if (image-invalid? image-name)
-          (update-widget 'image-view id 'image "face")
-          (update-widget 'image-view id 'external-image (string-append dirname "files/" image-name))))))
+    (let ((image-name (image/name-from-unique-id db table entity-id))
+          (id (get-id (string-append (symbol->string id) "-image")))
+          (text-id (get-id (string-append (symbol->string id) "-text"))))
+      (msg "image-name is" (cadr image-name) (image-invalid? (cadr image-name)))
+      (if (image-invalid? (cadr image-name))
+          (list
+           (update-widget 'image-view id 'image "face")
+           (update-widget 'text-view text-id 'text (car image-name)))
+          (list
+           (update-widget 'text-view text-id 'text (car image-name))
+           (update-widget 'image-view id 'external-image
+                          (string-append dirname "files/" (cadr image-name))))))))
 
 (define (build-social-connection id key type request-code)
   (let ((id-text (string-append (symbol->string id))))
@@ -650,20 +693,21 @@
 
 (define (update-social-connection db table id key type request-code)
   (let ((id-text (string-append (symbol->string id))))
-    (list
+    (append
      (update-person-selector db table id key)
-     (mupdate-spinner-other
-      (string->symbol (string-append id-text "-relationship"))
-      (string-append key "-relationship")
-      social-relationship-list)
-     (mupdate-spinner-other
-      (string->symbol (string-append id-text "-residence"))
-      (string-append key "-residence")
-      social-residence-list)
-     (mupdate-spinner
-      (string->symbol (dbg (string-append id-text "-strength")))
-      (string-append key "-strength")
-      social-strength-list)
+     (list
+      (mupdate-spinner-other
+       (string->symbol (string-append id-text "-relationship"))
+       (string-append key "-relationship")
+       social-relationship-list)
+      (mupdate-spinner-other
+       (string->symbol (string-append id-text "-residence"))
+       (string-append key "-residence")
+       social-residence-list)
+      (mupdate-spinner
+       (string->symbol (dbg (string-append id-text "-strength")))
+       (string-append key "-strength")
+       social-strength-list))
      )))
 
 (define (build-amenity-widgets id shade)
@@ -730,11 +774,7 @@
      (mbutton-scale 'find-individual (lambda () (list (start-activity "individual-chooser" choose-code "")))))
     (build-list-widget
      db "sync" 'villages "village" "village" (lambda () #f)
-     (list
-      (ktv-create "name" "varchar" (mtext-lookup 'default-village-name))
-      (ktv-create "block" "varchar" "")
-      (ktv-create "district" "varchar" "test")
-      (ktv-create "car" "int" 0))))
+     village-ktvlist))
 
    (lambda (activity arg)
      (set-current! 'activity-title "Main screen")
@@ -824,13 +864,7 @@
    (build-activity
     (build-list-widget
      db "sync" 'households "household" "household" (lambda () (get-current 'village #f))
-     (list
-      (ktv-create "name" "varchar" (mtext-lookup 'default-household-name))
-      (ktv-create "num-pots" "int" 0)
-      (ktv-create "house-lat" "real" 0) ;; get from current location?
-      (ktv-create "house-lon" "real" 0)
-      (ktv-create "toilet-lat" "real" 0)
-      (ktv-create "toilet-lon" "real" 0))))
+     household-ktvlist))
    (lambda (activity arg)
      (set-current! 'activity-title "Household List")
      (activity-layout activity))
@@ -1023,19 +1057,20 @@
      (set-current! 'activity-title "Individual family")
       (activity-layout activity))
    (lambda (activity arg)
-     (list
+     (append
       (update-person-selector db "sync" 'spouse "id-spouse")
-      (mupdate-spinner 'head-of-house "head-of-house" '(male female))
-      (mupdate-spinner 'marital-status "marital-status" married-list)
-      (mupdate 'edit-text 'times-married "times-married")
-      ;;(mupdate 'id-spouse "id-spouse")
-      (mupdate 'edit-text 'children-living "children-living")
-      (mupdate 'edit-text 'children-dead "children-dead")
-      (mupdate 'edit-text 'children-together "children-together")
-      (mupdate 'edit-text 'children-apart "children-apart")
-      (mupdate-spinner 'residence-after-marriage "residence-after-marriage" '(birthplace spouse-village))
-      (mupdate 'edit-text 'num-siblings "num-siblings")
-      (mupdate 'edit-text 'birth-order "birth-order")))
+      (list
+       (mupdate-spinner 'head-of-house "head-of-house" '(male female))
+       (mupdate-spinner 'marital-status "marital-status" married-list)
+       (mupdate 'edit-text 'times-married "times-married")
+       ;;(mupdate 'id-spouse "id-spouse")
+       (mupdate 'edit-text 'children-living "children-living")
+       (mupdate 'edit-text 'children-dead "children-dead")
+       (mupdate 'edit-text 'children-together "children-together")
+       (mupdate 'edit-text 'children-apart "children-apart")
+       (mupdate-spinner 'residence-after-marriage "residence-after-marriage" '(birthplace spouse-village))
+       (mupdate 'edit-text 'num-siblings "num-siblings")
+       (mupdate 'edit-text 'birth-order "birth-order"))))
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
@@ -1155,7 +1190,7 @@
      (set-current! 'activity-title "Individual geneaology")
      (activity-layout activity))
    (lambda (activity arg)
-     (list
+     (append
       (update-person-selector db "sync" 'mother "id-mother")
       (update-person-selector db "sync" 'father "id-father")))
    (lambda (activity) '())
@@ -1373,3 +1408,6 @@
 
 
   )
+
+
+;(build-test! db "sync" village-ktvlist household-ktvlist individual-ktvlist)

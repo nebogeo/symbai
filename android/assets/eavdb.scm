@@ -185,7 +185,6 @@
 ;; update the value given an entity type, a attribute type and it's key (= attriute_id)
 ;; creates the value if it doesn't already exist, updates it otherwise if it's different
 (define (update-value db table entity-id ktv)
-  (msg "update-value")
   (let ((s (select-first
             db (string-append
 				"select value from " table "_value_" (ktv-type ktv) " where entity_id = ? and attribute_id = ?")
@@ -195,7 +194,6 @@
         ;; only update if they are different
         (if (not (ktv-eq? ktv (list (ktv-key ktv) (ktv-type ktv) s)))
             (begin
-              (msg "incrementing value version in update-value")
               (db-exec
                db (string-append "update " table "_value_" (ktv-type ktv)
                                  " set value=?, dirty=1, version=version+1  where entity_id = ? and attribute_id = ?")
@@ -211,7 +209,7 @@
     (if (null? s)
         (insert-value db table entity-id ktv #t)
         (begin
-          (msg "actually updating (fs)" (ktv-key ktv) "to" (ktv-value ktv))
+          ;;(msg "actually updating (fs)" (ktv-key ktv) "to" (ktv-value ktv))
           (db-exec
            db (string-append "update " table "_value_" (ktv-type ktv)
                              " set value=?, dirty=0, version=? where entity_id = ? and attribute_id = ?")
@@ -270,7 +268,7 @@
 		  (let ((vdv (get-value db table entity-id kt)))
 			(if (null? vdv)
 				(begin
-                  (msg "ERROR: get-entity-plain: no value found for " entity-id " " (ktv-key kt))
+                  ;;(msg "ERROR: get-entity-plain: no value found for " entity-id " " (ktv-key kt))
                   r)
 				(cons (list (ktv-key kt) (ktv-type kt)
                             (list-ref vdv 0) (list-ref vdv 2)) r))))
@@ -279,23 +277,19 @@
 
 ;; get an entire entity, as a list of key/value pairs, only dirty values
 (define (get-entity-plain-for-sync db table entity-id)
-  (msg "gepfs")
   (let* ((entity-type (get-entity-type db table entity-id)))
     (cond
       ((null? entity-type) (msg "entity" entity-id "not found!") '())
       (else
        (foldl
         (lambda (kt r)
-          (msg kt)
           (let ((vdv (get-value db table entity-id kt)))
-            (msg vdv)
             (cond
 			 ((null? vdv)
-			  (msg "ERROR: get-entity-plain-for-sync: no value found for " entity-id " " (ktv-key kt))
+			  ;;(msg "ERROR: get-entity-plain-for-sync: no value found for " entity-id " " (ktv-key kt))
 			  r)
 			 ;; only return if dirty
 			 ((not (zero? (cadr vdv)))
-			  (msg "value-dirty-version found" vdv)
 			  (cons
 			   (list (ktv-key kt) (ktv-type kt) (list-ref vdv 0) (list-ref vdv 2))
 			   r))
@@ -309,6 +303,24 @@
     (cons
      (list "unique_id" "varchar" unique-id)
      (get-entity-plain db table entity-id))))
+
+;; like get-entity-plain, but only look for specific key/types - for speed
+(define (get-entity-only db table entity-id kt-list)
+  (let ((unique-id (get-unique-id db table entity-id)))
+    (cons
+     (list "unique_id" "varchar" unique-id)
+     (foldl
+      (lambda (kt r)
+        (let ((vdv (get-value db table entity-id kt)))
+          (if (null? vdv)
+              (begin
+                ;;(msg "ERROR: get-entity-plain: no value found for " entity-id " " (ktv-key kt))
+                r)
+              (cons (list (ktv-key kt) (ktv-type kt)
+                          (list-ref vdv 0) (list-ref vdv 2)) r))))
+      '()
+      kt-list))))
+
 
 (define (all-entities db table type)
   (let ((s (db-select
@@ -468,6 +480,13 @@
      (get-entity db table i))
    (filter-entities db table type filter)))
 
+;; only return name and photo
+(define (db-filter-only db table type filter kt-list)
+  (map
+   (lambda (i)
+     (get-entity-only db table i kt-list))
+   (filter-entities db table type filter)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; updating data
 
@@ -479,7 +498,6 @@
 
 ;; auto update version
 (define (update-entity db table entity-id ktvlist)
-  (msg "update-entity")
   ;; dirty
   (update-entity-changed db table entity-id)
   (update-entity-values db table entity-id ktvlist #t))
@@ -490,7 +508,6 @@
            entity-id (ktv-key kt)))
 
 (define (clean-entity-values db table entity-id)
-  (msg "clean-entity-values")
   (let* ((entity-type (get-entity-type db table entity-id)))
     (cond
      ((null? entity-type)
@@ -498,14 +515,13 @@
      (else
       (for-each
        (lambda (kt)
-         (msg "cleaning" kt)
          (clean-value db table entity-id (list (ktv-key kt) (ktv-type kt))))
        (get-attribute-ids/types db table entity-type))))))
 
 ;; update an entity, via a (possibly partial) list of key/value pairs
 ;; if dirty is not true, this is coming from a sync
 (define (update-entity-values db table entity-id ktvlist dirty)
-  (msg "update-entity-values")
+  ;;(msg "update-entity-values")
   (let* ((entity-type (get-entity-type db table entity-id)))
     (cond
      ((null? entity-type) (msg "entity" entity-id "not found!") '())
@@ -568,14 +584,20 @@
    version entity-id))
 
 (define (update-entity-clean db table unique-id)
-  (msg "cleaning")
+  ;;(msg "cleaning")
   ;; clean entity table
   (db-exec
    db (string-append "update " table "_entity set dirty=? where unique_id = ?")
    0 unique-id)
   ;; clean value tables for this entity
-  (msg "cleaning values")
+  ;;(msg "cleaning values")
   (clean-entity-values db table (entity-id-from-unique db table unique-id))  )
+
+(define (have-dirty? db table)
+  (not (zero?
+        (select-first
+         db (string-append "select count(entity_id) from " table "_entity where dirty=1")))))
+
 
 (define (get-dirty-stats db table)
   (list
@@ -589,17 +611,18 @@
 (define (dirty-entities db table)
   (let ((de (db-select
              db (string-append
-                 "select entity_id, entity_type, unique_id, dirty, version from " table "_entity where dirty=1;"))))
+                 "select entity_id, entity_type, unique_id, dirty, version from "
+                 table "_entity where dirty=1 limit 5;"))))
+    (msg de)
     (if (null? de)
         '()
         (map
          (lambda (i)
-           (msg "dirty-entities")
+           (msg "dirty:" (vector-ref i 2))
            (list
             ;; build according to url ([table] entity-type unique-id dirty version)
             (cdr (vector->list i))
-            ;; data entries (todo - only dirty values!)
-            (dbg (get-entity-plain-for-sync db table (vector-ref i 0)))))
+            (get-entity-plain-for-sync db table (vector-ref i 0))))
          (cdr de)))))
 
 ;; todo: BROKEN...
