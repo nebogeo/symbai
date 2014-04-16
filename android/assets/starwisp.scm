@@ -66,7 +66,7 @@
 (define residence-list '(birthplace spouse-village))
 (define gender-list '(male female))
 (define occupation-list '(agriculture gathering labour cows fishing other))
-(define house-type-list '(concrete tin thatched))
+(define house-type-list '(concrete tin thatched other))
 
 (define social-types-list '(friendship knowledge prestige))
 (define social-relationship-list '(mother father sister brother spouse children co-wife spouse-mother spouse-father spouse-brother-wife spouse-sister-husband friend neighbour other))
@@ -297,8 +297,6 @@
 
   )
 
-(msg "one")
-
 (define (build-activity . contents)
   (vert-fill
    (relative
@@ -444,13 +442,10 @@
 
 ;; need to load from across entities, so need db, table
 (define (update-person-selector db table id key)
-  (msg "update-person-selector" key)
   (let ((entity-id (entity-get-value key)))
-    (msg "entity-id is" entity-id)
     (let ((image-name (image/name-from-unique-id db table entity-id))
           (id (get-id (string-append (symbol->string id) "-image")))
           (text-id (get-id (string-append (symbol->string id) "-text"))))
-      (msg "image-name is" (cadr image-name) (image-invalid? (cadr image-name)))
       (if (image-invalid? (cadr image-name))
           (list
            (update-widget 'image-view id 'image "face")
@@ -501,18 +496,19 @@
         (entity-set-value! key "varchar" (get-current 'choose-result "not set"))))
 
 (define (update-social-connection db table id key type request-code)
+  (msg "update-social-connection")
   (let ((id-text (string-append (symbol->string id))))
     (append
      (update-person-selector db table id key)
+     (mupdate-spinner-other
+      (string->symbol (string-append id-text "-relationship"))
+      (string-append key "-relationship")
+      social-relationship-list)
+     (mupdate-spinner-other
+      (string->symbol (string-append id-text "-residence"))
+      (string-append key "-residence")
+      social-residence-list)
      (list
-      (mupdate-spinner-other
-       (string->symbol (string-append id-text "-relationship"))
-       (string-append key "-relationship")
-       social-relationship-list)
-      (mupdate-spinner-other
-       (string->symbol (string-append id-text "-residence"))
-       (string-append key "-residence")
-       social-residence-list)
       (mupdate-spinner
        (string->symbol (dbg (string-append id-text "-strength")))
        (string-append key "-strength")
@@ -702,7 +698,6 @@
      (set-current! 'activity-title "Household List")
      (activity-layout activity))
    (lambda (activity arg)
-     (msg "rebuilding household list with" arg)
      (list (update-list-widget
             db "sync" "household" "household" arg)))
    (lambda (activity) '())
@@ -837,7 +832,7 @@
       (medit-text 'details-name "normal" (lambda (v) (entity-set-value! "name" "varchar" v) '()))
       (medit-text 'details-family "normal" (lambda (v) (entity-set-value! "family" "varchar" v) '()))
       (medit-text 'details-photo-id "normal" (lambda (v) (entity-set-value! "photo-id" "varchar" v) '()))))
-    (mspinner-other 'tribe tribes-list (lambda (v) (msg "tribe now:" v) (entity-set-value! "tribe" "varchar" (spinner-choice tribes-list v)) '()))
+    (mspinner-other 'tribe tribes-list (lambda (v) (entity-set-value! "tribe" "varchar" (spinner-choice tribes-list v)) '()))
     (mspinner-other 'sub-tribe subtribe-list (lambda (v) (entity-set-value! "subtribe" "varchar" (spinner-choice subtribe-list v)) '()))
     (horiz
      (medit-text 'age "numeric" (lambda (v) (entity-set-value! "age" "int" v) '()))
@@ -850,13 +845,13 @@
    (lambda (activity arg)
      (append
       (update-top-bar (entity-get-value "name") (entity-get-value "photo-id"))
+      (mupdate-spinner-other 'tribe "tribe" tribes-list)
+      (mupdate-spinner-other 'sub-tribe "subtribe" subtribe-list)
       (list
        (mupdate 'edit-text 'details-name "name")
        (mupdate 'edit-text 'details-family "family")
        (mupdate 'edit-text 'details-photo-id "photo-id")
        (mupdate 'image-view 'photo "photo")
-       (mupdate-spinner-other 'tribe "tribe" tribes-list)
-       (mupdate-spinner-other 'sub-tribe "subtribe" subtribe-list)
        (mupdate 'edit-text 'age "age")
        (mupdate-spinner 'gender "gender" gender-list)
        (mupdate-spinner 'education "education" education-list)
@@ -938,8 +933,7 @@
      (when (and (eqv? requestcode spouse-request-code)
                 (get-current 'choose-result #f))
            (update-entity db "sync" (entity-id-from-unique db "sync" (get-current 'choose-result #f))
-                          (list (ktv "id-spouse" "varchar" (entity-get-value "unique_id"))))
-           (msg "done..."))
+                          (list (ktv "id-spouse" "varchar" (entity-get-value "unique_id")))))
 
      ;; save and reinit otherwise we can get out of sync here with the spouse :/
      (let ((unique-id (entity-get-value "unique_id")))
@@ -954,9 +948,6 @@
    (build-activity
     (mspinner 'move-household '()
               (lambda (v)
-                (msg v)
-                (msg (number? v))
-                (msg (list-ref (get-current 'move-household-list '()) v))
                 (entity-set-value!
                  "parent" "varchar"
                  (cadr (list-ref (get-current 'move-household-list '()) v)))
@@ -1044,6 +1035,7 @@
      (entity-init! db "sync" "individual" (get-entity-by-unique db "sync" (get-current 'individual #f)))
      (append
       (update-top-bar (entity-get-value "name") (entity-get-value "photo-id"))
+      (mupdate-spinner-other 'house-type "house-type" house-type-list)
       (list
        (update-list-widget db "sync" "crop" "crop" (get-current 'individual #f))
        (mupdate-spinner 'occupation "occupation" occupation-list)
@@ -1051,7 +1043,6 @@
        (mupdate 'toggle-button 'own-land "own-land")
        (mupdate 'toggle-button 'rent-land "rent-land")
        (mupdate 'toggle-button 'hire-land "hire-land")
-       (mupdate-spinner-other 'house-type "house-type" house-type-list)
        (mupdate 'edit-text 'loan "loan")
        (mupdate 'edit-text 'earning "earning")
        (mupdate 'toggle-button 'radio "radio")
@@ -1178,7 +1169,6 @@
      (set-current! 'activity-title "Individual social network")
      (activity-layout activity))
    (lambda (activity arg)
-     (msg "wooooop")
      (append
       (update-top-bar (entity-get-value "name") (entity-get-value "photo-id"))
       (list
@@ -1258,7 +1248,6 @@
            (lambda (v)
              (cond
               ((eqv? v 1)
-               (msg "adding new person quickly")
                (set-current!
                 'choose-result
                 (entity-create!

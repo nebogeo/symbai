@@ -41,7 +41,7 @@
 ;; basic key/type/value structure
 ;; used for all data internally, and maps to the eavdb types
 
-(define (ktv key type value) (list key type value -999))
+(define (ktv key type value) (list key type value 0))
 (define (ktv-with-version key type value version) (list key type value version))
 (define (ktv-create key type value) (list key type value 0))
 (define ktv-key car)

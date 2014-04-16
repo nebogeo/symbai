@@ -145,13 +145,11 @@
   (let ((db (get-current 'db #f))
         (table (get-current 'table #f)))
     ;; standard bits
-    (let ((values (get-current 'entity-values '()))
+    (let ((values (dbg (get-current 'entity-values '())))
           (unique-id (ktv-get (get-current 'entity-values '()) "unique_id")))
       (cond
        ((and unique-id (not (null? values)))
         (update-entity db table (entity-id-from-unique db table unique-id) values)
-        (msg "updated " unique-id)
-        (msg values)
         ;; removed due to save button no longer exiting activity - need to keep!
         ;;(entity-reset!)
         )
@@ -176,8 +174,6 @@
 ;; syncing code
 
 (define url "http://192.168.2.1:8889/symbai?")
-
-(msg "url")
 
 (define (build-url-from-ktv ktv)
   (string-append "&" (ktv-key ktv) ":" (ktv-type ktv) ":" (number->string (ktv-version ktv)) "=" (stringify-value-url ktv)))
@@ -517,7 +513,14 @@
     (spinner (make-id (string-append (symbol->string id) "-spinner"))
              (map mtext-lookup types)
              (layout 'wrap-content 'wrap-content 1 'centre 0)
-             (lambda (c) (fn c))))
+             (lambda (c)
+               (msg "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+               (msg c)
+               (msg (length types))
+               ;; dont call if set to "other"
+               (if (< c (- (length types) 1))
+                   (fn c)
+                   '()))))
    (vert
     (mtext-scale 'other)
     (edit-text (make-id (string-append (symbol->string id) "-edit-text"))
@@ -537,7 +540,13 @@
     (spinner (make-id (string-append (symbol->string id) "-spinner"))
              (map mtext-lookup types)
              (layout 'wrap-content 'wrap-content 1 'centre 0)
-             (lambda (c) (fn c)))
+             (lambda (c)
+               (msg "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+               (msg c)
+               (msg (length types))
+               ;; dont call if set to "other"
+               (if (< c (- (length types) 1))
+                   (fn c) '())))
     (mtext-scale 'other)
     (edit-text (make-id (string-append (symbol->string id) "-edit-text"))
                "" 30 "normal"
@@ -582,7 +591,9 @@
    (else (msg "mupdate-widget unhandled widget type" widget-type))))
 
 (define (spinner-choice l i)
-  (symbol->string (list-ref l i)))
+  (if (number? i)
+      (symbol->string (list-ref l i))
+      i))
 
 (define (mupdate-spinner id-symbol key choices)
   (let* ((val (entity-get-value key)))
@@ -602,19 +613,23 @@
                                'selection 0)))))))
 
 (define (mupdate-spinner-other id-symbol key choices)
-  (let* ((val (dbg (entity-get-value key))))
+  (let* ((val (entity-get-value key)))
     (if (not val)
-        (update-widget 'spinner
-                       (get-id (string-append (symbol->string id-symbol) "-spinner"))
-                       'selection 0)
+        (list (update-widget 'spinner
+                             (get-id (string-append (symbol->string id-symbol) "-spinner"))
+                             'selection 0))
         (let ((index (index-find (string->symbol val) choices)))
           (if index
-              (update-widget 'spinner
-                             (get-id (string-append (symbol->string id-symbol) "-spinner"))
-                             'selection index)
-              (update-widget 'edit-text
-                             (get-id (string-append (symbol->string id-symbol) "-edit-text"))
-                             'selection index))))))
+              (list (update-widget 'spinner
+                                   (get-id (string-append (symbol->string id-symbol) "-spinner"))
+                                   'selection index))
+              (list
+               (update-widget 'spinner
+                              (get-id (string-append (symbol->string id-symbol) "-spinner"))
+                              'selection (- (length choices) 1))
+               (update-widget 'edit-text
+                              (get-id (string-append (symbol->string id-symbol) "-edit-text"))
+                              'text val)))))))
 
 ;;;;
 ;; (y m d h m s)
@@ -712,7 +727,6 @@
              (or (ktv-get e "name") "Unamed item")
              40 (layout 'fill-parent 'wrap-content 1 'centre 5)
              (lambda ()
-               (msg "sending start act" (ktv-get e "unique_id"))
                (list (start-activity edit-activity 0 (ktv-get e "unique_id"))))))
           search-results)))))
 
@@ -738,9 +752,9 @@
    (lambda (e)
      (list (ktv-get e "name")
            (ktv-get e "unique_id")))
-   (dbg (db-filter-only db table entity-type
-                        (list)
-                        (list (list "name" "varchar"))))))
+   (db-filter-only db table entity-type
+                   (list)
+                   (list (list "name" "varchar")))))
 
 
 (define vowel (map symbol->string (list 'a 'e 'i 'o 'u)))
