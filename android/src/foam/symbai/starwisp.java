@@ -75,6 +75,8 @@ public class starwisp extends StarwispActivity
         ActivityManager.RegisterActivity("individual-chooser",IndividualChooserActivity.class);
         ActivityManager.RegisterActivity("sync",SyncActivity.class);
         ActivityManager.RegisterActivity("crop",CropActivity.class);
+        ActivityManager.RegisterActivity("child",ChildActivity.class);
+        ActivityManager.RegisterActivity("move",MoveActivity.class);
     };
 
     /** Called when the activity is first created. */

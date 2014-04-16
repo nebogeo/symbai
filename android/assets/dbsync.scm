@@ -124,6 +124,7 @@
 
 
 (define (entity-create! db table entity-type ktv-list)
+  (msg "creating:" entity-type ktv-list)
   (let ((values
          (append
           (list
@@ -580,9 +581,12 @@
                          (string-append dirname "files/" image-name)))))
    (else (msg "mupdate-widget unhandled widget type" widget-type))))
 
+(define (spinner-choice l i)
+  (symbol->string (list-ref l i)))
+
 (define (mupdate-spinner id-symbol key choices)
   (let* ((val (entity-get-value key))
-         (index (index-find val (map mtext-lookup choices))))
+         (index (index-find (string->symbol val) choices)))
     (if index
         (update-widget 'spinner
                        (get-id (string-append (symbol->string id-symbol) "-spinner"))
@@ -596,7 +600,7 @@
 (define (mupdate-spinner-other id-symbol key choices)
   (msg "update spinner other...")
   (let* ((val (entity-get-value key))
-         (index (index-find val (map mtext-lookup choices))))
+         (index (index-find (string->symbol val) choices)))
     (if index
         (update-widget 'spinner
                        (get-id (string-append (symbol->string id-symbol) "-spinner"))
@@ -722,6 +726,16 @@
           (else
            (list)))))))))
 
+(define (build-array-from-names db table entity-type)
+  (map
+   (lambda (e)
+     (list (ktv-get e "name")
+           (ktv-get e "unique_id")))
+   (dbg (db-filter-only db table entity-type
+                        (list)
+                        (list (list "name" "varchar"))))))
+
+
 (define vowel (map symbol->string (list 'a 'e 'i 'o 'u)))
 (define consonant (map symbol->string (list 'b 'c 'd 'f 'g 'h 'j 'k 'l 'm 'n 'p 'q 'r 's 't 'v 'w 'x 'y 'z)))
 
@@ -742,7 +756,7 @@
                   (ktvlist-merge
                    default-ktvlist
                    (list
-                    (ktv "name" "varchar" (word-gen))
+                    (ktv "name" "varchar" (string-append "Village-" (number->string (random-int 1000))))
                     (ktv "block" "varchar" (word-gen))
                     (ktv "district" "varchar" (word-gen))
                     (ktv "car" "int" (random-int 2))))))
@@ -752,7 +766,7 @@
                   (ktvlist-merge
                    default-ktvlist
                    (list
-                    (ktv "name" "varchar" (word-gen))
+                    (ktv "name" "varchar" (string-append "Household-" (number->string (random-int 1000))))
                     (ktv "num-pots" "int" (random-int 10))
                     (ktv "parent" "varchar" parent)))))
 
@@ -896,22 +910,20 @@
         (fn n)
         (looper! (- n 1) fn)))
 
-(msg (random-int 100))
-
 (define (build-test! db table village-ktvlist household-ktvlist individual-ktvlist)
   (looper!
-   3
+   1
    (lambda (i)
      (msg "making village" i)
      (let ((village (simpsons-village db table village-ktvlist)))
        (looper!
-        8
+        3
         (lambda (i)
           (alog "household")
           (msg "making household" i)
           (let ((household (simpsons-household db table village household-ktvlist)))
             (looper!
-             (random-int 30)
+             (random-int 10)
              (lambda (i)
                (msg "making individual" i)
                (simpsons-individual db table household individual-ktvlist))))))))))

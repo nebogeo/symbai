@@ -34,7 +34,7 @@
 (setup db "stream")
 
 (insert-entity-if-not-exists
- db "local" "app-settings" "null" 2
+ db "local" "app-settings" "null" 1
  (list
   (ktv "user-id" "varchar" "No name yet...")
   (ktv "language" "int" 0)
@@ -42,11 +42,11 @@
   (ktv "photo-id-count" "int" 0)))
 
 (define (get-setting-value name)
-  (ktv-get (get-entity db "local" 2) name))
+  (ktv-get (get-entity db "local" 1) name))
 
 (define (set-setting! key type value)
   (update-entity
-   db "local" 2 (list (ktv key type value))))
+   db "local" 1 (list (ktv key type value))))
 
 (define (get/inc-setting key)
   (let ((r (get-setting-value key)))
@@ -63,6 +63,10 @@
 (define subtribe-list '(khynriam pnar bhoi war other))
 (define education-list   '(illiterate literate primary middle high secondary university))
 (define married-list '(ever-married currently-married currently-single seperated))
+(define residence-list '(birthplace spouse-village))
+(define gender-list '(male female))
+(define occupation-list '(agriculture gathering labour cows fishing other))
+(define house-type-list '(concrete tin thatched))
 
 (define social-types-list '(friendship knowledge prestige))
 (define social-relationship-list '(mother father sister brother spouse children co-wife spouse-mother spouse-father spouse-brother-wife spouse-sister-husband friend neighbour other))
@@ -95,7 +99,7 @@
    (ktv-create "subtribe" "varchar" "none")
    (ktv-create "child" "int" 0)
    (ktv-create "age" "int" 0)
-   (ktv-create "gender" "varchar" "Female")
+   (ktv-create "gender" "varchar" "none")
    (ktv-create "education" "varchar" "none")
    (ktv-create "head-of-house" "varchar" "none")
    (ktv-create "marital-status" "varchar" "none")
@@ -135,6 +139,15 @@
    (ktv-create "used" "real" 0)
    (ktv-create "sold" "real" 0)
    (ktv-create "seed" "varchar" "none")))
+
+(define child-ktvlist
+  (list
+   (ktv-create "name" "varchar" (mtext-lookup 'default-child-name))
+   (ktv-create "alive" "int" 1)
+   (ktv-create "gender" "varchar" "none")
+   (ktv-create "age" "int" 0)
+   (ktv-create "living-at-home" "int" 0)))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -442,22 +455,26 @@
       'social-relationship
       social-relationship-list
       (lambda (v)
-        (entity-set-value! (string-append key "-relationship") "varchar" v) '()))
+        (entity-set-value! (string-append key "-relationship") "varchar"
+                           (spinner-choice social-relationship-list v))
+        '()))
      (mspinner-other-vert
       (string->symbol (string-append id-text "-residence"))
       'social-residence
       social-residence-list
       (lambda (v)
-        (entity-set-value! (string-append key "-residence") "varchar" v) '()))
+        (entity-set-value! (string-append key "-residence") "varchar"
+                           (spinner-choice social-residence-list v)) '()))
      (vert
       (text-view 0 (mtext-lookup 'social-strength)
                  30 (layout 'wrap-content 'wrap-content 1 'centre 10))
       (spinner
        (make-id (dbg (string-append id-text "-strength-spinner")))
-       (map mtext-lookup  social-strength-list)
+       (map mtext-lookup social-strength-list)
        (layout 'wrap-content 'wrap-content 1 'centre 0)
        (lambda (v)
-         (entity-set-value! (string-append key "-strength") "varchar" v) '()))))))
+         (entity-set-value! (string-append key "-strength") "varchar"
+                            (spinner-choice social-strength-list v)) '()))))))
 
 (define (social-connection-return request-code key choose-code)
   (when (eqv? request-code choose-code)
@@ -544,12 +561,8 @@
     (horiz
      (mspinner 'languages (list 'english 'khasi 'hindi)
                (lambda (c)
-                 (set-setting! "language" "int"
-                               (cond
-                                ((equal? c "English") 0)
-                                ((equal? c "Khasi") 1)
-                                ((equal? c "Hindi") 2)))
-                 (set! i18n-lang (get-setting-value "language"))
+                 (set-setting! "language" "int" c)
+                 (set! i18n-lang c)
                  (list)))
      (mbutton-scale 'find-individual (lambda () (list (start-activity "individual-chooser" choose-code "")))))
     (build-list-widget
@@ -716,8 +729,6 @@
       (mtext 'family-display)
       (spacer 20)
       (mtext 'photo-id-display)
-      (spacer 20)
-      (mtoggle-button-scale 'is-a-child (lambda (v) (entity-set-value! "child" "int" v) '()))
       ))
     (mbutton 'agreement-button (lambda () (list (start-activity "agreement" 0 ""))))
     (horiz
@@ -729,6 +740,7 @@
     (horiz
      (mbutton-scale 'geneaology-button (lambda () (list (start-activity "geneaology" 0 ""))))
      (mbutton-scale 'social-button (lambda () (list (start-activity "social" 0 "")))))
+    (mbutton-scale 'move-button (lambda () (list (start-activity "move" 0 ""))))
     (spacer 20)
     (delete-button))
 
@@ -742,8 +754,7 @@
       (mupdate 'text-view 'name-display "name")
       (mupdate 'text-view 'family-display "family")
       (mupdate 'text-view 'photo-id-display "photo-id")
-      (mupdate 'image-view 'photo "photo")
-      (mupdate 'toggle-button 'is-a-child "child")))
+      (mupdate 'image-view 'photo "photo")))
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
@@ -770,11 +781,11 @@
       (medit-text 'details-name "normal" (lambda (v) (entity-set-value! "name" "varchar" v) '()))
       (medit-text 'details-family "normal" (lambda (v) (entity-set-value! "family" "varchar" v) '()))
       (medit-text 'details-photo-id "normal" (lambda (v) (entity-set-value! "photo-id" "varchar" v) '()))))
-    (mspinner-other 'tribe tribes-list (lambda (v) (msg "tribe now:" v) (entity-set-value! "tribe" "varchar" v) '()))
-    (mspinner-other 'sub-tribe subtribe-list (lambda (v) (entity-set-value! "subtribe" "varchar" v) '()))
+    (mspinner-other 'tribe tribes-list (lambda (v) (msg "tribe now:" v) (entity-set-value! "tribe" "varchar" (spinner-choice tribes-list v)) '()))
+    (mspinner-other 'sub-tribe subtribe-list (lambda (v) (entity-set-value! "subtribe" "varchar" (spinner-choice subtribe-list v)) '()))
     (horiz
      (medit-text 'age "numeric" (lambda (v) (entity-set-value! "age" "int" v) '()))
-     (mspinner 'gender '(male female) (lambda (v) (entity-set-value! "gender" "varchar" v) '()))
+     (mspinner 'gender gender-list (lambda (v) (entity-set-value! "gender" "varchar" (spinner-choice gender-list v)) '()))
      (mspinner 'education education-list (lambda (v) (entity-set-value! "education" "varchar" v) '())))
     )
    (lambda (activity arg)
@@ -789,7 +800,7 @@
       (mupdate-spinner-other 'tribe "tribe" tribes-list)
       (mupdate-spinner-other 'sub-tribe "subtribe" subtribe-list)
       (mupdate 'edit-text 'age "age")
-      (mupdate-spinner 'gender "gender" '(male female))
+      (mupdate-spinner 'gender "gender" gender-list)
       (mupdate-spinner 'education "education" education-list)
       ))
    (lambda (activity) '())
@@ -818,21 +829,24 @@
    (build-activity
     (horiz
      (vert
-      (mspinner 'head-of-house '(male female) (lambda (v) (entity-set-value! "head-of-house" "varchar" v) '()))
-      (mspinner 'marital-status married-list (lambda (v) (entity-set-value! "marital-status" "varchar" v) '()))
+      (mspinner 'head-of-house gender-list (lambda (v) (entity-set-value! "head-of-house" "varchar" (spinner-choice gender-list v)) '()))
+      (mspinner 'marital-status married-list (lambda (v) (entity-set-value! "marital-status" "varchar" (spinner-choice married-list v)) '()))
       (medit-text 'times-married "numeric" (lambda (v) (entity-set-value! "times-married" "int" v) '())))
 
      (build-person-selector 'spouse "id-spouse" (list) spouse-request-code)
      )
 
-    (mtitle 'children)
-    (horiz
-     (medit-text 'children-living "numeric" (lambda (v) (entity-set-value! "children-living" "int" v) '()))
-     (medit-text 'children-dead "numeric" (lambda (v) (entity-set-value! "children-dead" "int" v) '())))
-    (horiz
-     (medit-text 'children-together "numeric" (lambda (v) (entity-set-value! "children-together" "int" v) '()))
-     (medit-text 'children-apart "numeric" (lambda (v) (entity-set-value! "children-apart" "int" v) '())))
-    (mspinner-other 'residence-after-marriage '(birthplace spouse-village) (lambda (v) '()))
+;;    (mtitle 'children)
+;;    (horiz
+;;     (medit-text 'children-living "numeric" (lambda (v) (entity-set-value! "children-living" "int" v) '()))
+;;     (medit-text 'children-dead "numeric" (lambda (v) (entity-set-value! "children-dead" "int" v) '())))
+;;    (horiz
+;;     (medit-text 'children-together "numeric" (lambda (v) (entity-set-value! "children-together" "int" v) '()))
+;;     (medit-text 'children-apart "numeric" (lambda (v) (entity-set-value! "children-apart" "int" v) '())))
+
+    (mspinner-other 'residence-after-marriage residence-list (lambda (v) (entity-set-value!
+                                                                          "residence-after-marriage" "varchar"
+                                                                          (spinner-choice residence-list v)) '()))
     (medit-text 'num-siblings "numeric" (lambda (v) (entity-set-value! "num-siblings" "int" v) '()))
     (medit-text 'birth-order "numeric" (lambda (v) (entity-set-value! "birth-order" "int" v) '())))
    (lambda (activity arg)
@@ -842,15 +856,15 @@
      (append
       (update-person-selector db "sync" 'spouse "id-spouse")
       (list
-       (mupdate-spinner 'head-of-house "head-of-house" '(male female))
+       (mupdate-spinner 'head-of-house "head-of-house" gender-list)
        (mupdate-spinner 'marital-status "marital-status" married-list)
        (mupdate 'edit-text 'times-married "times-married")
        ;;(mupdate 'id-spouse "id-spouse")
-       (mupdate 'edit-text 'children-living "children-living")
-       (mupdate 'edit-text 'children-dead "children-dead")
-       (mupdate 'edit-text 'children-together "children-together")
-       (mupdate 'edit-text 'children-apart "children-apart")
-       (mupdate-spinner 'residence-after-marriage "residence-after-marriage" '(birthplace spouse-village))
+;;       (mupdate 'edit-text 'children-living "children-living")
+;;       (mupdate 'edit-text 'children-dead "children-dead")
+;;       (mupdate 'edit-text 'children-together "children-together")
+;;       (mupdate 'edit-text 'children-apart "children-apart")
+       (mupdate-spinner 'residence-after-marriage "residence-after-marriage" residence-list)
        (mupdate 'edit-text 'num-siblings "num-siblings")
        (mupdate 'edit-text 'birth-order "birth-order"))))
    (lambda (activity) '())
@@ -875,6 +889,33 @@
        (entity-init! db "sync" "individual" (get-entity-by-unique db "sync" unique-id)))
 
      '()))
+
+  (activity
+   "move"
+   (build-activity
+    (mspinner 'move-household '()
+              (lambda (v)
+                (msg v)
+                (msg (number? v))
+                (msg (list-ref (get-current 'move-household-list '()) v))
+                (entity-set-value!
+                 "parent" "varchar"
+                 (cadr (list-ref (get-current 'move-household-list '()) v)))
+                '())))
+   (lambda (activity arg)
+     (set-current! 'activity-title "Move individual")
+     (activity-layout activity))
+   (lambda (activity arg)
+     (set-current! 'move-household-list (build-array-from-names db "sync" "household"))
+     (list
+      (update-widget 'spinner (get-id "move-household-spinner") 'array
+                     (map car (get-current 'move-household-list '())))))
+   (lambda (activity) '())
+   (lambda (activity) '())
+   (lambda (activity) '())
+   (lambda (activity) '())
+   (lambda (activity requestcode resultcode) '()))
+
 
 
   (activity
@@ -905,8 +946,10 @@
   (activity
    "income"
    (build-activity
-    (mspinner 'occupation '(agriculture gathering labour cows fishing other)
-              (lambda (v) (entity-set-value! "occupation" "varchar" v) '()))
+    (mspinner 'occupation occupation-list
+              (lambda (v) (entity-set-value! "occupation" "varchar"
+                                             (spinner-choice occupation-list v))
+                      '()))
     (horiz
      (mtoggle-button-scale 'contribute (lambda (v) (entity-set-value! "contribute" "int" v) '()))
      (mtoggle-button-scale 'own-land (lambda (v) (entity-set-value! "own-land" "int" v) '())))
@@ -916,7 +959,8 @@
     (build-list-widget
      db "sync" 'crops "crop" "crop" (lambda () (get-current 'individual #f))
      crop-ktvlist)
-    (mspinner-other 'house-type '(concrete tin thatched) (lambda (v) '()))
+    (mspinner-other 'house-type house-type-list (lambda (v) (entity-set-value! "house-type" "varchar"
+                                                                               (spinner-choice house-type-list v)) '()))
     (horiz
      (medit-text 'loan "numeric" (lambda (v) (entity-set-value! "loan" "int" v) '()))
      (medit-text 'earning "numeric" (lambda (v) (entity-set-value! "earning" "int" v) '())))
@@ -935,12 +979,12 @@
    (lambda (activity arg)
      (list
       (update-list-widget db "sync" "crop" "crop" (get-current 'individual #f))
-      (mupdate-spinner 'occupation "occupation" '(agriculture gathering labour cows fishing other))
+      (mupdate-spinner 'occupation "occupation" occupation-list)
       (mupdate 'toggle-button 'contribute "contribute")
       (mupdate 'toggle-button 'own-land "own-land")
       (mupdate 'toggle-button 'rent-land "rent-land")
       (mupdate 'toggle-button 'hire-land "hire-land")
-      (mupdate-spinner-other 'house-type "house-type" '(concrete tin thatched))
+      (mupdate-spinner-other 'house-type "house-type" house-type-list)
       (mupdate 'edit-text 'loan "loan")
       (mupdate 'edit-text 'earning "earning")
       (mupdate 'toggle-button 'radio "radio")
@@ -984,6 +1028,38 @@
    (lambda (activity) '())
    (lambda (activity requestcode resultcode) '()))
 
+  (activity
+   "child"
+   (build-activity
+    (vert
+     (medit-text 'child-name "normal" (lambda (v) (entity-set-value! "name" "varchar" v) '()))
+     (horiz
+      (mspinner 'child-gender gender-list (lambda (v) (entity-set-value! "gender" "varchar" (spinner-choice gender-list v)) '()))
+      (medit-text 'child-age "numeric" (lambda (v) (entity-set-value! "age" "int" (string->number v)) '())))
+     (horiz
+      (mtoggle-button-scale 'child-alive (lambda (v) (entity-set-value! "alive" "int" v) '()))
+      (mtoggle-button-scale 'child-home (lambda (v) (entity-set-value! "living-at-home" "int" v) '())))
+     (delete-button)))
+   (lambda (activity arg)
+     (set-current! 'activity-title "Child")
+     (activity-layout activity))
+   (lambda (activity arg)
+     (entity-init! db "sync" "child" (get-entity-by-unique db "sync" arg))
+     (set-current! 'child arg)
+     (list
+      (mupdate 'edit-text 'child-name "name")
+      (mupdate-spinner 'child-gender "gender" gender-list)
+      (mupdate 'edit-text 'child-age "age")
+      (mupdate 'toggle-button 'child-alive "alive")
+      (mupdate 'toggle-button 'child-home "living-at-home")
+      ))
+
+   (lambda (activity) '())
+   (lambda (activity) '())
+   (lambda (activity) '())
+   (lambda (activity) '())
+   (lambda (activity requestcode resultcode) '()))
+
 
   (activity
    "geneaology"
@@ -991,18 +1067,18 @@
     (horiz
      (build-person-selector 'mother "id-mother" (list) mother-request-code)
      (build-person-selector 'father "id-father" (list) father-request-code))
-    (mtitle 'children)
-    (horiz
-     (medit-text 'name "normal" (lambda (v) '()))
-     (mtoggle-button-scale 'alive (lambda (v) '()))
-     (mspinner 'sex '(female male) (lambda (v) '()))
-     (medit-text 'age "numeric" (lambda (v) '())))
-    )
+
+    (build-list-widget
+     db "sync" 'children "child" "child" (lambda () (get-current 'individual #f))
+     child-ktvlist))
+
    (lambda (activity arg)
      (set-current! 'activity-title "Individual geneaology")
      (activity-layout activity))
    (lambda (activity arg)
+     (msg "about to update child list for" (get-current 'individual #f))
      (append
+      (list (update-list-widget db "sync" "child" "child" (get-current 'individual #f)))
       (update-person-selector db "sync" 'mother "id-mother")
       (update-person-selector db "sync" 'father "id-father")))
    (lambda (activity) '())
@@ -1018,7 +1094,8 @@
   (activity
    "social"
    (build-activity
-    (mspinner 'social-type social-types-list (lambda (v) (entity-set-value! "social-type" "varchar" v) '()))
+    (mspinner 'social-type social-types-list (lambda (v) (entity-set-value! "social-type" "varchar"
+                                                                            (spinner-choice social-types-list v)) '()))
     (build-social-connection 'social-one "social-one" "friend" social-request-code-one)
     (build-social-connection 'social-two "social-two" "friend" social-request-code-two)
     (build-social-connection 'social-three "social-three" "friend" social-request-code-three)
@@ -1104,9 +1181,10 @@
      (horiz
       (mspinner 'gender '(off female male)
                 (lambda (v)
-                  (if (equal? v (mtext-lookup 'off))
+                  (if (equal? v 0)
                       (filter-remove! "gender")
-                      (filter-add! (make-filter "gender" "varchar" "=" v)))
+                      (filter-add! (make-filter "gender" "varchar" "="
+                                                (spinner-choice '(off female male) v))))
                   (list (update-individual-filter))
                   ))
       (medit-text

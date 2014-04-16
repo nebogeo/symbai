@@ -8,7 +8,7 @@
 "households"," Households"," ",,
 "individual"," Individual"," ",,
 "individuals"," Individuals"," ",,
-"add-item-to-list",0," ",,
+"add-item-to-list","+"," ",,
 "default-village-name"," New village"," ",,
 "title"," Symbai"," Symbai"," Symbai"," "
 "sync"," Sync"," Sync"," Sync"," "
@@ -221,3 +221,9 @@
 "weekly"," Weekly"," ",,
 "monthly"," Monthly"," ",,
 "less"," Less"," ",,
+"child-name","Name",,,
+"child-gender","Gender",,,
+"child-age","Age",,,
+"child-home","Lives at home",,,
+"child-alive","Alive",,,
+"default-child-name","A child",,,
