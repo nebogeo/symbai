@@ -36,10 +36,10 @@
 (insert-entity-if-not-exists
  db "local" "app-settings" "null" 1
  (list
-  (ktv "user-id" "varchar" "No name yet...")
+  (ktv "user-id" "varchar" "not set")
   (ktv "language" "int" 0)
-  (ktv "house-count" "int" 0)
-  (ktv "photo-id-count" "int" 0)))
+  (ktv "house-id" "int" 0)
+  (ktv "photo-id" "int" 0)))
 
 (define (get-setting-value name)
   (ktv-get (get-entity db "local" 1) name))
@@ -223,6 +223,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; fragments
 
+(define (update-top-bar name photo-id)
+  (list
+   (update-widget 'text-view (get-id "top-name") 'text name)
+   (update-widget 'text-view (get-id "top-photo-id") 'text photo-id)))
+
 (define-fragment-list
 
   (fragment
@@ -238,16 +243,20 @@
      (list 0 0 0 0)
 
      (list
-      (text-view (make-id "") 'name 20
+      (text-view (make-id "top-name") 'name 20
                  (layout 'fill-parent 'wrap-content 1 'centre 0))
-      (text-view (make-id "") 'photo-id 20
+      (text-view (make-id "top-photo-id") 'photo-id 20
                  (layout 'fill-parent 'wrap-content 1 'centre 0)))))
    (lambda (fragment arg)
      (activity-layout fragment))
    (lambda (fragment arg)
      (list
       (update-widget 'text-view (get-id "title") 'text
-                     (get-current 'activity-title "Title not set"))))
+                     (get-current 'activity-title "Title not set"))
+      (update-widget 'text-view (get-id "top-name") 'text
+                     (get-current 'activity-name "Name"))
+      (update-widget 'text-view (get-id "top-photo-id") 'text
+                     (get-current 'activity-photo-id "Photo ID"))))
    (lambda (fragment) '())
    (lambda (fragment) '())
    (lambda (fragment) '())
@@ -426,7 +435,8 @@
 ;; todo determine *which* selector this came from...
 (define (person-selector-return request-code key choose-code)
   (when (eqv? request-code choose-code)
-        (entity-set-value! key "varchar" (get-current 'choose-result "not set"))))
+        (entity-set-value! key "varchar" (get-current 'choose-result "not set"))
+        (entity-update-values!)))
 
 ;; need to load from across entities, so need db, table
 (define (update-person-selector db table id key)
@@ -440,9 +450,9 @@
       (if (image-invalid? (cadr image-name))
           (list
            (update-widget 'image-view id 'image "face")
-           (update-widget 'text-view text-id 'text (car image-name)))
+           (update-widget 'text-view text-id 'text (or (car image-name) "")))
           (list
-           (update-widget 'text-view text-id 'text (car image-name))
+           (update-widget 'text-view text-id 'text (or (car image-name) ""))
            (update-widget 'image-view id 'external-image
                           (string-append dirname "files/" (cadr image-name))))))))
 
@@ -555,8 +565,9 @@
    (build-activity
     (mtitle 'title)
     (horiz
-     (medit-text 'user-id "normal" (lambda () (list)))
-     (mbutton-scale 'sync (lambda () (list (start-activity "sync" 0 "")))))
+     (medit-text 'user-id "normal" (lambda (v) (set-setting! "user-id" "varchar" v) (list)))
+     (medit-text 'house-id "numeric" (lambda (v) (set-setting! "house-id" "int" (string->number v)) (list)))
+     (medit-text 'photo-id "numeric" (lambda (v) (set-setting! "photo-id" "int" (string->number v)) (list))))
 
     (horiz
      (mspinner 'languages (list 'english 'khasi 'hindi)
@@ -565,23 +576,31 @@
                  (set! i18n-lang c)
                  (list)))
      (mbutton-scale 'find-individual (lambda () (list (start-activity "individual-chooser" choose-code "")))))
+
     (build-list-widget
      db "sync" 'villages "village" "village" (lambda () #f)
-     village-ktvlist))
+     (lambda () village-ktvlist))
+
+    (mbutton 'sync (lambda () (list (start-activity "sync" 0 "")))))
 
    (lambda (activity arg)
      (set-current! 'activity-title "Main screen")
      (activity-layout activity))
    (lambda (activity arg)
-     (list
-      (update-widget 'spinner (get-id "languages-spinner") 'selection
-                     (get-setting-value "language"))
-      (gps-start "gps" (lambda (loc)
-                         (set-current! 'location loc)
-                         (list (toast (string-append
-                                       (number->string (car loc)) ", "
-                                       (number->string (cadr loc)))))))
-      (update-list-widget db "sync" "village" "village" #f)))
+     (append
+      (update-top-bar "Main" "")
+      (list
+       (update-widget 'edit-text (get-id "user-id") 'text (get-setting-value "user-id"))
+       (update-widget 'edit-text (get-id "house-id") 'text (get-setting-value "house-id"))
+       (update-widget 'edit-text (get-id "photo-id") 'text (get-setting-value "photo-id"))
+       (update-widget 'spinner (get-id "languages-spinner") 'selection
+                      (get-setting-value "language"))
+       (gps-start "gps" (lambda (loc)
+                          (set-current! 'location loc)
+                          (list (toast (string-append
+                                        (number->string (car loc)) ", "
+                                        (number->string (cadr loc)))))))
+       (update-list-widget db "sync" "village" "village" #f))))
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
@@ -632,6 +651,7 @@
      (entity-init! db "sync" "village" (get-entity-by-unique db "sync" arg))
      (set-current! 'village arg)
      (append
+      (update-top-bar (entity-get-value "name") "")
       (list
        (mupdate 'edit-text 'village-name "name")
        (mupdate 'edit-text 'block "block")
@@ -659,7 +679,15 @@
    (build-activity
     (build-list-widget
      db "sync" 'households "household" "household" (lambda () (get-current 'village #f))
-     household-ktvlist))
+     (lambda ()
+       ;; autogenerate the name from the current ID
+       (ktvlist-merge
+        household-ktvlist
+        (list (ktv "name" "varchar"
+                   (string-append
+                    (mtext-lookup 'default-household-name) "-"
+                    (get-setting-value "user-id") "-"
+                    (number->string (get/inc-setting "house-id")))))))))
    (lambda (activity arg)
      (set-current! 'activity-title "Household List")
      (activity-layout activity))
@@ -695,7 +723,15 @@
     (build-list-widget
      db "sync" 'individuals "individual" "individual"
      (lambda () (get-current 'household #f))
-     individual-ktvlist)
+     (lambda ()
+       (ktvlist-merge
+        individual-ktvlist
+        (list (ktv "photo-id" "varchar"
+                   (string-append
+                    (get-setting-value "user-id")
+                    "-"
+                    (number->string (get/inc-setting "photo-id"))))))))
+
 
     (delete-button))
    (lambda (activity arg)
@@ -705,6 +741,7 @@
      (entity-init! db "sync" "household" (get-entity-by-unique db "sync" arg))
      (set-current! 'household arg)
      (append
+      (update-top-bar (entity-get-value "name") "")
       (list
        (update-list-widget db "sync" "individual" "individual" arg)
        (mupdate 'edit-text 'household-name "name")
@@ -750,11 +787,13 @@
    (lambda (activity arg)
      (entity-init! db "sync" "individual" (get-entity-by-unique db "sync" arg))
      (set-current! 'individual arg)
-     (list
-      (mupdate 'text-view 'name-display "name")
-      (mupdate 'text-view 'family-display "family")
-      (mupdate 'text-view 'photo-id-display "photo-id")
-      (mupdate 'image-view 'photo "photo")))
+     (append
+      (update-top-bar (entity-get-value "name") (entity-get-value "photo-id"))
+      (list
+       (mupdate 'text-view 'name-display "name")
+       (mupdate 'text-view 'family-display "family")
+       (mupdate 'text-view 'photo-id-display "photo-id")
+       (mupdate 'image-view 'photo "photo"))))
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
@@ -792,17 +831,19 @@
      (set-current! 'activity-title "Individual details")
      (activity-layout activity))
    (lambda (activity arg)
-     (list
-      (mupdate 'edit-text 'details-name "name")
-      (mupdate 'edit-text 'details-family "family")
-      (mupdate 'edit-text 'details-photo-id "photo-id")
-      (mupdate 'image-view 'photo "photo")
-      (mupdate-spinner-other 'tribe "tribe" tribes-list)
-      (mupdate-spinner-other 'sub-tribe "subtribe" subtribe-list)
-      (mupdate 'edit-text 'age "age")
-      (mupdate-spinner 'gender "gender" gender-list)
-      (mupdate-spinner 'education "education" education-list)
-      ))
+     (append
+      (update-top-bar (entity-get-value "name") (entity-get-value "photo-id"))
+      (list
+       (mupdate 'edit-text 'details-name "name")
+       (mupdate 'edit-text 'details-family "family")
+       (mupdate 'edit-text 'details-photo-id "photo-id")
+       (mupdate 'image-view 'photo "photo")
+       (mupdate-spinner-other 'tribe "tribe" tribes-list)
+       (mupdate-spinner-other 'sub-tribe "subtribe" subtribe-list)
+       (mupdate 'edit-text 'age "age")
+       (mupdate-spinner 'gender "gender" gender-list)
+       (mupdate-spinner 'education "education" education-list)
+       )))
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
@@ -854,6 +895,7 @@
       (activity-layout activity))
    (lambda (activity arg)
      (append
+      (update-top-bar (entity-get-value "name") (entity-get-value "photo-id"))
       (update-person-selector db "sync" 'spouse "id-spouse")
       (list
        (mupdate-spinner 'head-of-house "head-of-house" gender-list)
@@ -907,9 +949,11 @@
      (activity-layout activity))
    (lambda (activity arg)
      (set-current! 'move-household-list (build-array-from-names db "sync" "household"))
-     (list
-      (update-widget 'spinner (get-id "move-household-spinner") 'array
-                     (map car (get-current 'move-household-list '())))))
+     (append
+      (update-top-bar (entity-get-value "name") (entity-get-value "photo-id"))
+      (list
+       (update-widget 'spinner (get-id "move-household-spinner") 'array
+                      (map car (get-current 'move-household-list '()))))))
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
@@ -931,12 +975,14 @@
      (set-current! 'activity-title "Individual migration")
      (activity-layout activity))
    (lambda (activity arg)
-     (list
-      (mupdate 'edit-text 'length-time "length-time")
-      (mupdate 'edit-text 'place-of-birth "place-of-birth")
-      (mupdate 'edit-text 'num-residence-changes "num-residence-changes")
-      (mupdate 'edit-text 'village-visits-month "village-visits-month")
-      (mupdate 'edit-text 'village-visits-year "village-visits-year")))
+     (append
+      (update-top-bar (entity-get-value "name") (entity-get-value "photo-id"))
+      (list
+       (mupdate 'edit-text 'length-time "length-time")
+       (mupdate 'edit-text 'place-of-birth "place-of-birth")
+       (mupdate 'edit-text 'num-residence-changes "num-residence-changes")
+       (mupdate 'edit-text 'village-visits-month "village-visits-month")
+       (mupdate 'edit-text 'village-visits-year "village-visits-year"))))
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
@@ -958,7 +1004,7 @@
      (mtoggle-button-scale 'hire-land (lambda (v) (entity-set-value! "hire-land" "int" v) '())))
     (build-list-widget
      db "sync" 'crops "crop" "crop" (lambda () (get-current 'individual #f))
-     crop-ktvlist)
+     (lambda () crop-ktvlist))
     (mspinner-other 'house-type house-type-list (lambda (v) (entity-set-value! "house-type" "varchar"
                                                                                (spinner-choice house-type-list v)) '()))
     (horiz
@@ -977,21 +1023,25 @@
      (set-current! 'activity-title "Individual income")
      (activity-layout activity))
    (lambda (activity arg)
-     (list
-      (update-list-widget db "sync" "crop" "crop" (get-current 'individual #f))
-      (mupdate-spinner 'occupation "occupation" occupation-list)
-      (mupdate 'toggle-button 'contribute "contribute")
-      (mupdate 'toggle-button 'own-land "own-land")
-      (mupdate 'toggle-button 'rent-land "rent-land")
-      (mupdate 'toggle-button 'hire-land "hire-land")
-      (mupdate-spinner-other 'house-type "house-type" house-type-list)
-      (mupdate 'edit-text 'loan "loan")
-      (mupdate 'edit-text 'earning "earning")
-      (mupdate 'toggle-button 'radio "radio")
-      (mupdate 'toggle-button 'tv "tv")
-      (mupdate 'toggle-button 'mobile "mobile")
-      (mupdate 'edit-text 'visit-market "visit-market")
-      (mupdate 'edit-text 'town-sell "town-sell")))
+     ;; reset after crop entity
+     (entity-init! db "sync" "individual" (get-entity-by-unique db "sync" (get-current 'individual #f)))
+     (append
+      (update-top-bar (entity-get-value "name") (entity-get-value "photo-id"))
+      (list
+       (update-list-widget db "sync" "crop" "crop" (get-current 'individual #f))
+       (mupdate-spinner 'occupation "occupation" occupation-list)
+       (mupdate 'toggle-button 'contribute "contribute")
+       (mupdate 'toggle-button 'own-land "own-land")
+       (mupdate 'toggle-button 'rent-land "rent-land")
+       (mupdate 'toggle-button 'hire-land "hire-land")
+       (mupdate-spinner-other 'house-type "house-type" house-type-list)
+       (mupdate 'edit-text 'loan "loan")
+       (mupdate 'edit-text 'earning "earning")
+       (mupdate 'toggle-button 'radio "radio")
+       (mupdate 'toggle-button 'tv "tv")
+       (mupdate 'toggle-button 'mobile "mobile")
+       (mupdate 'edit-text 'visit-market "visit-market")
+       (mupdate 'edit-text 'town-sell "town-sell"))))
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
@@ -1014,13 +1064,15 @@
    (lambda (activity arg)
      (entity-init! db "sync" "crop" (get-entity-by-unique db "sync" arg))
      (set-current! 'crop arg)
-     (list
-      (mupdate 'edit-text 'crop-name "name")
-      (mupdate 'edit-text 'crop-unit "unit")
-      (mupdate 'edit-text 'crop-used "used")
-      (mupdate 'edit-text 'crop-sold "sold")
-      (mupdate 'edit-text 'crop-seed "seed")
-      ))
+     (append
+      (update-top-bar (entity-get-value "name") "")
+      (list
+       (mupdate 'edit-text 'crop-name "name")
+       (mupdate 'edit-text 'crop-unit "unit")
+       (mupdate 'edit-text 'crop-used "used")
+       (mupdate 'edit-text 'crop-sold "sold")
+       (mupdate 'edit-text 'crop-seed "seed")
+       )))
 
    (lambda (activity) '())
    (lambda (activity) '())
@@ -1046,13 +1098,15 @@
    (lambda (activity arg)
      (entity-init! db "sync" "child" (get-entity-by-unique db "sync" arg))
      (set-current! 'child arg)
-     (list
-      (mupdate 'edit-text 'child-name "name")
-      (mupdate-spinner 'child-gender "gender" gender-list)
-      (mupdate 'edit-text 'child-age "age")
-      (mupdate 'toggle-button 'child-alive "alive")
-      (mupdate 'toggle-button 'child-home "living-at-home")
-      ))
+     (append
+      (update-top-bar (entity-get-value "name") "")
+      (list
+       (mupdate 'edit-text 'child-name "name")
+       (mupdate-spinner 'child-gender "gender" gender-list)
+       (mupdate 'edit-text 'child-age "age")
+       (mupdate 'toggle-button 'child-alive "alive")
+       (mupdate 'toggle-button 'child-home "living-at-home")
+       )))
 
    (lambda (activity) '())
    (lambda (activity) '())
@@ -1067,17 +1121,17 @@
     (horiz
      (build-person-selector 'mother "id-mother" (list) mother-request-code)
      (build-person-selector 'father "id-father" (list) father-request-code))
-
     (build-list-widget
      db "sync" 'children "child" "child" (lambda () (get-current 'individual #f))
-     child-ktvlist))
-
+     (lambda () child-ktvlist)))
    (lambda (activity arg)
      (set-current! 'activity-title "Individual geneaology")
      (activity-layout activity))
    (lambda (activity arg)
-     (msg "about to update child list for" (get-current 'individual #f))
+     ;; reset after child entity
+     (entity-init! db "sync" "individual" (get-entity-by-unique db "sync" (get-current 'individual #f)))
      (append
+      (update-top-bar (entity-get-value "name") (entity-get-value "photo-id"))
       (list (update-list-widget db "sync" "child" "child" (get-current 'individual #f)))
       (update-person-selector db "sync" 'mother "id-mother")
       (update-person-selector db "sync" 'father "id-father")))
@@ -1086,6 +1140,7 @@
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity requestcode resultcode)
+     (msg "hello!!!")
      (msg requestcode)
      (person-selector-return requestcode "id-mother" mother-request-code)
      (person-selector-return requestcode "id-father" father-request-code)
@@ -1107,6 +1162,7 @@
      (activity-layout activity))
    (lambda (activity arg)
      (append
+      (update-top-bar (entity-get-value "name") (entity-get-value "photo-id"))
       (list
        (mupdate-spinner 'social-type "social-type" social-types-list))
       (update-social-connection db "sync" 'social-one "social-one" "friend" social-request-code-one)
@@ -1145,38 +1201,6 @@
    "individual-chooser"
    (build-activity
     (vert
-     (horiz
-      (medit-text 'quick-name "normal"
-                  (lambda (v) (set-current! 'chooser-quick-name v) '()))
-      (mbutton-scale
-       'quick-add
-       (lambda ()
-         (list
-          (alert-dialog
-           "quick-add-check"
-           (mtext-lookup 'add-are-you-sure)
-           (lambda (v)
-             (cond
-              ((eqv? v 1)
-               (set-current!
-                'choose-result
-                (entity-create!
-                 db "sync" "individual"
-                 (ktvlist-merge
-                  individual-ktvlist
-                  (list
-                   (ktv "name" "varchar" (get-current 'chooser-quick-name (mtext-lookup 'no-name)))
-                   (ktv "parent" "varchar" (get-current 'household #f))))))
-               (list (finish-activity 0)))
-              (else
-               (list)))))))))
-
-
-     (linear-layout
-      (make-id "choose-pics") 'vertical
-      (layout 'fill-parent 'wrap-content 0.75 'centre 0)
-      (list 0 0 0 0)
-      (list))
      (mtitle 'filter)
      (horiz
       (mspinner 'gender '(off female male)
@@ -1194,8 +1218,42 @@
              (filter-remove! "name")
              (filter-add! (make-filter "name" "varchar" "like" (string-append v "%"))))
          (list (update-individual-filter))
-         ))
-      )))
+         )))
+
+     (linear-layout
+      (make-id "choose-pics") 'vertical
+      (layout 'fill-parent 'wrap-content 0.75 'centre 0)
+      (list 0 0 0 0)
+      (list))
+
+
+     (horiz
+      (medit-text 'quick-name "normal"
+                  (lambda (v) (set-current! 'chooser-quick-name v) '()))
+      (mbutton-scale
+       'quick-add
+       (lambda ()
+         (list
+          (alert-dialog
+           "quick-add-check"
+           (mtext-lookup 'add-are-you-sure)
+           (lambda (v)
+             (cond
+              ((eqv? v 1)
+               (msg "adding new person quickly")
+               (set-current!
+                'choose-result
+                (entity-create!
+                 db "sync" "individual"
+                 (ktvlist-merge
+                  individual-ktvlist
+                  (list
+                   (ktv "name" "varchar" (get-current 'chooser-quick-name (mtext-lookup 'no-name)))
+                   (ktv "parent" "varchar" (dbg (get-current 'household #f)))))))
+               (list (finish-activity 0)))
+              (else
+               (list)))))))))
+     ))
    (lambda (activity arg)
      (set-current! 'activity-title "Individual chooser")
      (activity-layout activity))

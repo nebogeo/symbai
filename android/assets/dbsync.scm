@@ -661,7 +661,7 @@
 
 ;; a standard builder for list widgets of entities and a
 ;; make new button, to add defaults to the list
-(define (build-list-widget db table title entity-type edit-activity parent-fn ktv-default)
+(define (build-list-widget db table title entity-type edit-activity parent-fn ktv-default-fn)
     (vert-colour
      colour-two
      (horiz
@@ -674,7 +674,7 @@
          (entity-create!
           db table entity-type
           (ktvlist-merge
-           ktv-default
+           (ktv-default-fn)
            (list (ktv "parent" "varchar" (parent-fn)))))
          (list (update-list-widget db table entity-type edit-activity (parent-fn))))))
      (linear-layout
@@ -782,127 +782,127 @@
    (list
     (ktv-create "name" "varchar"
                 (string-append "Abe-" (number->string n)))
-    (ktv-create "gender" "varchar" "Male")
+    (ktv-create "gender" "varchar" "male")
     (ktv-create "photo" "file" "abe.jpg"))
    (list
     (ktv-create
      "name" "varchar" (string-append "Akira-" (number->string n)))
-    (ktv-create "gender" "varchar" "Male")
+    (ktv-create "gender" "varchar" "male")
     (ktv-create "photo" "file" "akira.jpg"))
    (list
     (ktv-create
      "name" "varchar" (string-append "Apu-" (number->string n)))
-    (ktv-create "gender" "varchar" "Male")
+    (ktv-create "gender" "varchar" "male")
     (ktv-create "photo" "file" "apu.jpg"))
    (list
     (ktv-create
      "name" "varchar" (string-append "Barney-" (number->string n)))
-    (ktv-create "gender" "varchar" "Male")
+    (ktv-create "gender" "varchar" "male")
     (ktv-create "photo" "file" "barney.jpg"))
    (list
     (ktv-create
      "name" "varchar" (string-append "Bart-" (number->string n)))
-    (ktv-create "gender" "varchar" "Male")
+    (ktv-create "gender" "varchar" "male")
     (ktv-create "photo" "file" "bartsimpson.jpg"))
    (list
     (ktv-create
      "name" "varchar" (string-append "Billy-" (number->string n)))
-    (ktv-create "gender" "varchar" "Male")
+    (ktv-create "gender" "varchar" "male")
     (ktv-create "photo" "file" "billy.jpg"))
    (list
     (ktv-create
      "name" "varchar" (string-append "Carl-" (number->string n)))
-    (ktv-create "gender" "varchar" "Male")
+    (ktv-create "gender" "varchar" "male")
     (ktv-create "photo" "file" "carl.jpg"))
    (list
     (ktv-create
      "name" "varchar" (string-append "Cletus-" (number->string n)))
-    (ktv-create "gender" "varchar" "Male")
+    (ktv-create "gender" "varchar" "male")
     (ktv-create "photo" "file" "cletus.jpg"))
    (list
     (ktv-create
      "name" "varchar" (string-append "ComicBookGuy-" (number->string n)))
-    (ktv-create "gender" "varchar" "Male")
+    (ktv-create "gender" "varchar" "male")
     (ktv-create "photo" "file" "comicbookguy.jpg"))
    (list
     (ktv-create
      "name" "varchar" (string-append "Homer-" (number->string n)))
-    (ktv-create "gender" "varchar" "Male")
+    (ktv-create "gender" "varchar" "male")
     (ktv-create "photo" "file" "homersimpson.jpg"))
    (list
     (ktv-create
      "name" "varchar" (string-append "Jasper-" (number->string n)))
-    (ktv-create "gender" "varchar" "Male")
+    (ktv-create "gender" "varchar" "male")
     (ktv-create "photo" "file" "jasper.jpg"))
    (list
     (ktv-create
      "name" "varchar" (string-append "Kent-" (number->string n)))
-    (ktv-create "gender" "varchar" "Male")
+    (ktv-create "gender" "varchar" "male")
     (ktv-create "photo" "file" "kentbrockman.jpg"))
    (list
     (ktv-create
      "name" "varchar" (string-append "Kodos-" (number->string n)))
-    (ktv-create "gender" "varchar" "Male")
+    (ktv-create "gender" "varchar" "male")
     (ktv-create "photo" "file" "kodos.jpg"))
    (list
     (ktv-create
      "name" "varchar" (string-append "Lenny-" (number->string n)))
-    (ktv-create "gender" "varchar" "Male")
+    (ktv-create "gender" "varchar" "male")
     (ktv-create "photo" "file" "lenny.jpg"))
    (list
     (ktv-create
      "name" "varchar" (string-append "Lisa-" (number->string n)))
-    (ktv-create "gender" "varchar" "Female")
+    (ktv-create "gender" "varchar" "female")
     (ktv-create "photo" "file" "lisasimpson.jpg"))
    (list
     (ktv-create
      "name" "varchar" (string-append "Marge-" (number->string n)))
-    (ktv-create "gender" "varchar" "Female")
+    (ktv-create "gender" "varchar" "female")
     (ktv-create "photo" "file" "margesimpson.jpg"))
    (list
     (ktv-create
      "name" "varchar" (string-append "Martin-" (number->string n)))
-    (ktv-create "gender" "varchar" "Male")
+    (ktv-create "gender" "varchar" "male")
     (ktv-create "photo" "file" "martinprince.jpg"))
    (list
     (ktv-create
      "name" "varchar" (string-append "Milhouse-" (number->string n)))
-    (ktv-create "gender" "varchar" "Male")
+    (ktv-create "gender" "varchar" "male")
     (ktv-create "photo" "file" "milhouse.jpg"))
    (list
     (ktv-create
      "name" "varchar" (string-append "MrBurns-" (number->string n)))
-    (ktv-create "gender" "varchar" "Male")
+    (ktv-create "gender" "varchar" "male")
     (ktv-create "photo" "file" "mrburns.jpg"))
    (list
     (ktv-create
      "name" "varchar" (string-append "Ned-" (number->string n)))
-    (ktv-create "gender" "varchar" "Male")
+    (ktv-create "gender" "varchar" "male")
     (ktv-create "photo" "file" "nedflanders.jpg"))
    (list
     (ktv-create
      "name" "varchar" (string-append "Nelson-" (number->string n)))
-    (ktv-create "gender" "varchar" "Male")
+    (ktv-create "gender" "varchar" "male")
     (ktv-create "photo" "file" "nelson.jpg"))
    (list
     (ktv-create
      "name" "varchar" (string-append "Otto-" (number->string n)))
-    (ktv-create "gender" "varchar" "Male")
+    (ktv-create "gender" "varchar" "male")
     (ktv-create "photo" "file" "otto.jpg"))
    (list
     (ktv-create
      "name" "varchar" (string-append "Ralph-" (number->string n)))
-    (ktv-create "gender" "varchar" "Male")
+    (ktv-create "gender" "varchar" "male")
     (ktv-create "photo" "file" "ralphwiggum.jpg"))
    (list
     (ktv-create
      "name" "varchar" (string-append "Santaslittlehelper-" (number->string n)))
-    (ktv-create "gender" "varchar" "Male")
+    (ktv-create "gender" "varchar" "male")
     (ktv-create "photo" "file" "santaslittlehelper.jpg"))
    (list
     (ktv-create
      "name" "varchar" (string-append "SideshowBob-" (number->string n)))
-    (ktv-create "gender" "varchar" "Male")
+    (ktv-create "gender" "varchar" "male")
     (ktv-create "photo" "file" "sideshowbob.jpg")))))))))
 
 (define (looper! n fn)

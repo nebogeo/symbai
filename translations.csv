@@ -16,7 +16,7 @@
 "english"," English"," English"," English"," "
 "khasi"," Khasi"," Khasi"," Khasi"," "
 "hindi"," Hindi"," Hindi"," Hindi"," "
-"user-id"," Your user ID"," User ID"," User ID"," "
+"user-id"," User ID"," User ID"," User ID"," "
 "save"," Save"," Save"," Save"," "
 "back"," Back"," Back"," Back"," "
 "off"," Off"," Off"," Off"," "
@@ -227,3 +227,8 @@
 "child-home","Lives at home",,,
 "child-alive","Alive",,,
 "default-child-name","A child",,,
+"move-button","Move household",,,
+"move-household","Pick a new household",,,
+"house-id","House ID",,,
+"photo-id","Photo ID",,,
+"add-are-you-sure","Are you sure you want to add this individual?",,,
