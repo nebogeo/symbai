@@ -514,9 +514,6 @@
              (map mtext-lookup types)
              (layout 'wrap-content 'wrap-content 1 'centre 0)
              (lambda (c)
-               (msg "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-               (msg c)
-               (msg (length types))
                ;; dont call if set to "other"
                (if (< c (- (length types) 1))
                    (fn c)
@@ -541,9 +538,6 @@
              (map mtext-lookup types)
              (layout 'wrap-content 'wrap-content 1 'centre 0)
              (lambda (c)
-               (msg "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-               (msg c)
-               (msg (length types))
                ;; dont call if set to "other"
                (if (< c (- (length types) 1))
                    (fn c) '())))
