@@ -585,29 +585,36 @@
   (symbol->string (list-ref l i)))
 
 (define (mupdate-spinner id-symbol key choices)
-  (let* ((val (entity-get-value key))
-         (index (index-find (string->symbol val) choices)))
-    (if index
+  (let* ((val (entity-get-value key)))
+    (if (not val)
         (update-widget 'spinner
                        (get-id (string-append (symbol->string id-symbol) "-spinner"))
-                       'selection index)
-        (begin
-          (msg "spinner item in db " val " not found in list of items")
-          (update-widget 'spinner
-                         (get-id (string-append (symbol->string id-symbol) "-spinner"))
-                         'selection 0)))))
+                       'selection 0)
+        (let ((index (index-find (string->symbol val) choices)))
+          (if index
+              (update-widget 'spinner
+                             (get-id (string-append (symbol->string id-symbol) "-spinner"))
+                             'selection index)
+              (begin
+                (msg "spinner item in db " val " not found in list of items")
+                (update-widget 'spinner
+                               (get-id (string-append (symbol->string id-symbol) "-spinner"))
+                               'selection 0)))))))
 
 (define (mupdate-spinner-other id-symbol key choices)
-  (msg "update spinner other...")
-  (let* ((val (entity-get-value key))
-         (index (index-find (string->symbol val) choices)))
-    (if index
+  (let* ((val (dbg (entity-get-value key))))
+    (if (not val)
         (update-widget 'spinner
                        (get-id (string-append (symbol->string id-symbol) "-spinner"))
-                       'selection index)
-        (update-widget 'edit-text
-                       (get-id (string-append (symbol->string id-symbol) "-edit-text"))
-                       'selection index))))
+                       'selection 0)
+        (let ((index (index-find (string->symbol val) choices)))
+          (if index
+              (update-widget 'spinner
+                             (get-id (string-append (symbol->string id-symbol) "-spinner"))
+                             'selection index)
+              (update-widget 'edit-text
+                             (get-id (string-append (symbol->string id-symbol) "-edit-text"))
+                             'selection index))))))
 
 ;;;;
 ;; (y m d h m s)

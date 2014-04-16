@@ -417,18 +417,22 @@
       (list (start-activity "individual-chooser" request-code ""))))))
 
 (define (build-small-person-selector id key filter request-code)
-  (vert
-   (mtitle id)
-   (image-view (make-id (string-append (symbol->string id) "-image"))
-               "face" (layout 120 160 -1 'centre 0))
-   (mtext-small (string->symbol (string-append (symbol->string id) "-text")))
-   (button
-    (make-id (string-append "change-" (symbol->string id)))
-    (mtext-lookup 'change-id)
-    40 (layout 'fill-parent 'wrap-content -1 'centre 5)
-    (lambda ()
-      (filter-set! filter)
-      (list (start-activity "individual-chooser" request-code ""))))))
+  (linear-layout
+   0 'vertical
+   (layout 300 'wrap-content 1 'centre 10)
+   (list 0 0 0 0)
+   (list
+    (mtitle id)
+    (image-view (make-id (string-append (symbol->string id) "-image"))
+                "face" (layout 120 160 -1 'centre 0))
+    (mtext-small (string->symbol (string-append (symbol->string id) "-text")))
+    (button
+     (make-id (string-append "change-" (symbol->string id)))
+     (mtext-lookup 'change-id)
+     40 (layout 'wrap-content 'wrap-content -1 'centre 5)
+     (lambda ()
+       (filter-set! filter)
+       (list (start-activity "individual-chooser" request-code "")))))))
 
 
 ;; from activity on result with request id: choose-code
@@ -456,35 +460,41 @@
            (update-widget 'image-view id 'external-image
                           (string-append dirname "files/" (cadr image-name))))))))
 
-(define (build-social-connection id key type request-code)
+(define (build-social-connection id key type request-code shade)
   (let ((id-text (string-append (symbol->string id))))
-    (horiz
-     (build-small-person-selector id key (list) request-code)
-     (mspinner-other-vert
-      (string->symbol (string-append id-text "-relationship"))
-      'social-relationship
-      social-relationship-list
-      (lambda (v)
-        (entity-set-value! (string-append key "-relationship") "varchar"
-                           (spinner-choice social-relationship-list v))
-        '()))
-     (mspinner-other-vert
-      (string->symbol (string-append id-text "-residence"))
-      'social-residence
-      social-residence-list
-      (lambda (v)
-        (entity-set-value! (string-append key "-residence") "varchar"
-                           (spinner-choice social-residence-list v)) '()))
-     (vert
-      (text-view 0 (mtext-lookup 'social-strength)
-                 30 (layout 'wrap-content 'wrap-content 1 'centre 10))
-      (spinner
-       (make-id (dbg (string-append id-text "-strength-spinner")))
-       (map mtext-lookup social-strength-list)
-       (layout 'wrap-content 'wrap-content 1 'centre 0)
-       (lambda (v)
-         (entity-set-value! (string-append key "-strength") "varchar"
-                            (spinner-choice social-strength-list v)) '()))))))
+    (linear-layout
+     0 'horizontal
+     (layout 'wrap-content 'wrap-content 1 'centre 20)
+     (if shade colour-one colour-two)
+     (list
+      (build-small-person-selector id key (list) request-code)
+      (vert
+       (horiz
+        (mspinner-other-vert
+         (string->symbol (string-append id-text "-relationship"))
+         'social-relationship
+         social-relationship-list
+         (lambda (v)
+           (entity-set-value! (string-append key "-relationship") "varchar"
+                              (spinner-choice social-relationship-list v))
+           '()))
+        (mspinner-other-vert
+         (string->symbol (string-append id-text "-residence"))
+         'social-residence
+         social-residence-list
+         (lambda (v)
+           (entity-set-value! (string-append key "-residence") "varchar"
+                              (spinner-choice social-residence-list v)) '())))
+       (vert
+        (text-view 0 (mtext-lookup 'social-strength)
+                   30 (layout 'wrap-content 'wrap-content 1 'centre 10))
+        (spinner
+         (make-id (dbg (string-append id-text "-strength-spinner")))
+         (map mtext-lookup social-strength-list)
+         (layout 'wrap-content 'wrap-content 1 'centre 0)
+         (lambda (v)
+           (entity-set-value! (string-append key "-strength") "varchar"
+                              (spinner-choice social-strength-list v)) '()))))))))
 
 (define (social-connection-return request-code key choose-code)
   (when (eqv? request-code choose-code)
@@ -724,13 +734,20 @@
      db "sync" 'individuals "individual" "individual"
      (lambda () (get-current 'household #f))
      (lambda ()
-       (ktvlist-merge
-        individual-ktvlist
-        (list (ktv "photo-id" "varchar"
-                   (string-append
-                    (get-setting-value "user-id")
-                    "-"
-                    (number->string (get/inc-setting "photo-id"))))))))
+       (let ((photo-id (get/inc-setting "photo-id")))
+         (ktvlist-merge
+          individual-ktvlist
+          (list
+           (ktv "photo-id" "varchar"
+                (string-append
+                 (get-setting-value "user-id")
+                 "-"
+                 (number->string photo-id)))
+           (ktv "social-type" "varchar"
+                (symbol->string
+                 (list-ref social-types-list
+                           (modulo photo-id (length social-types-list)))))
+         )))))
 
 
     (delete-button))
@@ -1140,8 +1157,6 @@
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity requestcode resultcode)
-     (msg "hello!!!")
-     (msg requestcode)
      (person-selector-return requestcode "id-mother" mother-request-code)
      (person-selector-return requestcode "id-father" father-request-code)
      '()))
@@ -1149,18 +1164,21 @@
   (activity
    "social"
    (build-activity
-    (mspinner 'social-type social-types-list (lambda (v) (entity-set-value! "social-type" "varchar"
-                                                                            (spinner-choice social-types-list v)) '()))
-    (build-social-connection 'social-one "social-one" "friend" social-request-code-one)
-    (build-social-connection 'social-two "social-two" "friend" social-request-code-two)
-    (build-social-connection 'social-three "social-three" "friend" social-request-code-three)
-    (build-social-connection 'social-four "social-four" "friend" social-request-code-four)
-    (build-social-connection 'social-five "social-five" "friend" social-request-code-five)
+    (mspinner 'social-type social-types-list
+              (lambda (v) (entity-set-value!
+                           "social-type" "varchar"
+                           (spinner-choice social-types-list v)) '()))
+    (build-social-connection 'social-one "social-one" "friend" social-request-code-one #t)
+    (build-social-connection 'social-two "social-two" "friend" social-request-code-two #f)
+    (build-social-connection 'social-three "social-three" "friend" social-request-code-three #t)
+    (build-social-connection 'social-four "social-four" "friend" social-request-code-four #f)
+    (build-social-connection 'social-five "social-five" "friend" social-request-code-five #t)
     )
    (lambda (activity arg)
      (set-current! 'activity-title "Individual social network")
      (activity-layout activity))
    (lambda (activity arg)
+     (msg "wooooop")
      (append
       (update-top-bar (entity-get-value "name") (entity-get-value "photo-id"))
       (list
