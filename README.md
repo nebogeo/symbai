@@ -64,6 +64,15 @@ Common code is stored in /eavdb and is platform independant, running on android 
           \         |              /
            \        V             /
             --> entity-values  <--
-                    |
-                    V
-                 entity-insert
+                 |        |
+                 V        V
+        entity-insert    entity-get
+                 |        |
+                 V        V
+                entity-update
+                 |   |    |
+                 V   |    V
+        entity-sync  |   entity-filter
+                 |   |    |
+                 V   V    V
+                    eavdb
