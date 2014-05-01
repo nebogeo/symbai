@@ -21,17 +21,32 @@
          web-server/servlet
          web-server/servlet-env
          web-server/http/response-structs
-	 racket/match
+         racket/match
+         "scripts/utils.ss"
          "scripts/request.ss"
          "scripts/logger.ss"
          "scripts/json.ss"
-         "scripts/sync.ss"
-         "scripts/utils.ss"
-         "scripts/eavdb.ss"
+         "../eavdb/entity-get.ss"
+         "../eavdb/entity-sync.ss"
+         "../eavdb/entity-csv.ss"
+         "../eavdb/eavdb.ss"
          "scripts/txt.ss"
+         "scripts/server-sync.ss"
 ;         "scripts/input.ss"
 	 )
 
+(define (db-open db-name)
+  (cond
+    ((file-exists? (string->path db-name))
+     (display "open existing db")(newline)
+     (open (string->path db-name)))
+    (else
+     (display "making new db")(newline)
+     (let ((db (open (string->path db-name))))
+       ;; todo, dynamically create these tables
+       (setup db "sync")
+       (setup db "stream")
+       db))))
 
 ; a utility to change the process owner,
 ; assuming mzscheme is called by root.
@@ -59,18 +74,18 @@
     (req 'upload '())
     (lambda (req)
       (match (bindings-assq #"binary" (request-bindings/raw req))
-	     ((struct binding:file (id filename headers content))	      
-	      (with-output-to-file 
+	     ((struct binding:file (id filename headers content))
+	      (with-output-to-file
 		  (string-append "files/" (bytes->string/utf-8 filename)) #:exists 'replace
 		  (lambda ()
 		    (write-bytes content)))))
       (pluto-response (scheme->txt '("ok")))))
 
    ;; http://localhost:8888/mongoose?fn=sync&table=sync&entity-type=mongoose&unique-id=dave1234&dirty=1&version=0&next:varchar=%22foo%22&blah:int=20
-   
+
    ;; all dirty entities are sent to this function from the android in
    ;; general - we shouldn't care about version numbers from this
-   ;; point locally they are dirty, and that should be it?  
+   ;; point locally they are dirty, and that should be it?
    ;;
    ;; * perhaps they are very old changes from a tablet that hasn't
    ;; been updated?
@@ -91,7 +106,7 @@
          unique-id
          (string->number dirty)
          (string->number version) data)))))
-   
+
    ;; returns a table of all entities and their corresponding versions
    (register
     (req 'entity-versions '(table))

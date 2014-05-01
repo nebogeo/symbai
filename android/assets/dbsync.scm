@@ -81,7 +81,7 @@
    'entity-values
    (ktv-set
     (get-current 'entity-values '())
-    (ktv-create key type value))))
+    (ktv key type value))))
 
 (define (entity-set! ktv-list)
   (set-current! 'entity-values ktv-list))
@@ -128,11 +128,11 @@
   (let ((values
          (append
           (list
-           (ktv-create "user" "varchar" (get-current 'user-id "none"))
-           (ktv-create "time" "varchar" (date-time->string (date-time)))
-           (ktv-create "lat" "real" (car (get-current 'location '(0 0))))
-           (ktv-create "lon" "real" (cadr (get-current 'location '(0 0))))
-           (ktv-create "deleted" "int" 0))
+           (ktv "user" "varchar" (get-current 'user-id "none"))
+           (ktv "time" "varchar" (date-time->string (date-time)))
+           (ktv "lat" "real" (car (get-current 'location '(0 0))))
+           (ktv "lon" "real" (cadr (get-current 'location '(0 0))))
+           (ktv "deleted" "int" 0))
           ktv-list)))
     (let ((r (insert-entity/get-unique
               db table entity-type (get-current 'user-id "no id")
@@ -176,7 +176,7 @@
 (define url "http://192.168.2.1:8889/symbai?")
 
 (define (build-url-from-ktv ktv)
-  (string-append "&" (ktv-key ktv) ":" (ktv-type ktv) ":" (number->string (ktv-version ktv)) "=" (stringify-value-url ktv)))
+  (string-append "&" (ktv-key ktv) ":" (ktv-type ktv) "=" (stringify-value-url ktv)))
 
 (define (build-url-from-ktvlist ktvlist)
   (foldl
@@ -282,8 +282,8 @@
             (ktvlist (list-ref data 1))
             (unique-id (list-ref entity 1))
             (exists (entity-exists? db table unique-id)))
-       ;;(msg "from server...:")
-       ;;(msg ktvlist)
+       (msg "from server...:")
+       (msg ktvlist)
        ;; need to check exists again here, due to delays back and forth
        (if (not exists)
            (insert-entity-wholesale
@@ -702,12 +702,14 @@
 
 ;; pull db data into list of button widgets
 (define (update-list-widget db table entity-type edit-activity parent)
+  (msg "ulw")
   (let ((search-results
          (if parent
              (db-filter-only db table entity-type
                              (list (list "parent" "varchar" "=" parent))
                              (list (list "name" "varchar")))
              (db-all db table entity-type))))
+    (msg "ulw search results " search-results)
     (update-widget
      'linear-layout
      (get-id (string-append entity-type "-list"))
@@ -750,6 +752,13 @@
                    (list)
                    (list (list "name" "varchar")))))
 
+(define (find-index-from-name-array arr unique-id)
+  (define (_ l i)
+    (cond
+     ((null? l) #f)
+     ((equal? unique-id (cadr (car l))) i)
+     (else (_ (cdr l) (+ i 1)))))
+  (_ arr 0))
 
 (define vowel (map symbol->string (list 'a 'e 'i 'o 'u)))
 (define consonant (map symbol->string (list 'b 'c 'd 'f 'g 'h 'j 'k 'l 'm 'n 'p 'q 'r 's 't 'v 'w 'x 'y 'z)))
@@ -795,130 +804,130 @@
   (choose
    (list
    (list
-    (ktv-create "name" "varchar"
+    (ktv "name" "varchar"
                 (string-append "Abe-" (number->string n)))
-    (ktv-create "gender" "varchar" "male")
-    (ktv-create "photo" "file" "abe.jpg"))
+    (ktv "gender" "varchar" "male")
+    (ktv "photo" "file" "abe.jpg"))
    (list
-    (ktv-create
+    (ktv
      "name" "varchar" (string-append "Akira-" (number->string n)))
-    (ktv-create "gender" "varchar" "male")
-    (ktv-create "photo" "file" "akira.jpg"))
+    (ktv "gender" "varchar" "male")
+    (ktv "photo" "file" "akira.jpg"))
    (list
-    (ktv-create
+    (ktv
      "name" "varchar" (string-append "Apu-" (number->string n)))
-    (ktv-create "gender" "varchar" "male")
-    (ktv-create "photo" "file" "apu.jpg"))
+    (ktv "gender" "varchar" "male")
+    (ktv "photo" "file" "apu.jpg"))
    (list
-    (ktv-create
+    (ktv
      "name" "varchar" (string-append "Barney-" (number->string n)))
-    (ktv-create "gender" "varchar" "male")
-    (ktv-create "photo" "file" "barney.jpg"))
+    (ktv "gender" "varchar" "male")
+    (ktv "photo" "file" "barney.jpg"))
    (list
-    (ktv-create
+    (ktv
      "name" "varchar" (string-append "Bart-" (number->string n)))
-    (ktv-create "gender" "varchar" "male")
-    (ktv-create "photo" "file" "bartsimpson.jpg"))
+    (ktv "gender" "varchar" "male")
+    (ktv "photo" "file" "bartsimpson.jpg"))
    (list
-    (ktv-create
+    (ktv
      "name" "varchar" (string-append "Billy-" (number->string n)))
-    (ktv-create "gender" "varchar" "male")
-    (ktv-create "photo" "file" "billy.jpg"))
+    (ktv "gender" "varchar" "male")
+    (ktv "photo" "file" "billy.jpg"))
    (list
-    (ktv-create
+    (ktv
      "name" "varchar" (string-append "Carl-" (number->string n)))
-    (ktv-create "gender" "varchar" "male")
-    (ktv-create "photo" "file" "carl.jpg"))
+    (ktv "gender" "varchar" "male")
+    (ktv "photo" "file" "carl.jpg"))
    (list
-    (ktv-create
+    (ktv
      "name" "varchar" (string-append "Cletus-" (number->string n)))
-    (ktv-create "gender" "varchar" "male")
-    (ktv-create "photo" "file" "cletus.jpg"))
+    (ktv "gender" "varchar" "male")
+    (ktv "photo" "file" "cletus.jpg"))
    (list
-    (ktv-create
+    (ktv
      "name" "varchar" (string-append "ComicBookGuy-" (number->string n)))
-    (ktv-create "gender" "varchar" "male")
-    (ktv-create "photo" "file" "comicbookguy.jpg"))
+    (ktv "gender" "varchar" "male")
+    (ktv "photo" "file" "comicbookguy.jpg"))
    (list
-    (ktv-create
+    (ktv
      "name" "varchar" (string-append "Homer-" (number->string n)))
-    (ktv-create "gender" "varchar" "male")
-    (ktv-create "photo" "file" "homersimpson.jpg"))
+    (ktv "gender" "varchar" "male")
+    (ktv "photo" "file" "homersimpson.jpg"))
    (list
-    (ktv-create
+    (ktv
      "name" "varchar" (string-append "Jasper-" (number->string n)))
-    (ktv-create "gender" "varchar" "male")
-    (ktv-create "photo" "file" "jasper.jpg"))
+    (ktv "gender" "varchar" "male")
+    (ktv "photo" "file" "jasper.jpg"))
    (list
-    (ktv-create
+    (ktv
      "name" "varchar" (string-append "Kent-" (number->string n)))
-    (ktv-create "gender" "varchar" "male")
-    (ktv-create "photo" "file" "kentbrockman.jpg"))
+    (ktv "gender" "varchar" "male")
+    (ktv "photo" "file" "kentbrockman.jpg"))
    (list
-    (ktv-create
+    (ktv
      "name" "varchar" (string-append "Kodos-" (number->string n)))
-    (ktv-create "gender" "varchar" "male")
-    (ktv-create "photo" "file" "kodos.jpg"))
+    (ktv "gender" "varchar" "male")
+    (ktv "photo" "file" "kodos.jpg"))
    (list
-    (ktv-create
+    (ktv
      "name" "varchar" (string-append "Lenny-" (number->string n)))
-    (ktv-create "gender" "varchar" "male")
-    (ktv-create "photo" "file" "lenny.jpg"))
+    (ktv "gender" "varchar" "male")
+    (ktv "photo" "file" "lenny.jpg"))
    (list
-    (ktv-create
+    (ktv
      "name" "varchar" (string-append "Lisa-" (number->string n)))
-    (ktv-create "gender" "varchar" "female")
-    (ktv-create "photo" "file" "lisasimpson.jpg"))
+    (ktv "gender" "varchar" "female")
+    (ktv "photo" "file" "lisasimpson.jpg"))
    (list
-    (ktv-create
+    (ktv
      "name" "varchar" (string-append "Marge-" (number->string n)))
-    (ktv-create "gender" "varchar" "female")
-    (ktv-create "photo" "file" "margesimpson.jpg"))
+    (ktv "gender" "varchar" "female")
+    (ktv "photo" "file" "margesimpson.jpg"))
    (list
-    (ktv-create
+    (ktv
      "name" "varchar" (string-append "Martin-" (number->string n)))
-    (ktv-create "gender" "varchar" "male")
-    (ktv-create "photo" "file" "martinprince.jpg"))
+    (ktv "gender" "varchar" "male")
+    (ktv "photo" "file" "martinprince.jpg"))
    (list
-    (ktv-create
+    (ktv
      "name" "varchar" (string-append "Milhouse-" (number->string n)))
-    (ktv-create "gender" "varchar" "male")
-    (ktv-create "photo" "file" "milhouse.jpg"))
+    (ktv "gender" "varchar" "male")
+    (ktv "photo" "file" "milhouse.jpg"))
    (list
-    (ktv-create
+    (ktv
      "name" "varchar" (string-append "MrBurns-" (number->string n)))
-    (ktv-create "gender" "varchar" "male")
-    (ktv-create "photo" "file" "mrburns.jpg"))
+    (ktv "gender" "varchar" "male")
+    (ktv "photo" "file" "mrburns.jpg"))
    (list
-    (ktv-create
+    (ktv
      "name" "varchar" (string-append "Ned-" (number->string n)))
-    (ktv-create "gender" "varchar" "male")
-    (ktv-create "photo" "file" "nedflanders.jpg"))
+    (ktv "gender" "varchar" "male")
+    (ktv "photo" "file" "nedflanders.jpg"))
    (list
-    (ktv-create
+    (ktv
      "name" "varchar" (string-append "Nelson-" (number->string n)))
-    (ktv-create "gender" "varchar" "male")
-    (ktv-create "photo" "file" "nelson.jpg"))
+    (ktv "gender" "varchar" "male")
+    (ktv "photo" "file" "nelson.jpg"))
    (list
-    (ktv-create
+    (ktv
      "name" "varchar" (string-append "Otto-" (number->string n)))
-    (ktv-create "gender" "varchar" "male")
-    (ktv-create "photo" "file" "otto.jpg"))
+    (ktv "gender" "varchar" "male")
+    (ktv "photo" "file" "otto.jpg"))
    (list
-    (ktv-create
+    (ktv
      "name" "varchar" (string-append "Ralph-" (number->string n)))
-    (ktv-create "gender" "varchar" "male")
-    (ktv-create "photo" "file" "ralphwiggum.jpg"))
+    (ktv "gender" "varchar" "male")
+    (ktv "photo" "file" "ralphwiggum.jpg"))
    (list
-    (ktv-create
+    (ktv
      "name" "varchar" (string-append "Santaslittlehelper-" (number->string n)))
-    (ktv-create "gender" "varchar" "male")
-    (ktv-create "photo" "file" "santaslittlehelper.jpg"))
+    (ktv "gender" "varchar" "male")
+    (ktv "photo" "file" "santaslittlehelper.jpg"))
    (list
-    (ktv-create
+    (ktv
      "name" "varchar" (string-append "SideshowBob-" (number->string n)))
-    (ktv-create "gender" "varchar" "male")
-    (ktv-create "photo" "file" "sideshowbob.jpg")))))))))
+    (ktv "gender" "varchar" "male")
+    (ktv "photo" "file" "sideshowbob.jpg")))))))))
 
 (define (looper! n fn)
   (when (not (zero? n))

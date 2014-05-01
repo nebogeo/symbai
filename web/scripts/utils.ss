@@ -136,3 +136,7 @@
           ((null? charset) (split-by-whitespace str maxsplit))
           (else (split-by-charset str charset maxsplit))))))
 )
+
+
+(define (feq a b)
+  (< (abs (- a b)) 0.001))

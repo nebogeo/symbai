@@ -202,6 +202,8 @@
 
 ;; don't make dirty or update version here
 (define (update-value-from-sync db table entity-id ktv)
+  ;;(msg "update-value-from-sync")
+  ;;(msg entity-id ktv)
   (let ((s (select-first
             db (string-append
                 "select value from " table "_value_" (ktv-type ktv) " where entity_id = ? and attribute_id = ?")
@@ -534,6 +536,7 @@
        ktvlist)
       (for-each
        (lambda (ktv)
+         ;;(msg ktv)
          (when (not (equal? (ktv-key ktv) "unique_id"))
 			   (if dirty
 				   (update-value db table entity-id ktv)
@@ -613,12 +616,12 @@
              db (string-append
                  "select entity_id, entity_type, unique_id, dirty, version from "
                  table "_entity where dirty=1 limit 5;"))))
-    (msg de)
+    ;;(msg de)
     (if (null? de)
         '()
         (map
          (lambda (i)
-           (msg "dirty:" (vector-ref i 2))
+           ;;(msg "dirty:" (vector-ref i 2))
            (list
             ;; build according to url ([table] entity-type unique-id dirty version)
             (cdr (vector->list i))

@@ -16,8 +16,19 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (require (planet jaymccarthy/sqlite:5:1/sqlite))
-(require "eavdb.ss")
-(require "utils.ss")
+(require
+ "utils.ss"
+ "sql.ss"
+ "../../eavdb/ktv.ss"
+ "../../eavdb/ktv-list.ss"
+ "../../eavdb/entity-values.ss"
+ "../../eavdb/entity-insert.ss"
+ "../../eavdb/entity-get.ss"
+ "../../eavdb/entity-update.ss"
+ "../../eavdb/entity-sync.ss"
+ "../../eavdb/entity-filter.ss"
+ "../../eavdb/eavdb.ss")
+
 (provide (all-defined-out))
 
 
@@ -25,8 +36,7 @@
   (map
    (lambda (i)
      (let ((kv (string-split (symbol->string (car i)) '(#\:))))
-       (list
-        (car kv) (cadr kv) (cdr i) (string->number (list-ref kv 2)))))
+       (list (car kv) (cadr kv) (cdr i))))
    data))
 
 (define (sync-update db table entity-type unique-id dirty version data)
@@ -96,7 +106,7 @@
          ((and (eq? dirty 0) (> version current-version))
 	  (msg "MISMATCH")
           (list "MISMATCH" unique-id))
-        
+
          ;; everything matches - no change
          ((and (eq? dirty 0) (eq? version current-version))
 	  (msg "NOT DIRTY, WHY SENT? (eq)")
@@ -118,7 +128,7 @@
   (let ((s (db-select
 	    db (string-append "select unique_id, version from " table "_entity;"))))
     (msg s)
-    (if (null? s) 
+    (if (null? s)
 	'()
 	(map
 	 (lambda (i)

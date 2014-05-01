@@ -77,6 +77,7 @@ public class starwisp extends StarwispActivity
         ActivityManager.RegisterActivity("crop",CropActivity.class);
         ActivityManager.RegisterActivity("child",ChildActivity.class);
         ActivityManager.RegisterActivity("move",MoveActivity.class);
+        ActivityManager.RegisterActivity("villages",VillagesActivity.class);
     };
 
     /** Called when the activity is first created. */
@@ -95,6 +96,21 @@ public class starwisp extends StarwispActivity
 
         // build static things
         m_Scheme = new Scheme(this);
+
+        m_Scheme.Load("lib.scm");
+        m_Scheme.Load("racket-fix.scm");
+        m_Scheme.Load("eavdb/ktv.ss");
+        m_Scheme.Load("eavdb/ktv-list.ss");
+        m_Scheme.Load("eavdb/entity-values.ss");
+        m_Scheme.Load("eavdb/entity-insert.ss");
+        m_Scheme.Load("eavdb/entity-get.ss");
+        m_Scheme.Load("eavdb/entity-update.ss");
+        m_Scheme.Load("eavdb/entity-filter.ss");
+        m_Scheme.Load("eavdb/entity-sync.ss");
+        m_Scheme.Load("eavdb/entity-csv.ss");
+        m_Scheme.Load("eavdb/eavdb.ss");
+        m_Scheme.Load("dbsync.scm");
+
         m_Builder = new StarwispBuilder(m_Scheme);
         m_Name = "main";
 
