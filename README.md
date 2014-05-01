@@ -34,6 +34,7 @@ other clients.
 
 In this way, data changes are merged and propagated through the system.
 
+Files can be associated with attributes, and are synced (e.g. images)
 
 Syncing algorithm
 -----------------
@@ -44,6 +45,7 @@ Sending data from client to server is all about dirty flags:
 |-------------------------------|------------------------------|
 | Data edited or created - cause entities and attributes to be flagged as 'dirty' |      |
 | For each dirty entity, send all dirty attributes | Return message to confirm reciept |
+| Clean dirty flags on returned message | |
 |                               | Overwrite all dirty attributes, increment version number |
 
 Receiving changes from the server to the client is all about version numbers:
