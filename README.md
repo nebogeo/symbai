@@ -55,14 +55,13 @@ Receiving changes from the server to the client is all about version numbers:
 | Overwrite/add new entities    |  |
 
 
-
 Code dependancies
 -----------------
 
-Common code is stored in /eavdb
+Common code is stored in /eavdb and is platform independant, running on android (tinyscheme) and raspberry pi (racket).
 
-| Notes |   |  |
-| ----|----------|----------------|
+| Notes |   |  | |
+| ----|----------|----------------|-|
 | Low level (data types and platform stuff) | ktv |   ktv-list      |   sql/racket-fix        |
 | Entity read/write |   entity-values  | entity-insert | entity-get |
 | Updating entities |          entity-update |
