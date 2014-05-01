@@ -21,32 +21,18 @@
  "scripts/txt.ss"
  "scripts/server-sync.ss")
 
-(define (db-open db-name)
-  (cond
-    ((file-exists? (string->path db-name))
-     (display "open existing db")(newline)
-     (open (string->path db-name)))
-    (else
-     (display "making new db")(newline)
-     (let ((db (open (string->path db-name))))
-       ;; todo, dynamically create these tables
-       (setup db "sync")
-       (setup db "stream")
-       db))))
 
-(define db-name "unit-test.db")
-(with-handlers
- ((exn:fail? (lambda (e) (msg e))))
- (delete-file db-name))
-(define db (db-open db-name))
 (open-log "unit-test-log.txt")
 
 
 (define (unit-tests)
   ;; db
-(msg "testing db")
-(define db "unit-test.db")
-(set! db (db-open db))
+  (msg "testing db")
+  (define db "unit-test.db")
+  (with-handlers
+   ((exn:fail? (lambda (e) (msg e))))
+   (delete-file db))
+  (set! db (db-open db setup))
 
 
 ;;(msg (db-status db))

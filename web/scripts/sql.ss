@@ -31,6 +31,20 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(define (db-open db-name setup-fn)
+  (cond
+    ((file-exists? (string->path db-name))
+     (display "open existing db")(newline)
+     (open (string->path db-name)))
+    (else
+     (display "making new db")(newline)
+     (let ((db (open (string->path db-name))))
+       ;; todo, dynamically create these tables
+       (setup-fn db "sync")
+       (setup-fn db "stream")
+       db))))
+
+
 ;; helper to return first instance from a select
 (define (select-first db str . args)
   (let ((s (apply db-select (append (list db str) args))))

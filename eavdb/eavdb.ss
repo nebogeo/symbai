@@ -44,6 +44,7 @@
   (db-exec db (string-append "create table " table "_value_real ( id integer primary key autoincrement, entity_id integer, attribute_id varchar(255), value real, dirty integer, version integer)"))
   (db-exec db (string-append "create table " table "_value_file ( id integer primary key autoincrement, entity_id integer, attribute_id varchar(255), value varchar(4096), dirty integer, version integer)")))
 
+
 (define (validate db)
   ;; check attribute for duplicate entity-id/attribute-ids
   0)

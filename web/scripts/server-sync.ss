@@ -187,7 +187,7 @@
         (build db (- n 1))))
 
 (define (test)
-  (let ((db (db-open "unit.db")))
+  (let ((db (db-open "unit.db" setup)))
     (build db 99999999)
     ))
 

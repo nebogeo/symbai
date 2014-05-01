@@ -35,26 +35,13 @@
 ;         "scripts/input.ss"
 	 )
 
-(define (db-open db-name)
-  (cond
-    ((file-exists? (string->path db-name))
-     (display "open existing db")(newline)
-     (open (string->path db-name)))
-    (else
-     (display "making new db")(newline)
-     (let ((db (open (string->path db-name))))
-       ;; todo, dynamically create these tables
-       (setup db "sync")
-       (setup db "stream")
-       db))))
-
 ; a utility to change the process owner,
 ; assuming mzscheme is called by root.
 ;;(unsafe!)
 ;;(define setuid (get-ffi-obj 'setuid #f (_fun _int -> _int)))
 
 (define db-name "client/htdocs/symbai.db")
-(define db (db-open db-name))
+(define db (db-open db-name setup))
 (open-log "log.txt")
 
 ;(write-db db "sync" "/home/dave/code/mongoose-web/web/input.csv")
