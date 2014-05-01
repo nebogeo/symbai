@@ -26,6 +26,7 @@
          "scripts/request.ss"
          "scripts/logger.ss"
          "scripts/json.ss"
+         "scripts/sql.ss"
          "../eavdb/entity-get.ss"
          "../eavdb/entity-sync.ss"
          "../eavdb/entity-csv.ss"
