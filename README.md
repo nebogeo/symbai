@@ -61,8 +61,10 @@ Code dependancies
 Common code is stored in /eavdb and is platform independant, running on android (tinyscheme) and raspberry pi (racket).
 
 | Notes |   |  |  |
-| ------|---|--|--|
+|------|---|--|--|
 | Low level (data types and platform stuff) | ktv | ktv-list | sql/racket-fix |
+
+
 | Entity read/write | entity-values  | entity-insert | entity-get |
 | Updating entities | entity-update | | |
 | Higher level features | entity-sync | entity-filter | |
