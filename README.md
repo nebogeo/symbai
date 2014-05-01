@@ -35,16 +35,18 @@ other clients.
 In this way, data changes are merged and propagated through the system.
 
 
-Syncing
--------
+Syncing algorithm
+-----------------
 
-Sending data from client to server:
+Sending data from client to server is all about dirty flags:
 
 | Android (client)              |   Raspberry Pi (server       |
 |-------------------------------|------------------------------|
 | Data edited or created - cause entities and attributes to be flagged as 'dirty' |      |
 | For each dirty entity, send all dirty attributes | Return message to confirm reciept |
 |                               | Overwrite all dirty attributes, increment version number |
+
+Receiving changes from the server to the client is all about version numbers:
 
 | Android (client)              |   Raspberry Pi (server       |
 |-------------------------------|------------------------------|
@@ -54,12 +56,15 @@ Sending data from client to server:
 
 
 
+Code dependancies
+-----------------
 
+Common code is stored in /eavdb
 
-| ktv |   ktv-list      |            sql        |
-| ----|-----------------|-----------------------|
-|                       |        racket-fix     |
-|        entity-values  | entity-insert | entity-get |
-|           entity-update |
-|   entity-sync    |        entity-filter |
-|        eavdb |
+| Notes |   |  |
+| ----|----------|----------------|
+| Low level (data types and platform stuff) | ktv |   ktv-list      |   sql/racket-fix        |
+| Entity read/write |   entity-values  | entity-insert | entity-get |
+| Updating entities |          entity-update |
+| Higher level features |   entity-sync    |        entity-filter |
+| Top level stuff |       eavdb |
