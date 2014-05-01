@@ -2,7 +2,7 @@ Symbai/Starwisp
 ===============
 
 This is a data syncing application using a single raspberry pi for
-syncronisation between many android tables. Designed for recording
+syncronisation between many android tablets. Designed for recording
 behavioural observations in field sites in remote locations.
 
 Designed to work off grid and off line, for example working from solar
