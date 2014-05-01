@@ -13,7 +13,6 @@
 ;; You should have received a copy of the GNU Affero General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 ;; abstractions for synced databased
 
 (msg "dbsync.scm")
@@ -173,6 +172,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; syncing code
 
+;; todo - separate logic from gui and stick this in common code
+;; then we can unit test this stuff...
+
 (define url "http://192.168.2.1:8889/symbai?")
 
 (define (build-url-from-ktv ktv)
@@ -194,6 +196,7 @@
    "&dirty=" (number->string (list-ref (car e) 2))
    "&version=" (number->string (list-ref (car e) 3))
    (build-url-from-ktvlist (cadr e))))
+
 
 ;; todo fix all hardcoded paths here
 (define (send-files ktvlist)
@@ -270,7 +273,6 @@
 
 (msg "suck ent")
 
-
 (define (suck-entity-from-server db table unique-id)
   ;; ask for the current version
   (http-request
@@ -301,6 +303,27 @@
         (update-widget 'text-view (get-id "sync-dirty") 'text (build-dirty db))
         (request-files ktvlist))))))
 
+(define (build-entity-requests db table version-data)
+  (foldl
+   (lambda (i r)
+     (let* ((unique-id (car i))
+            (version (cadr i))
+            (exists (entity-exists? db table unique-id))
+            (old
+             (if exists
+                 (> version (get-entity-version
+                             db table
+                             (get-entity-id db table unique-id)))
+                 #f)))
+
+       ;; if we don't have this entity or the version on the server is newer
+       (if (and (or (not exists) old)
+                ;; limit this to 5 a time
+                (< (length r) 5))
+           (cons (suck-entity-from-server db table unique-id) r)
+           r)))
+   '()
+   version-data))
 
 ;; repeatedly read version and request updates
 (define (suck-new db table)
@@ -312,42 +335,23 @@
     (string-append url "fn=entity-versions&table=" table)
     (lambda (data)
       (msg "entity-versions:" data)
-      (let ((r (foldl
-                (lambda (i r)
-                  (let* ((unique-id (car i))
-                         (version (cadr i))
-                         (exists (entity-exists? db table unique-id))
-                         (old
-                          (if exists
-                              (> version (get-entity-version
-                                          db table
-                                          (get-entity-id db table unique-id)))
-                              #f)))
-
-                    ;; if we don't have this entity or the version on the server is newer
-                    (if (and (or (not exists) old)
-                             ;; limit this to 5 a time
-                             (< (length r) 5))
-                        (cons (suck-entity-from-server db table unique-id) r)
-                        r)))
-                '()
-                data)))
+      (let ((new-entity-requests (build-entity-requests db table data)))
         (cond
-         ((null? r)
+         ((null? new-entities)
           (debug! "No new data to download")
           (set-current! 'download 1)
           (append
            (if (eqv? (get-current 'upload 0) 1)
                (list (play-sound "ping")) '())
            (list
-            (toast "No new data to download")) r))
+            (toast "No new data to download"))))
          (else
           (debug! (string-append
                    "Requesting "
-                   (number->string (length r)) " entities"))
+                   (number->string (length new-entities)) " entities"))
           (cons
            (play-sound "active")
-           r))))))))
+           new-entities))))))))
 
 (msg "build-dirty defined...")
 
@@ -390,8 +394,6 @@
        (list
         ;;(update-widget 'text-view (get-id "sync-connect") 'text state)
         ))))))
-
-
 
 
 (define i18n-lang 0)
@@ -702,14 +704,12 @@
 
 ;; pull db data into list of button widgets
 (define (update-list-widget db table entity-type edit-activity parent)
-  (msg "ulw")
   (let ((search-results
          (if parent
              (db-filter-only db table entity-type
                              (list (list "parent" "varchar" "=" parent))
                              (list (list "name" "varchar")))
              (db-all db table entity-type))))
-    (msg "ulw search results " search-results)
     (update-widget
      'linear-layout
      (get-id (string-append entity-type "-list"))
