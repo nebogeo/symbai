@@ -41,7 +41,7 @@ Syncing algorithm
 
 Sending data from client to server is all about dirty flags:
 
-| Android (client)              |   Raspberry Pi (server       |
+| Android (client)              |   Raspberry Pi (server)      |
 |-------------------------------|------------------------------|
 | Data edited or created - cause entities and attributes to be flagged as 'dirty' |      |
 | For each dirty entity, send all dirty attributes | Return message to confirm reciept |
@@ -50,7 +50,7 @@ Sending data from client to server is all about dirty flags:
 
 Receiving changes from the server to the client is all about version numbers:
 
-| Android (client)              |   Raspberry Pi (server       |
+| Android (client)              |   Raspberry Pi (server)      |
 |-------------------------------|------------------------------|
 | Request all entity version numbers | Send versions...      |
 | Check each local entity, request updates | Send complete entity, with all attributes |
