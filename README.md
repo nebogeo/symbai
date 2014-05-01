@@ -1,9 +1,12 @@
 Symbai/Starwisp
 ===============
 
-This is a data syncing application for remote use with a raspberry pi
-and android devices. The whole system needs to work without internet or
-power, for example working from solar powered devices.
+This is a data syncing application using a single raspberry pi for
+syncronisation between many android tables. Designed for recording
+behavioural observations in field sites in remote locations.
+
+Designed to work off grid and off line, for example working from solar
+powered devices and using an ad hoc wifi connection.
 
 Development notes
 =================
