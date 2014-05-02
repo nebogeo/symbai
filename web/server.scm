@@ -49,25 +49,37 @@
 
 ;(msg (csv db "sync" "individual"))
 
+(define sema (make-semaphore 1))
+
+(define (syncro fn)
+  (fn))
+
+;  (msg "s-start")
+;  (if (semaphore-try-wait? sema)
+;      (let ((r (fn)))
+;	(msg "s-end")
+;	(semaphore-post sema)
+;	r)
+ ;     (begin
+;	(msg "couldn't get lock")
+;	(pluto-response (scheme->txt '("fail"))))))
 
 (define registered-requests
   (list
 
    (register
-    (req 'ping '())
-    (lambda (req)
-      (pluto-response (scheme->txt '("hello")))))
-
-   (register
     (req 'upload '())
     (lambda (req)
-      (match (bindings-assq #"binary" (request-bindings/raw req))
-	     ((struct binding:file (id filename headers content))
-	      (with-output-to-file
-		  (string-append "files/" (bytes->string/utf-8 filename)) #:exists 'replace
-		  (lambda ()
-		    (write-bytes content)))))
-      (pluto-response (scheme->txt '("ok")))))
+      (syncro
+       (lambda ()
+	 (msg "upload")
+	 (match (bindings-assq #"binary" (request-bindings/raw req))
+		((struct binding:file (id filename headers content))
+		 (with-output-to-file
+		     (string-append "files/" (bytes->string/utf-8 filename)) #:exists 'replace
+		     (lambda ()
+		       (write-bytes content)))))
+	 (pluto-response (scheme->txt '("ok")))))))
 
    ;; http://localhost:8888/mongoose?fn=sync&table=sync&entity-type=mongoose&unique-id=dave1234&dirty=1&version=0&next:varchar=%22foo%22&blah:int=20
 
@@ -85,55 +97,70 @@
    (register
     (req 'sync '(table entity-type unique-id dirty version))
     (lambda (req table entity-type unique-id dirty version . data)
-      (pluto-response
-       (scheme->txt
-        (check-for-sync
-         db
-         table
-         entity-type
-         unique-id
-         (string->number dirty)
-         (string->number version) data)))))
+      (syncro
+       (lambda ()
+	 (msg "sync")
+	 (pluto-response
+	  (scheme->txt
+	   (check-for-sync
+	    db
+	    table
+	    entity-type
+	    unique-id
+	    (string->number dirty)
+	    (string->number version) data)))))))
 
    ;; returns a table of all entities and their corresponding versions
    (register
     (req 'entity-versions '(table))
     (lambda (req table)
-      (pluto-response
-       (scheme->txt
-        (entity-versions db table)))))
+      (syncro
+       (lambda ()
+	 (msg "entity-versions")
+	 (pluto-response
+	  (scheme->txt
+	   (entity-versions db table)))))))
 
    ;; returns the entity - the android requests these based on the version numbers
    ;; (request all ones that are newer than it's stored version)
    (register
     (req 'entity '(table unique-id))
     (lambda (req table unique-id)
-      (pluto-response
-       (scheme->txt
-        (send-entity db table unique-id)))))
+      (syncro
+       (lambda ()
+	 (msg "entity")
+	 (pluto-response
+	  (scheme->txt
+	   (send-entity db table unique-id)))))))
 
    (register
     (req 'entity-types '(table))
     (lambda (req table)
-      (pluto-response
-       (scheme->txt
-        (get-all-entity-types db table)))))
+      (syncro
+       (lambda ()
+	 (msg "entity-types")
+	 (pluto-response
+	  (scheme->txt
+	   (get-all-entity-types db table)))))))
 
    (register
     (req 'entity-csv '(table type))
     (lambda (req table type)
-      (let ((r (csv db table type)))
-	(msg "--------------------------------------- csv request for" type "[" r "]")
-	(pluto-response
-	 r))))
+      (syncro
+       (lambda ()
+	 (msg "entity-csv")
+	 (let ((r (csv db table type)))
+	   (msg "--------------------------------------- csv request for" type "[" r "]")
+	   (pluto-response
+	    r))))))
 
    ))
 
 (define (start request)
   (let ((values (url-query (request-uri request))))
-    (msg values)
     (if (not (null? values))   ; do we have some parameters?
         (let ((name (assq 'fn values)))
+	  (msg "request incoming:" name)
           (if name           ; is this a well formed request?
 	      (request-dispatch
 	       registered-requests
