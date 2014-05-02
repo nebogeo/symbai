@@ -37,6 +37,27 @@
    ((equal? type "real") 0)
    ((equal? type "file") "not set")))
 
+;; regression testing
+(define vowel (map symbol->string (list 'a 'e 'i 'o 'u)))
+(define consonant (map symbol->string (list 'b 'c 'd 'f 'g 'h 'j 'k 'l 'm 'n 'p 'q 'r 's 't 'v 'w 'x 'y 'z)))
+
+(define (word-gen)
+  (define (_ s vowel-prob)
+    (cond
+     ((zero? s) '())
+     ((< (rndf) vowel-prob)
+      (cons (choose vowel) (_ (- s 1) (/ vowel-prob 2))))
+     (else
+      (cons (choose consonant) (_ (- s 1) (* vowel-prob 2))))))
+  (apply string-append (_ (+ 3 (random 8)) 0.5)))
+
+(define (random-value-for-type type)
+  (cond
+   ((equal? type "varchar") (word-gen))
+   ((equal? type "int") (random 100))
+   ((equal? type "real") (rndf))
+   ((equal? type "file") (word-gen))))
+
 ;; stringify based on type (for url)
 (define (stringify-value ktv)
   (cond

@@ -9,7 +9,7 @@
 
 (define (make-semaphore n) #f)
 (define (semaphore-wait n) #f)
-
+(define (semaphore-post n) #f)
 
 ;; tinyscheme
 (define db-select db-exec)
@@ -23,6 +23,6 @@
 
 ;; get a unique hash for this user (used for all the unique-ids)
 (define (get-unique user)
-  (let ((t (time)))
+  (let ((t (time-of-day)))
     (string-append
      user "-" (number->string (car t)) ":" (number->string (cadr t)))))

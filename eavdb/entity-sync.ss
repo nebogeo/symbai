@@ -50,6 +50,11 @@
   ;;(msg "cleaning values")
   (clean-entity-values db table (entity-id-from-unique db table unique-id))  )
 
+(define (have-dirty? db table)
+  (not (zero?
+        (select-first
+         db (string-append "select count(entity_id) from " table "_entity where dirty=1")))))
+
 (define (get-dirty-stats db table)
   (list
    (select-first
@@ -70,7 +75,7 @@
             ;; build according to url ([table] entity-type unique-id dirty version)
             (cdr (vector->list i))
             ;; data entries (todo - only dirty values!)
-            (dbg (get-entity-plain-for-sync db table (vector-ref i 0)))))
+            (get-entity-plain-for-sync db table (vector-ref i 0))))
          (cdr de)))))
 
 ;; todo: BROKEN...

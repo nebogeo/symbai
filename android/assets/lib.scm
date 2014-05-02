@@ -181,7 +181,7 @@
                 (insert elt fn (cdr sorted-lst))))))
 
 (define (choose l)
-  (list-ref l (abs (random (- (length l) 1)))))
+  (list-ref l (random (length l))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; time
@@ -266,13 +266,13 @@
                (display "random: unrecognized message")
                (newline))))))))
 
-(define random
+(define rand
   (random-maker 19781116))  ;; another arbitrarily chosen birthday
 
-(define (random-int n)
-  (abs (random n)))
+(define (random n)
+  (abs (modulo (rand n) n)))
 
-(define rndf random)
+(define rndf rand)
 
 (define (rndvec) (vector (rndf) (rndf) (rndf)))
 

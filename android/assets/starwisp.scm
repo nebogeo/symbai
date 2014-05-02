@@ -19,6 +19,7 @@
 
 ;; colours
 (msg "starting up....")
+(define entity-types (list "village" "household" "individual"))
 
 (define trans-col (list 0 0 0 0))
 (define colour-one (list 0 0 255 100))
@@ -58,8 +59,6 @@
 
 (set-current! 'user-id (get-setting-value "user-id"))
 (set! i18n-lang (get-setting-value "language"))
-
-(define entity-types (list "village" "household" "individual"))
 
 ;;(display (db-all db "local" "app-settings"))(newline)
 
@@ -167,6 +166,10 @@
   (append
    (cond
     ((get-current 'sync-on #f)
+     (when (zero? (random 10))
+           (msg "mangling...")
+           (mangle-test! db "sync" entity-types))
+     (msg "one")
      (set-current! 'upload 0)
      (set-current! 'download 0)
      (connect-to-net
@@ -178,9 +181,8 @@
          (if (have-dirty? db "sync") '() (suck-new db "sync"))))))
     (else '()))
    (list
-    (delayed "debug-timer" (+ 30000 (random 5000)) debug-timer-cb)
+    (delayed "debug-timer" (+ 10000 (random 5000)) debug-timer-cb)
     (update-debug))))
-
 
 (define pf-length 20) ;; minutes...
 
@@ -191,6 +193,7 @@
   (append
    (cond
     ((< (get-current 'timer-seconds 59) 0)
+
      (set-current! 'timer-minutes (- (get-current 'timer-minutes pf-length) 1))
      (set-current! 'timer-seconds 59)
      (cond ((< (get-current 'timer-minutes pf-length) 1)
@@ -296,8 +299,6 @@
   (let ((village (get-entity-name db "sync" (get-current 'village #f)))
         (household (get-entity-name db "sync" (get-current 'household #f)))
         (individual (get-entity-name db "sync" (get-current 'individual #f))))
-    (msg (get-current 'village "no village"))
-    (msg "top bar update--->" village household individual)
     (list
      (update-widget 'text-view (get-id "title") 'text
                     (get-current 'activity-title "Title not set"))
@@ -494,7 +495,7 @@
         (text-view 0 (mtext-lookup 'social-strength)
                    30 (layout 'wrap-content 'wrap-content 1 'centre 10))
         (spinner
-         (make-id (dbg (string-append id-text "-strength-spinner")))
+         (make-id (string-append id-text "-strength-spinner"))
          (map mtext-lookup social-strength-list)
          (layout 'wrap-content 'wrap-content 1 'centre 0)
          (lambda (v)
@@ -506,7 +507,6 @@
         (entity-set-value! key "varchar" (get-current 'choose-result "not set"))))
 
 (define (update-social-connection db table id key type request-code)
-  (msg "update-social-connection")
   (let ((id-text (string-append (symbol->string id))))
     (append
      (update-person-selector db table id key)
@@ -520,7 +520,7 @@
       social-residence-list)
      (list
       (mupdate-spinner
-       (string->symbol (dbg (string-append id-text "-strength")))
+       (string->symbol (string-append id-text "-strength"))
        (string-append key "-strength")
        social-strength-list))
      )))
@@ -637,7 +637,7 @@
                                         (number->string (car loc)) ", "
                                         (number->string (cadr loc)))))))
        (update-list-widget
-        db "sync" "household" "household" (dbg (get-setting-value "current-village"))))))
+        db "sync" "household" "household" (get-setting-value "current-village")))))
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
@@ -647,7 +647,6 @@
       ((eqv? requestcode choose-code)
        (list (start-activity "individual" 0 (get-current 'choose-result 0))))
       ((eqv? requestcode photo-code)
-       (msg "camera returned" resultcode)
        (list (update-widget
               'image-view (get-id "image")
               'external-image (string-append dirname "photo.jpg"))))
@@ -932,7 +931,6 @@
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity requestcode resultcode)
-     (msg "back from camera")
      (cond
       ((eqv? requestcode photo-code)
        ;; todo: means we save when the camera happens
@@ -1327,7 +1325,7 @@
                   individual-ktvlist
                   (list
                    (ktv "name" "varchar" (get-current 'chooser-quick-name (mtext-lookup 'no-name)))
-                   (ktv "parent" "varchar" (dbg (get-current 'household #f)))))))
+                   (ktv "parent" "varchar" (get-current 'household #f))))))
                (list (finish-activity 0)))
               (else
                (list)))))))))

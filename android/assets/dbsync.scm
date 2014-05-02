@@ -123,7 +123,7 @@
 
 
 (define (entity-create! db table entity-type ktv-list)
-  (msg "creating:" entity-type ktv-list)
+  ;;(msg "creating:" entity-type ktv-list)
   (let ((values
          (append
           (list
@@ -144,7 +144,7 @@
   (let ((db (get-current 'db #f))
         (table (get-current 'table #f)))
     ;; standard bits
-    (let ((values (dbg (get-current 'entity-values '())))
+    (let ((values (get-current 'entity-values '()))
           (unique-id (ktv-get (get-current 'entity-values '()) "unique_id")))
       (cond
        ((and unique-id (not (null? values)))
@@ -200,13 +200,10 @@
 
 ;; todo fix all hardcoded paths here
 (define (send-files ktvlist)
-  (msg "send-files" ktvlist)
   (foldl
    (lambda (ktv r)
-     (msg (ktv-type ktv))
      (if (equal? (ktv-type ktv) "file")
          (begin
-           (msg "sending" (ktv-value ktv))
            (cons (http-upload
                   (string-append "upload-" (ktv-value ktv))
                   "http://192.168.2.1:8889/symbai?fn=upload"
@@ -217,7 +214,6 @@
 
 ;; spit all dirty entities to server
 (define (spit db table entities)
-  (msg "running spit")
   (foldl
    (lambda (e r)
      ;;(msg (car (car e)))
@@ -257,12 +253,10 @@
 
 ;; todo fix all hardcoded paths here
 (define (request-files ktvlist)
-  (msg "request-files")
   (foldl
    (lambda (ktv r)
      (if (equal? (ktv-type ktv) "file")
          (begin
-           (msg "requesting" (ktv-value ktv))
            (cons (http-download
                   (string-append "download-" (ktv-value ktv))
                   (string-append "http://192.168.2.1:8889/files/" (ktv-value ktv))
@@ -284,8 +278,6 @@
             (ktvlist (list-ref data 1))
             (unique-id (list-ref entity 1))
             (exists (entity-exists? db table unique-id)))
-       (msg "from server...:")
-       (msg ktvlist)
        ;; need to check exists again here, due to delays back and forth
        (if (not exists)
            (insert-entity-wholesale
@@ -327,17 +319,15 @@
 
 ;; repeatedly read version and request updates
 (define (suck-new db table)
-  (msg "suck-new")
   (debug! "Requesting new entities")
   (list
    (http-request
     "new-entities-req"
     (string-append url "fn=entity-versions&table=" table)
     (lambda (data)
-      (msg "entity-versions:" data)
       (let ((new-entity-requests (build-entity-requests db table data)))
         (cond
-         ((null? new-entities)
+         ((null? new-entity-requests)
           (debug! "No new data to download")
           (set-current! 'download 1)
           (append
@@ -348,10 +338,10 @@
          (else
           (debug! (string-append
                    "Requesting "
-                   (number->string (length new-entities)) " entities"))
+                   (number->string (length new-entity-requests)) " entities"))
           (cons
            (play-sound "active")
-           new-entities))))))))
+           new-entity-requests))))))))
 
 (msg "build-dirty defined...")
 
@@ -363,7 +353,6 @@
      "Stream data: " (number->string (car stream)) "/" (number->string (cadr stream)))))
 
 (define (upload-dirty db)
-  (msg "upload-dirty")
   (let ((r (append
             (spit db "sync" (dirty-entities db "sync"))
             (spit db "stream" (dirty-entities db "stream")))))
@@ -760,18 +749,6 @@
      (else (_ (cdr l) (+ i 1)))))
   (_ arr 0))
 
-(define vowel (map symbol->string (list 'a 'e 'i 'o 'u)))
-(define consonant (map symbol->string (list 'b 'c 'd 'f 'g 'h 'j 'k 'l 'm 'n 'p 'q 'r 's 't 'v 'w 'x 'y 'z)))
-
-(define (word-gen)
-  (define (_ s vowel-prob)
-    (cond
-     ((zero? s) '())
-     ((< (random) vowel-prob)
-      (cons (choose vowel) (_ (- s 1) (/ vowel-prob 2))))
-     (else
-      (cons (choose consonant) (_ (- s 1) (* vowel-prob 2))))))
-  (apply string-append (_ (+ 3 (random-int 8)) 0.5)))
 
 
 
@@ -780,22 +757,22 @@
                   (ktvlist-merge
                    default-ktvlist
                    (list
-                    (ktv "name" "varchar" (string-append "Village-" (number->string (random-int 1000))))
+                    (ktv "name" "varchar" (string-append "Village-" (number->string (random 1000))))
                     (ktv "block" "varchar" (word-gen))
                     (ktv "district" "varchar" (word-gen))
-                    (ktv "car" "int" (random-int 2))))))
+                    (ktv "car" "int" (random 2))))))
 
 (define (simpsons-household db table parent default-ktvlist)
   (entity-create! db table "household"
                   (ktvlist-merge
                    default-ktvlist
                    (list
-                    (ktv "name" "varchar" (string-append "Household-" (number->string (random-int 1000))))
-                    (ktv "num-pots" "int" (random-int 10))
+                    (ktv "name" "varchar" (string-append "Household-" (number->string (random 1000))))
+                    (ktv "num-pots" "int" (random 10))
                     (ktv "parent" "varchar" parent)))))
 
 (define (simpsons-individual db table parent default-ktvlist)
-  (let ((n (random-int 1000)))
+  (let ((n (random 1000)))
   (entity-create! db table "individual"
                   (ktvlist-merge
                    default-ktvlist
@@ -947,7 +924,42 @@
           (msg "making household" i)
           (let ((household (simpsons-household db table village household-ktvlist)))
             (looper!
-             (random-int 10)
+             (random 10)
              (lambda (i)
                (msg "making individual" i)
                (simpsons-individual db table household individual-ktvlist))))))))))
+
+
+(define (mangle-test! db table entities)
+  (define (_ n)
+    (when (not (zero? n))
+          (let ((type (choose entities)))
+            (msg type)
+            (let ((entities (all-entities db table type)))
+              (msg "entities:" entities)
+              (when (not (null? entities))
+                    (let ((id (choose entities)))
+                      (msg "entity id:" id)
+                      (let ((ktv-list (get-entity db table id)))
+                        (when (not (null? ktv-list))
+                              (entity-init! db table type ktv-list)
+                              (for-each
+                               (lambda (ktv)
+                                 (when (and
+                                        (not (equal? (ktv-key ktv) "deleted"))
+                                        (not (equal? (ktv-key ktv) "unique_id"))
+                                        (not (equal? (ktv-key ktv) "parent"))
+                                        (eqv? (random 10) 0))
+                                       (if (equal? (ktv-type ktv) "varchar")
+                                           (entity-set-value! (ktv-key ktv) (ktv-type ktv)
+                                                              (string-append
+                                                               (get-current 'user-id "noid")
+                                                               (random-value-for-type (ktv-type ktv))))
+                                           (entity-set-value! (ktv-key ktv) (ktv-type ktv)
+                                                              (random-value-for-type (ktv-type ktv))))))
+                               ktv-list)
+                              (msg "modifying" type id)
+                              (entity-update-values!))
+                        )))))
+          (_ (- n 1))))
+  (_ (random 10)))
