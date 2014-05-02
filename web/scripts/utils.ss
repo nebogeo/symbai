@@ -35,6 +35,10 @@
   (when (not (equal? a b))
         (error "unit " msg a b)))
 
+(define (rndf)
+  (random))
+
+(define (choose l) (list-ref l (random (length l))))
 
 ;
 ; -- procedure+: string-split STRING

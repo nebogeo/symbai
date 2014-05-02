@@ -159,7 +159,6 @@
 ;;  (ktv "pack-id" "int" 1)
 ;;  (ktv "weight" "real" 10.4)))
 
-(define (choose l) (list-ref l (random (length l))))
 
 (define (random-string len)
   (if (zero? len)
