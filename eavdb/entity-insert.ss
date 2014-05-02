@@ -34,11 +34,11 @@
     (insert-entity-wholesale db table entity-type uid 1 0 ktvlist)
     uid))
 
-(define sema (make-semaphore 1))
+(define entity-sema (make-semaphore 1))
 
 ;; all the parameters - for syncing purposes
 (define (insert-entity-wholesale db table entity-type unique-id dirty version ktvlist)
-  (semaphore-wait sema)
+  (semaphore-wait entity-sema)
   (db-exec db "begin transaction")
   (let ((id (db-insert
              db (string-append
@@ -57,6 +57,6 @@
      ktvlist)
 
     (db-exec db "end transaction")
-    (semaphore-post sema)
+    (semaphore-post entity-sema)
 
     id))

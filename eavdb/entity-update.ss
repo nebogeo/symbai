@@ -68,6 +68,8 @@
 ;; update an entity, via a (possibly partial) list of key/value pairs
 ;; if dirty is not true, this is coming from a sync
 (define (update-entity-values db table entity-id ktvlist dirty)
+  (semaphore-wait entity-sema)
+  (db-exec db "begin transaction")
   (let* ((entity-type (get-entity-type db table entity-id)))
     (cond
      ((null? entity-type) (msg "entity" entity-id "not found!") '())
@@ -83,7 +85,9 @@
          (if dirty
              (update-value db table entity-id ktv)
              (update-value-from-sync db table entity-id ktv)))
-       ktvlist)))))
+       ktvlist))))
+  (db-exec db "end transaction")
+  (semaphore-post entity-sema))
 
 ;; update or create an entire entity if it doesn't exist
 ;; will return the new entity id if it's created
