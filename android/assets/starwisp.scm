@@ -166,9 +166,9 @@
   (append
    (cond
     ((get-current 'sync-on #f)
-     (when (zero? (random 10))
-           (msg "mangling...")
-           (mangle-test! db "sync" entity-types))
+;     (when (zero? (random 10))
+;           (msg "mangling...")
+;           (mangle-test! db "sync" entity-types))
      (msg "one")
      (set-current! 'upload 0)
      (set-current! 'download 0)
@@ -529,9 +529,21 @@
   (let ((id-text (symbol->string id)))
     (horiz-colour
      (if shade colour-one colour-two)
-     (mtoggle-button-scale
-      id (lambda (v)
-           (entity-set-value! id-text "int" v) '()))
+     (linear-layout
+      0 'vertical (layout 200 'wrap-content -1 'left 0)
+      (list 0 0 0 0)
+      (list
+       (text-view (symbol->id id)
+                  (mtext-lookup id)
+                  30 (layout 'wrap-content 'wrap-content -1 'left 0))
+       (mtoggle-button-scale
+        (string->symbol (string-append id-text "-in-village"))
+        (lambda (v)
+          (entity-set-value! id-text "int" v)
+          (list (update-widget
+                 'edit-text
+                 (get-id (string-append id-text "-closest-access-container"))
+                 (if (eqv? v 1) 'hide 'show) 0))))))
      (medit-text-scale
       (string->symbol (string-append id-text "-closest-access"))
       "normal" (lambda (v) (entity-set-value!
@@ -550,10 +562,15 @@
   (let ((id-text (symbol->string id)))
     (append
      (list
-      (mupdate 'toggle-button id id-text)
+      (mupdate 'toggle-button (string->symbol (string-append id-text "-in-village")) id-text)
       (mupdate 'edit-text
                (string->symbol (string-append id-text "-closest-access"))
-               (string-append id-text "-closest-access")))
+               (string-append id-text "-closest-access"))
+      (update-widget
+       'edit-text
+       (get-id (string-append id-text "-closest-access-container"))
+       (if (eqv? (entity-get-value id-text) 1)
+           'hide 'show) 0))
      (mupdate-gps
       (string->symbol (string-append id-text "-gps"))
       (string-append id-text "-gps")))))

@@ -470,20 +470,30 @@
              50 (layout 'fill-parent 'wrap-content 1 'centre 5)))
 
 (define (medit-text id type fn)
-  (vert
-   (text-view 0 (mtext-lookup id)
-              30 (layout 'wrap-content 'wrap-content -1 'centre 0))
-   (edit-text (symbol->id id) "" 30 type
-              (layout 'fill-parent 'wrap-content -1 'centre 0)
-              fn)))
+  (linear-layout
+   (make-id (string-append (symbol->string id) "-container"))
+   'vertical
+   (layout 'fill-parent 'wrap-content 1 'centre 20)
+   (list 0 0 0 0)
+   (list
+    (text-view 0 (mtext-lookup id)
+               30 (layout 'wrap-content 'wrap-content -1 'centre 0))
+    (edit-text (symbol->id id) "" 30 type
+               (layout 'fill-parent 'wrap-content -1 'centre 0)
+               fn))))
 
 (define (medit-text-scale id type fn)
-  (vert
-   (text-view 0 (mtext-lookup id)
-              30 (layout 'wrap-content 'wrap-content 1 'centre 0))
-   (edit-text (symbol->id id) "" 30 type
-              (layout 'fill-parent 'wrap-content 1 'centre 0)
-              fn)))
+  (linear-layout
+   (make-id (string-append (symbol->string id) "-container"))
+   'vertical
+   (layout 'fill-parent 'wrap-content 1 'centre 20)
+   (list 0 0 0 0)
+   (list
+    (text-view 0 (mtext-lookup id)
+               30 (layout 'wrap-content 'wrap-content 1 'centre 0))
+    (edit-text (symbol->id id) "" 30 type
+               (layout 'fill-parent 'wrap-content 1 'centre 0)
+               fn))))
 
 (define (mspinner id types fn)
   (vert
