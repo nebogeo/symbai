@@ -247,4 +247,5 @@
 (list 'gps-are-you-sure (list "Are you sure you want to record your current position?" ))
 (list 'gps-are-you-sure-2 (list "Please confirm again..." ))
 (list 'Current-village (list "Your current village" ))
+(list 'num-children (list "Number of children" ))
 ))

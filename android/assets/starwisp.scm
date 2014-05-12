@@ -87,6 +87,7 @@
   (list
    (ktv "name" "varchar" (mtext-lookup 'default-household-name))
    (ktv "num-pots" "int" 0)
+   (ktv "num-children" "int" 0)
    (ktv "house-lat" "real" 0) ;; get from current location?
    (ktv "house-lon" "real" 0)
    (ktv "toilet-lat" "real" 0)
@@ -797,7 +798,9 @@
    (build-activity
     (horiz
      (medit-text 'household-name "normal" (lambda (v) (entity-set-value! "name" "varchar" v) '()))
-     (medit-text 'num-pots "numeric" (lambda (v) (entity-set-value! "num-pots" "int" v) '())))
+     (vert
+      (medit-text 'num-pots "numeric" (lambda (v) (entity-set-value! "num-pots" "int" v) '()))
+      (medit-text 'num-children "numeric" (lambda (v) (entity-set-value! "num-children" "int" v) '()))))
     (horiz
      (vert
       (mtext 'location)
@@ -844,7 +847,8 @@
       (list
        (update-list-widget db "sync" "individual" "individual" arg)
        (mupdate 'edit-text 'household-name "name")
-       (mupdate 'edit-text 'num-pots "num-pots"))
+       (mupdate 'edit-text 'num-pots "num-pots")
+       (mupdate 'edit-text 'num-children "num-children"))
       (mupdate-gps 'house "house")
       (mupdate-gps 'toilet "toilet")))
 
