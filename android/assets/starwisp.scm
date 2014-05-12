@@ -68,7 +68,6 @@
 (define married-list '(ever-married currently-married currently-single seperated))
 (define residence-list '(birthplace spouse-village))
 (define gender-list '(male female))
-(define occupation-list '(agriculture gathering labour cows fishing other))
 (define house-type-list '(concrete tin thatched other))
 
 (define social-types-list '(friendship knowledge prestige))
@@ -121,7 +120,12 @@
    (ktv "num-residence-changes" "int" 0)
    (ktv "village-visits-month" "int" 0)
    (ktv "village-visits-year" "int" 0)
-   (ktv "occupation" "varchar" "")
+   (ktv "occupation-agriculture" "int" 0)
+   (ktv "occupation-gathering" "int" 0)
+   (ktv "occupation-labour" "int" 0)
+   (ktv "occupation-cows" "int" 0)
+   (ktv "occupation-fishing" "int" 0)
+   (ktv "occupation-other" "varchar" "")
    (ktv "contribute" "int" 0)
    (ktv "own-land" "int" 0)
    (ktv "rent-land" "int" 0)
@@ -1090,16 +1094,24 @@
   (activity
    "income"
    (build-activity
-    (mspinner 'occupation occupation-list
-              (lambda (v) (entity-set-value! "occupation" "varchar"
-                                             (spinner-choice occupation-list v))
-                      '()))
+    (vert
+     (mtitle 'occupation)
+     (horiz
+      (mtoggle-button-scale 'occupation-agriculture (lambda (v) (entity-set-value! "occupation-agriculture" "int" v) '()))
+      (mtoggle-button-scale 'occupation-gathering (lambda (v) (entity-set-value! "occupation-gathering" "int" v) '()))
+      (mtoggle-button-scale 'occupation-labour (lambda (v) (entity-set-value! "occupation-labour" "int" v) '())))
+     (horiz
+      (mtoggle-button-scale 'occupation-cows (lambda (v) (entity-set-value! "occupation-cows" "int" v) '()))
+      (mtoggle-button-scale 'occupation-fishing (lambda (v) (entity-set-value! "occupation-fishing" "int" v) '()))
+      (medit-text 'occupation-other "normal" (lambda (v) (entity-set-value! "occupation-other" "varchar" v) '()))))
+
     (horiz
      (mtoggle-button-scale 'contribute (lambda (v) (entity-set-value! "contribute" "int" v) '()))
      (mtoggle-button-scale 'own-land (lambda (v) (entity-set-value! "own-land" "int" v) '())))
     (horiz
      (mtoggle-button-scale 'rent-land (lambda (v) (entity-set-value! "rent-land" "int" v) '()))
      (mtoggle-button-scale 'hire-land (lambda (v) (entity-set-value! "hire-land" "int" v) '())))
+    (mtext 'crops-detail)
     (build-list-widget
      db "sync" 'crops "crop" "crop" (lambda () (get-current 'individual #f))
      (lambda () crop-ktvlist))
@@ -1128,7 +1140,12 @@
       (mupdate-spinner-other 'house-type "house-type" house-type-list)
       (list
        (update-list-widget db "sync" "crop" "crop" (get-current 'individual #f))
-       (mupdate-spinner 'occupation "occupation" occupation-list)
+       (mupdate 'toggle-button 'occupation-agriculture "occupation-agriculture")
+       (mupdate 'toggle-button 'occupation-gathering "occupation-gathering")
+       (mupdate 'toggle-button 'occupation-labour "occupation-labour")
+       (mupdate 'toggle-button 'occupation-cows "occupation-cows")
+       (mupdate 'toggle-button 'occupation-fishing "occupation-fishing")
+       (mupdate 'edit-text 'occupation-other "occupation-other")
        (mupdate 'toggle-button 'contribute "contribute")
        (mupdate 'toggle-button 'own-land "own-land")
        (mupdate 'toggle-button 'rent-land "rent-land")
