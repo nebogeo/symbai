@@ -244,4 +244,7 @@
 (list 'house-id (list "House ID" ))
 (list 'photo-id (list "Photo ID" ))
 (list 'add-are-you-sure (list "Are you sure you want to add this individual?" ))
+(list 'gps-are-you-sure (list "Are you sure you want to record your current position?" ))
+(list 'gps-are-you-sure-2 (list "Please confirm again..." ))
+(list 'Current-village (list "Your current village" ))
 ))

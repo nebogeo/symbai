@@ -641,20 +641,36 @@
        (list-ref d 5)))))
 
 (define (do-gps display-id key-prepend)
-  (let ((loc (get-current 'location '(0 0))))
-    (entity-set-value! (string-append key-prepend "-lat") "real" (car loc))
-    (entity-set-value! (string-append key-prepend "-lon") "real" (cadr loc))
-    (list
-     (update-widget
-      'text-view
-      (get-id (string-append (symbol->string display-id) "-lat"))
-      'text
-      (number->string (car loc)))
-     (update-widget
-      'text-view
-      (get-id (string-append (symbol->string display-id) "-lon"))
-      'text
-      (number->string (cadr loc))))))
+  (list
+   (alert-dialog
+    "gps-check"
+    (mtext-lookup 'gps-are-you-sure)
+    (lambda (v)
+      (cond
+       ((eqv? v 1)
+        (list
+         (alert-dialog
+          "gps-check2"
+          (mtext-lookup 'gps-are-you-sure-2)
+          (lambda (v)
+            (cond
+             ((eqv? v 1)
+              (let ((loc (get-current 'location '(0 0))))
+                (entity-set-value! (string-append key-prepend "-lat") "real" (car loc))
+                (entity-set-value! (string-append key-prepend "-lon") "real" (cadr loc))
+                (list
+                 (update-widget
+                  'text-view
+                  (get-id (string-append (symbol->string display-id) "-lat"))
+                  'text
+                  (number->string (car loc)))
+                 (update-widget
+                  'text-view
+                  (get-id (string-append (symbol->string display-id) "-lon"))
+                  'text
+                  (number->string (cadr loc))))))
+             (else '()))))))
+       (else '()))))))
 
 (define (mupdate-gps display-id key-prepend)
   (let ((lat (entity-get-value (string-append key-prepend "-lat")))
