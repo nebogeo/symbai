@@ -506,25 +506,30 @@
             (lambda (c) (fn c)))))
 
 (define (mspinner-other id types fn)
-  (horiz
-   (vert
-    (text-view (symbol->id id)
-               (mtext-lookup id)
-               30 (layout 'wrap-content 'wrap-content 1 'centre 10))
-    (spinner (make-id (string-append (symbol->string id) "-spinner"))
-             (map mtext-lookup types)
-             (layout 'wrap-content 'wrap-content 1 'centre 0)
-             (lambda (c)
-               ;; dont call if set to "other"
-               (if (< c (- (length types) 1))
-                   (fn c)
-                   '()))))
-   (vert
-    (mtext-scale 'other)
-    (edit-text (make-id (string-append (symbol->string id) "-edit-text"))
-               "" 30 "normal"
-               (layout 'fill-parent 'wrap-content 1 'centre 0)
-               (lambda (t) (fn t))))))
+  (linear-layout
+   (make-id (string-append (symbol->string id) "-container"))
+   'horizontal
+   (layout 'fill-parent 'wrap-content 1 'centre 5)
+   (list 0 0 0 0)
+   (list
+    (vert
+     (text-view (symbol->id id)
+                (mtext-lookup id)
+                30 (layout 'wrap-content 'wrap-content 1 'centre 10))
+     (spinner (make-id (string-append (symbol->string id) "-spinner"))
+              (map mtext-lookup types)
+              (layout 'wrap-content 'wrap-content 1 'centre 0)
+              (lambda (c)
+                ;; dont call if set to "other"
+                (if (< c (- (length types) 1))
+                    (fn c)
+                    '()))))
+    (vert
+     (mtext-scale 'other)
+     (edit-text (make-id (string-append (symbol->string id) "-edit-text"))
+                "" 30 "normal"
+                (layout 'fill-parent 'wrap-content 1 'centre 0)
+                (lambda (t) (fn t)))))))
 
 (define (mspinner-other-vert id text-id types fn)
   (linear-layout

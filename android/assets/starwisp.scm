@@ -65,7 +65,7 @@
 (define tribes-list '(khasi other))
 (define subtribe-list '(khynriam pnar bhoi war other))
 (define education-list   '(primary middle high secondary university))
-(define married-list '(ever-married currently-married currently-single seperated))
+(define married-list '(currently-married currently-single seperated))
 (define residence-list '(birthplace spouse-village))
 (define gender-list '(male female))
 (define house-type-list '(concrete tin thatched other))
@@ -982,7 +982,12 @@
      (vert
       (mspinner 'head-of-house gender-list (lambda (v) (entity-set-value! "head-of-house" "varchar" (spinner-choice gender-list v)) '()))
       (mspinner 'marital-status married-list (lambda (v) (entity-set-value! "marital-status" "varchar" (spinner-choice married-list v)) '()))
-      (medit-text 'times-married "numeric" (lambda (v) (entity-set-value! "times-married" "int" v) '())))
+      (medit-text 'times-married "numeric"
+                  (lambda (v)
+                    (entity-set-value! "times-married" "int" v)
+                    (list
+                     (update-widget 'linear-layout (get-id "residence-after-marriage-container")
+                                    (if (equal? v "0") 'hide 'show) 0)))))
 
      (build-person-selector 'spouse "id-spouse" (list) spouse-request-code)
      )
