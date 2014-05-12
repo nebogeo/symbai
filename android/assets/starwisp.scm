@@ -64,7 +64,7 @@
 
 (define tribes-list '(khasi other))
 (define subtribe-list '(khynriam pnar bhoi war other))
-(define education-list   '(illiterate literate primary middle high secondary university))
+(define education-list   '(primary middle high secondary university))
 (define married-list '(ever-married currently-married currently-single seperated))
 (define residence-list '(birthplace spouse-village))
 (define gender-list '(male female))
@@ -103,6 +103,7 @@
    (ktv "child" "int" 0)
    (ktv "age" "int" 0)
    (ktv "gender" "varchar" "")
+   (ktv "literate" "int" 0)
    (ktv "education" "varchar" "")
    (ktv "head-of-house" "varchar" "")
    (ktv "marital-status" "varchar" "")
@@ -931,7 +932,9 @@
     (mspinner-other 'sub-tribe subtribe-list (lambda (v) (entity-set-value! "subtribe" "varchar" (spinner-choice subtribe-list v)) '()))
     (horiz
      (medit-text 'age "numeric" (lambda (v) (entity-set-value! "age" "int" v) '()))
-     (mspinner 'gender gender-list (lambda (v) (entity-set-value! "gender" "varchar" (spinner-choice gender-list v)) '()))
+     (mspinner 'gender gender-list (lambda (v) (entity-set-value! "gender" "varchar" (spinner-choice gender-list v)) '())))
+    (horiz
+     (mtoggle-button-scale 'literate (lambda (v) (entity-set-value! "literate" "int" v) '()))
      (mspinner 'education education-list (lambda (v) (entity-set-value! "education" "varchar" v) '())))
     )
    (lambda (activity arg)
@@ -949,6 +952,7 @@
        (mupdate 'image-view 'photo "photo")
        (mupdate 'edit-text 'age "age")
        (mupdate-spinner 'gender "gender" gender-list)
+       (mupdate 'toggle-button 'literate "literate")
        (mupdate-spinner 'education "education" education-list)
        )))
    (lambda (activity) '())
