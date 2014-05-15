@@ -217,30 +217,35 @@
 (define (sync-files server-list)
   (let ((local-list (dir-list "/sdcard/symbai/files/")))
     ;; search for all local files in server list
-    (append
-     (foldl
-      (lambda (file r)
-        ;; send files not present
-        (if (in-list? file server-list)
-            r (cons
-               (http-upload
-                (string-append "upload-" file)
-                "http://192.168.2.1:8889/symbai?fn=upload"
-                (string-append "/sdcard/symbai/files/" file)) r)))
-      '()
-      local-list)
-     ;; search for all server files in local list
-     (foldl
-      (lambda (file r)
-        ;; request files not present
-        (if (in-list? file local-list)
-            r (cons
-               (http-download
-                (string-append "download-" file)
-                (string-append "http://192.168.2.1:8889/files/" file)
-                (string-append "/sdcard/symbai/files/" file)) r)))
-      '()
-      server-list))))
+    (dbg (crop
+          (append
+      (foldl
+       (lambda (file r)
+         ;; send files not present
+         (if (or
+              (eqv? (string-ref file 0) #\.)
+              (in-list? file server-list))
+             r (cons
+                (http-upload
+                 (string-append "upload-" file)
+                 "http://192.168.2.1:8889/symbai?fn=upload"
+                 (string-append "/sdcard/symbai/files/" file)) r)))
+       '()
+       local-list)
+      ;; search for all server files in local list
+      (foldl
+       (lambda (file r)
+         ;; request files not present
+         (if (in-list? file local-list)
+             r (cons
+                (http-download
+                 (string-append "download-" file)
+                 (string-append "http://192.168.2.1:8889/files/" file)
+                 (string-append "/sdcard/symbai/files/" file)) r)))
+       '()
+       server-list))
+     ;; restrict the number of uploads each time round
+     2))))
 
 (define (start-sync-files)
   (list
@@ -248,7 +253,7 @@
     (string-append "file-list")
     (string-append url "fn=file-list")
     (lambda (file-list)
-      (sync-files file-list)))))
+      (dbg (sync-files file-list))))))
 
 ;; spit all dirty entities to server
 (define (spit db table entities)
