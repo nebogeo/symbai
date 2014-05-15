@@ -41,14 +41,18 @@
    entity-id))
 
 (define (update-entity-clean db table unique-id)
-  ;;(msg "cleaning")
-  ;; clean entity table
   (db-exec
    db (string-append "update " table "_entity set dirty=? where unique_id = ?")
    0 unique-id)
-  ;; clean value tables for this entity
-  ;;(msg "cleaning values")
   (clean-entity-values db table (entity-id-from-unique db table unique-id))  )
+
+;; for when remote entities don't exist for whatever reason
+(define (update-entity-dirty db table unique-id)
+  (db-exec
+   db (string-append "update " table "_entity set dirty=? where unique_id = ?")
+   1 unique-id)
+  ;; simpler path than cleaning - should use the same as this???
+  (dirty-all-values db table (entity-id-from-unique db table unique-id)))
 
 (define (have-dirty? db table)
   (not (zero?
@@ -80,20 +84,20 @@
 
 ;; todo: BROKEN...
 ;; used for sync-all
-(define (dirty-and-all-entities db table)
-  (let ((de (db-select
-             db (string-append
-                 "select entity_id, entity_type, unique_id, dirty, version from " table "_entity"))))
-    (if (null? de)
-        '()
-        (map
-         (lambda (i)
-           (list
-            ;; build according to url ([table] entity-type unique-id dirty version)
-            (cdr (vector->list i))
-            ;; data entries (todo - only dirty values!)???????????
-            (get-entity-plain db table (vector-ref i 0))))
-         (cdr de)))))
+;(define (dirty-and-all-entities db table)
+;  (let ((de (db-select
+;             db (string-append
+;                 "select entity_id, entity_type, unique_id, dirty, version from " table "_entity"))))
+;    (if (null? de)
+;        '()
+;        (map
+;         (lambda (i)
+;           (list
+;            ;; build according to url ([table] entity-type unique-id dirty version)
+;            (cdr (vector->list i))
+;            ;; data entries (todo - only dirty values!)???????????
+;            (get-entity-plain db table (vector-ref i 0))))
+;         (cdr de)))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

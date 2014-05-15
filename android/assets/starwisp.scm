@@ -184,7 +184,11 @@
         (append
          (list (toast "sync-cb"))
          (upload-dirty db)
-         (if (have-dirty? db "sync") '() (suck-new db "sync"))))))
+         ;; important - don't receive until all are sent...
+         (if (have-dirty? db "sync") '()
+             (append
+              (suck-new db "sync")
+              (start-sync-files)))))))
     (else '()))
    (list
     (delayed "debug-timer" (+ 10000 (random 5000)) debug-timer-cb)
@@ -1394,14 +1398,7 @@
    (vert
     (text-view (make-id "sync-title") "Sync database" 40 fillwrap)
     (mtext 'sync-dirty "...")
-    (horiz
-     (mtoggle-button-scale 'sync-all (lambda (v) (set-current! 'sync-on v) '()))
-     (mbutton-scale 'sync-syncall
-               (lambda ()
-                 (let ((r (append
-                           (spit db "sync" (dirty-and-all-entities db "sync"))
-                           (spit db "stream" (dirty-and-all-entities db "stream")))))
-                   (cons (toast "Uploading data...") r)))))
+    (mtoggle-button-scale 'sync-all (lambda (v) (set-current! 'sync-on v) '()))
     (mtitle 'export-data)
     (horiz
      (mbutton-scale 'sync-download
