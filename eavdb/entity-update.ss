@@ -111,13 +111,6 @@
       (update-entity db table entity-id ktvlist)
       #f))))
 
-(define (insert-entity-if-not-exists db table entity-type user entity-id ktvlist)
-  (let ((found (get-entity-type db table entity-id)))
-    (if (null? found)
-        (insert-entity db table entity-type user ktvlist)
-        #f)))
-
-
 (define (entity-update-test db table)
 
   (define e (insert-entity db table "thing" "me" (list (ktv "param1" "varchar" "bob")

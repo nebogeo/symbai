@@ -71,10 +71,9 @@
      (cond
       ((null? vd) r)
       ;; only return if dirty
-      ((zero? (cadr vd))
+      ((not (zero? (cadr vd)))
        (cons
-        (list (ktv-key kt) (ktv-type kt) (list-ref vd 0))
-        r))
+        (list (ktv-key kt) (ktv-type kt) (list-ref vd 0)) r))
       (else r)))
    db table entity-id))
 

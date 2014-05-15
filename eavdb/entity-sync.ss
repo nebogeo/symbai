@@ -77,7 +77,6 @@
            (list
             ;; build according to url ([table] entity-type unique-id dirty version)
             (cdr (vector->list i))
-            ;; data entries (todo - only dirty values!)
             (get-entity-plain-for-sync db table (vector-ref i 0))))
          (cdr de)))))
 

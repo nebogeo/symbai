@@ -29,10 +29,21 @@
   (insert-entity-wholesale db table entity-type (get-unique user) 1 0 ktvlist))
 
 ;; insert an entire entity
+(define (insert-entity-with-id db table id entity-type user ktvlist)
+  (insert-entity-wholesale-with-id db table id entity-type (get-unique user) 1 0 ktvlist))
+
+;; insert an entire entity
 (define (insert-entity/get-unique db table entity-type user ktvlist)
   (let ((uid (get-unique user)))
     (insert-entity-wholesale db table entity-type uid 1 0 ktvlist)
     uid))
+
+;; used for the app preferences
+(define (insert-entity-if-not-exists db table entity-type user entity-id ktvlist)
+  (let ((found (get-entity-type db table entity-id)))
+    (if (null? found)
+        (insert-entity-with-id db table entity-id entity-type user ktvlist)
+        #f)))
 
 (define entity-sema (make-semaphore 1))
 
@@ -44,6 +55,30 @@
              db (string-append
                  "insert into " table "_entity values (null, ?, ?, ?, ?)")
              entity-type unique-id dirty version)))
+
+    ;; create the attributes if they are new, and validate them if they exist
+    (for-each
+     (lambda (ktv)
+       (find/add-attribute-type db table entity-type (ktv-key ktv) (ktv-type ktv)))
+     ktvlist)
+    ;; add all the keys
+    (for-each
+     (lambda (ktv)
+       (insert-value db table id ktv dirty))
+     ktvlist)
+
+    (db-exec db "end transaction")
+    (semaphore-post entity-sema)
+
+    id))
+
+(define (insert-entity-wholesale-with-id db table id entity-type unique-id dirty version ktvlist)
+  (semaphore-wait entity-sema)
+  (db-exec db "begin transaction")
+  (let ((id (db-insert
+             db (string-append
+                 "insert into " table "_entity values (?, ?, ?, ?, ?)")
+             id entity-type unique-id dirty version)))
 
     ;; create the attributes if they are new, and validate them if they exist
     (for-each
