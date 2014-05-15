@@ -60,6 +60,12 @@
       (else (_ (cdr in) (cons (cons (car in) (car out)) (cdr out)) (- c 1)))))
   (reverse (map reverse (_ l '(()) n))))
 
+(define (in-list? n l)
+  (cond
+    ((null? l) #f)
+    ((equal? n (car l)) #t)
+    (else (in-list? n (cdr l)))))
+
 (define (find n l)
   (cond
     ((null? l) #f)

@@ -215,37 +215,40 @@
 ;; redundant second pass to syncronise files - independant of the
 ;; rest of the syncing system
 (define (sync-files server-list)
-  (let ((local-files (dir-list "/sdcard/symbai/files/")))
+  (let ((local-list (dir-list "/sdcard/symbai/files/")))
     ;; search for all local files in server list
     (append
      (foldl
       (lambda (file r)
         ;; send files not present
-        (if (find file server-list)
+        (if (in-list? file server-list)
             r (cons
                (http-upload
                 (string-append "upload-" file)
                 "http://192.168.2.1:8889/symbai?fn=upload"
                 (string-append "/sdcard/symbai/files/" file)) r)))
+      '()
       local-list)
      ;; search for all server files in local list
      (foldl
       (lambda (file r)
         ;; request files not present
-        (if (find file local-list)
+        (if (in-list? file local-list)
             r (cons
                (http-download
                 (string-append "download-" file)
                 (string-append "http://192.168.2.1:8889/files/" file)
                 (string-append "/sdcard/symbai/files/" file)) r)))
+      '()
       server-list))))
 
 (define (start-sync-files)
-  (http-request
-   (string-append "file-list")
-   (string-append url "fn=file-list")
-   (lambda (file-list)
-     (sync-files file-list))))
+  (list
+   (http-request
+    (string-append "file-list")
+    (string-append url "fn=file-list")
+    (lambda (file-list)
+      (sync-files file-list)))))
 
 ;; spit all dirty entities to server
 (define (spit db table entities)
@@ -353,13 +356,14 @@
    version-data))
 
 (define (mark-unlisted-entities-dirty! db table version-data)
+  (msg "mark-unlisted...")
   ;; load all local entities
   (let ((ids (all-unique-ids db table))
         (server-ids (map car version-data)))
     ;; look for each one in data
     (for-each
      (lambda (id)
-       (when ((not (find id server-ids)))
+       (when (not (in-list? id server-ids))
              (msg "can't find " id " in server data, marking dirty")
              ;; mark those not present as dirty for next spit cycle
              (update-entity-dirtify db table id)))
