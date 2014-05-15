@@ -47,12 +47,11 @@
   (clean-entity-values db table (entity-id-from-unique db table unique-id))  )
 
 ;; for when remote entities don't exist for whatever reason
-(define (update-entity-dirty db table unique-id)
+(define (update-entity-dirtify db table unique-id)
   (db-exec
    db (string-append "update " table "_entity set dirty=? where unique_id = ?")
    1 unique-id)
-  ;; simpler path than cleaning - should use the same as this???
-  (dirty-all-values db table (entity-id-from-unique db table unique-id)))
+  (dirtify-entity-values db table (entity-id-from-unique db table unique-id))  )
 
 (define (have-dirty? db table)
   (not (zero?
