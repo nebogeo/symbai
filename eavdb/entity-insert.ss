@@ -20,7 +20,8 @@
  "../web/scripts/sql.ss"
  "ktv.ss"
  "ktv-list.ss"
- "entity-values.ss")
+ "entity-values.ss"
+ "entity-get.ss")
 
 (provide (all-defined-out))
 
@@ -37,12 +38,6 @@
   (let ((uid (get-unique user)))
     (insert-entity-wholesale db table entity-type uid 1 0 ktvlist)
     uid))
-
-(define (get-entity-type db table entity-id)
-  (select-first
-   db (string-append
-       "select entity_type from " table "_entity where entity_id = ?")
-       entity-id))
 
 ;; used for the app preferences
 (define (insert-entity-if-not-exists db table entity-type user entity-id ktvlist)

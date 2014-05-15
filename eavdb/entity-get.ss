@@ -33,6 +33,12 @@
                    "select * from " table "_entity where unique_id = ?")
                unique-id))))
 
+(define (get-entity-type db table entity-id)
+  (select-first
+   db (string-append
+       "select entity_type from " table "_entity where entity_id = ?")
+       entity-id))
+
 (define (get-all-entity-types db table)
   (cdr (db-select db (string-append "select distinct entity_type from " table "_entity;"))))
 
