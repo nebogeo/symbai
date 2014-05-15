@@ -108,7 +108,7 @@
 	    entity-type
 	    unique-id
 	    (string->number dirty)
-	    (string->number version) data)))))))
+	    (string->number version) (dbg data))))))))
 
    ;; returns a table of all entities and their corresponding versions
    (register
@@ -156,13 +156,13 @@
 
    (register
     (req 'file-list '())
-    (lambda ()
+    (lambda (req)
       (syncro
        (lambda ()
          (msg "file-list")
          (pluto-response
-          (scheme->txt
-           (dbg (directory-list "./htdocs/files/"))))))))
+          (dbg (scheme->txt
+           (map path->string (directory-list "files/")))))))))
 
 
    ))

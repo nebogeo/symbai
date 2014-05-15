@@ -127,7 +127,6 @@
 (define (entity-versions db table)
   (let ((s (db-select
 	    db (string-append "select unique_id, version from " table "_entity;"))))
-    (msg s)
     (if (null? s)
 	'()
 	(map
