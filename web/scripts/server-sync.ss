@@ -61,12 +61,12 @@
 
 (define (merge-n-bump current-version db table entity-type unique-id dirty version data)
   (let ((entity-id (entity-id-from-unique db table unique-id)))
-    ;;(msg "merge start:" (get-entity-version db table entity-id))
+    (msg "merge start:" (get-entity-version db table entity-id))
     (let ((r (sync-update db table entity-type unique-id dirty version data)))
-      ;;(msg "merge post:" (get-entity-version db table entity-id))
+      (msg "merge post:" (get-entity-version db table entity-id))
       ;; must be one newer than highest in the system
       (update-entity-version db table entity-id (+ current-version 1))
-      ;;(msg "merge over:" (get-entity-version db table entity-id))
+      (msg "merge over:" (get-entity-version db table entity-id))
       r)))
 
 (define (check-for-sync db table entity-type unique-id dirty version data)
