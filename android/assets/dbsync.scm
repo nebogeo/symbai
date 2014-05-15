@@ -212,6 +212,40 @@
          r))
    '() ktvlist))
 
+;; redundant second pass to syncronise files - independant of the
+;; rest of the syncing system
+(define (sync-files server-list)
+  (let ((local-files (dir-list "/sdcard/symbai/files/")))
+    ;; search for all local files in server list
+    (append
+     (foldl
+      (lambda (file r)
+        ;; send files not present
+        (if (find file server-list)
+            r (cons
+               (http-upload
+                (string-append "upload-" file)
+                "http://192.168.2.1:8889/symbai?fn=upload"
+                (string-append "/sdcard/symbai/files/" file)) r)))
+      local-list)
+     ;; search for all server files in local list
+     (foldl
+      (lambda (file r)
+        ;; request files not present
+        (if (find file local-list)
+            r (cons
+               (http-download
+                (string-append "download-" file)
+                (string-append "http://192.168.2.1:8889/files/" file)
+                (string-append "/sdcard/symbai/files/" file)) r)))
+      server-list))))
+
+(define (start-sync-files)
+  (http-request
+   (string-append "file-list")
+   (string-append "http://192.168.2.1:8889/")
+
+
 ;; spit all dirty entities to server
 (define (spit db table entities)
   (foldl
@@ -317,6 +351,19 @@
    '()
    version-data))
 
+(define (mark-unlisted-entities-dirty! db table version-data)
+  ;; load all local entities
+  (let ((ids (all-unique-ids db table))
+        (server-ids (map car version-data)))
+    ;; look for each one in data
+    (for-each
+     (lambda (id)
+       (when ((not (find id server-ids)))
+             (msg "can't find " id " in server data, marking dirty")
+             ;; mark those not present as dirty for next spit cycle
+             (update-entity-dirty db table id)))
+     ids)))
+
 ;; repeatedly read version and request updates
 (define (suck-new db table)
   (debug! "Requesting new entities")
@@ -326,6 +373,9 @@
     (string-append url "fn=entity-versions&table=" table)
     (lambda (data)
       (let ((new-entity-requests (build-entity-requests db table data)))
+        (alog "suck-new: marking dirty")
+        (mark-unlisted-entities-dirty! db table data)
+        (alog "suck-new: done marking dirty")
         (cond
          ((null? new-entity-requests)
           (debug! "No new data to download")
@@ -470,20 +520,30 @@
              50 (layout 'fill-parent 'wrap-content 1 'centre 5)))
 
 (define (medit-text id type fn)
-  (vert
-   (text-view 0 (mtext-lookup id)
-              30 (layout 'wrap-content 'wrap-content -1 'centre 0))
-   (edit-text (symbol->id id) "" 30 type
-              (layout 'fill-parent 'wrap-content -1 'centre 0)
-              fn)))
+  (linear-layout
+   (make-id (string-append (symbol->string id) "-container"))
+   'vertical
+   (layout 'fill-parent 'wrap-content 1 'centre 20)
+   (list 0 0 0 0)
+   (list
+    (text-view 0 (mtext-lookup id)
+               30 (layout 'wrap-content 'wrap-content -1 'centre 0))
+    (edit-text (symbol->id id) "" 30 type
+               (layout 'fill-parent 'wrap-content -1 'centre 0)
+               fn))))
 
 (define (medit-text-scale id type fn)
-  (vert
-   (text-view 0 (mtext-lookup id)
-              30 (layout 'wrap-content 'wrap-content 1 'centre 0))
-   (edit-text (symbol->id id) "" 30 type
-              (layout 'fill-parent 'wrap-content 1 'centre 0)
-              fn)))
+  (linear-layout
+   (make-id (string-append (symbol->string id) "-container"))
+   'vertical
+   (layout 'fill-parent 'wrap-content 1 'centre 20)
+   (list 0 0 0 0)
+   (list
+    (text-view 0 (mtext-lookup id)
+               30 (layout 'wrap-content 'wrap-content 1 'centre 0))
+    (edit-text (symbol->id id) "" 30 type
+               (layout 'fill-parent 'wrap-content 1 'centre 0)
+               fn))))
 
 (define (mspinner id types fn)
   (vert
@@ -496,25 +556,30 @@
             (lambda (c) (fn c)))))
 
 (define (mspinner-other id types fn)
-  (horiz
-   (vert
-    (text-view (symbol->id id)
-               (mtext-lookup id)
-               30 (layout 'wrap-content 'wrap-content 1 'centre 10))
-    (spinner (make-id (string-append (symbol->string id) "-spinner"))
-             (map mtext-lookup types)
-             (layout 'wrap-content 'wrap-content 1 'centre 0)
-             (lambda (c)
-               ;; dont call if set to "other"
-               (if (< c (- (length types) 1))
-                   (fn c)
-                   '()))))
-   (vert
-    (mtext-scale 'other)
-    (edit-text (make-id (string-append (symbol->string id) "-edit-text"))
-               "" 30 "normal"
-               (layout 'fill-parent 'wrap-content 1 'centre 0)
-               (lambda (t) (fn t))))))
+  (linear-layout
+   (make-id (string-append (symbol->string id) "-container"))
+   'horizontal
+   (layout 'fill-parent 'wrap-content 1 'centre 5)
+   (list 0 0 0 0)
+   (list
+    (vert
+     (text-view (symbol->id id)
+                (mtext-lookup id)
+                30 (layout 'wrap-content 'wrap-content 1 'centre 10))
+     (spinner (make-id (string-append (symbol->string id) "-spinner"))
+              (map mtext-lookup types)
+              (layout 'wrap-content 'wrap-content 1 'centre 0)
+              (lambda (c)
+                ;; dont call if set to "other"
+                (if (< c (- (length types) 1))
+                    (fn c)
+                    '()))))
+    (vert
+     (mtext-scale 'other)
+     (edit-text (make-id (string-append (symbol->string id) "-edit-text"))
+                "" 30 "normal"
+                (layout 'fill-parent 'wrap-content 1 'centre 0)
+                (lambda (t) (fn t)))))))
 
 (define (mspinner-other-vert id text-id types fn)
   (linear-layout
@@ -631,20 +696,36 @@
        (list-ref d 5)))))
 
 (define (do-gps display-id key-prepend)
-  (let ((loc (get-current 'location '(0 0))))
-    (entity-set-value! (string-append key-prepend "-lat") "real" (car loc))
-    (entity-set-value! (string-append key-prepend "-lon") "real" (cadr loc))
-    (list
-     (update-widget
-      'text-view
-      (get-id (string-append (symbol->string display-id) "-lat"))
-      'text
-      (number->string (car loc)))
-     (update-widget
-      'text-view
-      (get-id (string-append (symbol->string display-id) "-lon"))
-      'text
-      (number->string (cadr loc))))))
+  (list
+   (alert-dialog
+    "gps-check"
+    (mtext-lookup 'gps-are-you-sure)
+    (lambda (v)
+      (cond
+       ((eqv? v 1)
+        (list
+         (alert-dialog
+          "gps-check2"
+          (mtext-lookup 'gps-are-you-sure-2)
+          (lambda (v)
+            (cond
+             ((eqv? v 1)
+              (let ((loc (get-current 'location '(0 0))))
+                (entity-set-value! (string-append key-prepend "-lat") "real" (car loc))
+                (entity-set-value! (string-append key-prepend "-lon") "real" (cadr loc))
+                (list
+                 (update-widget
+                  'text-view
+                  (get-id (string-append (symbol->string display-id) "-lat"))
+                  'text
+                  (number->string (car loc)))
+                 (update-widget
+                  'text-view
+                  (get-id (string-append (symbol->string display-id) "-lon"))
+                  'text
+                  (number->string (cadr loc))))))
+             (else '()))))))
+       (else '()))))))
 
 (define (mupdate-gps display-id key-prepend)
   (let ((lat (entity-get-value (string-append key-prepend "-lat")))

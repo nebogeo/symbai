@@ -61,7 +61,6 @@
      (else
       (for-each
        (lambda (kt)
-         ;;(msg "cleaning" kt)
          (clean-value db table entity-id (list (ktv-key kt) (ktv-type kt))))
        (get-attribute-ids/types db table entity-type))))))
 

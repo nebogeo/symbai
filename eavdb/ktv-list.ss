@@ -38,3 +38,18 @@
    ((equal? (ktv-key (car ktv-list)) (ktv-key ktv))
     (cons ktv (cdr ktv-list)))
    (else (cons (car ktv-list) (ktv-set (cdr ktv-list) ktv)))))
+
+;; replace or insert a ktv
+(define (ktvlist-replace ktv ktvlist)
+  (cond
+   ((null? ktvlist)
+    (list ktv))
+   ((equal? (ktv-key (car ktvlist)) (ktv-key ktv))
+    (cons ktv (cdr ktvlist)))
+   (else (cons (car ktvlist) (ktvlist-replace ktv (cdr ktvlist))))))
+
+(define (ktvlist-merge a b)
+  (foldl
+   (lambda (ktv r)
+     (ktvlist-replace ktv r))
+   a b))

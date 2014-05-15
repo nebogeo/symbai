@@ -153,6 +153,17 @@
            (vector-ref i 0))
          (cdr s)))))
 
+(define (all-unique-ids db table)
+  (let ((s (db-select
+            db (string-append "select e.unique_id from " table "_entity as e "))))
+    (if (null? s)
+        '()
+        (map
+         (lambda (i)
+           (vector-ref i 0))
+         (cdr s)))))
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; doing things with unique ids
 

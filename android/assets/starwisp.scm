@@ -64,11 +64,10 @@
 
 (define tribes-list '(khasi other))
 (define subtribe-list '(khynriam pnar bhoi war other))
-(define education-list   '(illiterate literate primary middle high secondary university))
-(define married-list '(ever-married currently-married currently-single seperated))
+(define education-list   '(primary middle high secondary university))
+(define married-list '(currently-married currently-single seperated))
 (define residence-list '(birthplace spouse-village))
 (define gender-list '(male female))
-(define occupation-list '(agriculture gathering labour cows fishing other))
 (define house-type-list '(concrete tin thatched other))
 
 (define social-types-list '(friendship knowledge prestige))
@@ -87,6 +86,7 @@
   (list
    (ktv "name" "varchar" (mtext-lookup 'default-household-name))
    (ktv "num-pots" "int" 0)
+   (ktv "num-children" "int" 0)
    (ktv "house-lat" "real" 0) ;; get from current location?
    (ktv "house-lon" "real" 0)
    (ktv "toilet-lat" "real" 0)
@@ -103,6 +103,7 @@
    (ktv "child" "int" 0)
    (ktv "age" "int" 0)
    (ktv "gender" "varchar" "")
+   (ktv "literate" "int" 0)
    (ktv "education" "varchar" "")
    (ktv "head-of-house" "varchar" "")
    (ktv "marital-status" "varchar" "")
@@ -120,7 +121,12 @@
    (ktv "num-residence-changes" "int" 0)
    (ktv "village-visits-month" "int" 0)
    (ktv "village-visits-year" "int" 0)
-   (ktv "occupation" "varchar" "")
+   (ktv "occupation-agriculture" "int" 0)
+   (ktv "occupation-gathering" "int" 0)
+   (ktv "occupation-labour" "int" 0)
+   (ktv "occupation-cows" "int" 0)
+   (ktv "occupation-fishing" "int" 0)
+   (ktv "occupation-other" "varchar" "")
    (ktv "contribute" "int" 0)
    (ktv "own-land" "int" 0)
    (ktv "rent-land" "int" 0)
@@ -166,9 +172,9 @@
   (append
    (cond
     ((get-current 'sync-on #f)
-     (when (zero? (random 10))
-           (msg "mangling...")
-           (mangle-test! db "sync" entity-types))
+;     (when (zero? (random 10))
+;           (msg "mangling...")
+;           (mangle-test! db "sync" entity-types))
      (msg "one")
      (set-current! 'upload 0)
      (set-current! 'download 0)
@@ -178,7 +184,11 @@
         (append
          (list (toast "sync-cb"))
          (upload-dirty db)
-         (if (have-dirty? db "sync") '() (suck-new db "sync"))))))
+         ;; important - don't receive until all are sent...
+         (if (have-dirty? db "sync") '()
+             (append
+              (suck-new db "sync")
+              (start-sync-files)))))))
     (else '()))
    (list
     (delayed "debug-timer" (+ 10000 (random 5000)) debug-timer-cb)
@@ -529,9 +539,21 @@
   (let ((id-text (symbol->string id)))
     (horiz-colour
      (if shade colour-one colour-two)
-     (mtoggle-button-scale
-      id (lambda (v)
-           (entity-set-value! id-text "int" v) '()))
+     (linear-layout
+      0 'vertical (layout 200 'wrap-content -1 'left 0)
+      (list 0 0 0 0)
+      (list
+       (text-view (symbol->id id)
+                  (mtext-lookup id)
+                  30 (layout 'wrap-content 'wrap-content -1 'left 0))
+       (mtoggle-button-scale
+        (string->symbol (string-append id-text "-in-village"))
+        (lambda (v)
+          (entity-set-value! id-text "int" v)
+          (list (update-widget
+                 'edit-text
+                 (get-id (string-append id-text "-closest-access-container"))
+                 (if (eqv? v 1) 'hide 'show) 0))))))
      (medit-text-scale
       (string->symbol (string-append id-text "-closest-access"))
       "normal" (lambda (v) (entity-set-value!
@@ -550,10 +572,15 @@
   (let ((id-text (symbol->string id)))
     (append
      (list
-      (mupdate 'toggle-button id id-text)
+      (mupdate 'toggle-button (string->symbol (string-append id-text "-in-village")) id-text)
       (mupdate 'edit-text
                (string->symbol (string-append id-text "-closest-access"))
-               (string-append id-text "-closest-access")))
+               (string-append id-text "-closest-access"))
+      (update-widget
+       'edit-text
+       (get-id (string-append id-text "-closest-access-container"))
+       (if (eqv? (entity-get-value id-text) 1)
+           'hide 'show) 0))
      (mupdate-gps
       (string->symbol (string-append id-text "-gps"))
       (string-append id-text "-gps")))))
@@ -780,7 +807,9 @@
    (build-activity
     (horiz
      (medit-text 'household-name "normal" (lambda (v) (entity-set-value! "name" "varchar" v) '()))
-     (medit-text 'num-pots "numeric" (lambda (v) (entity-set-value! "num-pots" "int" v) '())))
+     (vert
+      (medit-text 'num-pots "numeric" (lambda (v) (entity-set-value! "num-pots" "int" v) '()))
+      (medit-text 'num-children "numeric" (lambda (v) (entity-set-value! "num-children" "int" v) '()))))
     (horiz
      (vert
       (mtext 'location)
@@ -827,7 +856,8 @@
       (list
        (update-list-widget db "sync" "individual" "individual" arg)
        (mupdate 'edit-text 'household-name "name")
-       (mupdate 'edit-text 'num-pots "num-pots"))
+       (mupdate 'edit-text 'num-pots "num-pots")
+       (mupdate 'edit-text 'num-children "num-children"))
       (mupdate-gps 'house "house")
       (mupdate-gps 'toilet "toilet")))
 
@@ -906,7 +936,9 @@
     (mspinner-other 'sub-tribe subtribe-list (lambda (v) (entity-set-value! "subtribe" "varchar" (spinner-choice subtribe-list v)) '()))
     (horiz
      (medit-text 'age "numeric" (lambda (v) (entity-set-value! "age" "int" v) '()))
-     (mspinner 'gender gender-list (lambda (v) (entity-set-value! "gender" "varchar" (spinner-choice gender-list v)) '()))
+     (mspinner 'gender gender-list (lambda (v) (entity-set-value! "gender" "varchar" (spinner-choice gender-list v)) '())))
+    (horiz
+     (mtoggle-button-scale 'literate (lambda (v) (entity-set-value! "literate" "int" v) '()))
      (mspinner 'education education-list (lambda (v) (entity-set-value! "education" "varchar" v) '())))
     )
    (lambda (activity arg)
@@ -924,6 +956,7 @@
        (mupdate 'image-view 'photo "photo")
        (mupdate 'edit-text 'age "age")
        (mupdate-spinner 'gender "gender" gender-list)
+       (mupdate 'toggle-button 'literate "literate")
        (mupdate-spinner 'education "education" education-list)
        )))
    (lambda (activity) '())
@@ -953,7 +986,12 @@
      (vert
       (mspinner 'head-of-house gender-list (lambda (v) (entity-set-value! "head-of-house" "varchar" (spinner-choice gender-list v)) '()))
       (mspinner 'marital-status married-list (lambda (v) (entity-set-value! "marital-status" "varchar" (spinner-choice married-list v)) '()))
-      (medit-text 'times-married "numeric" (lambda (v) (entity-set-value! "times-married" "int" v) '())))
+      (medit-text 'times-married "numeric"
+                  (lambda (v)
+                    (entity-set-value! "times-married" "int" v)
+                    (list
+                     (update-widget 'linear-layout (get-id "residence-after-marriage-container")
+                                    (if (equal? v "0") 'hide 'show) 0)))))
 
      (build-person-selector 'spouse "id-spouse" (list) spouse-request-code)
      )
@@ -1069,16 +1107,24 @@
   (activity
    "income"
    (build-activity
-    (mspinner 'occupation occupation-list
-              (lambda (v) (entity-set-value! "occupation" "varchar"
-                                             (spinner-choice occupation-list v))
-                      '()))
+    (vert
+     (mtitle 'occupation)
+     (horiz
+      (mtoggle-button-scale 'occupation-agriculture (lambda (v) (entity-set-value! "occupation-agriculture" "int" v) '()))
+      (mtoggle-button-scale 'occupation-gathering (lambda (v) (entity-set-value! "occupation-gathering" "int" v) '()))
+      (mtoggle-button-scale 'occupation-labour (lambda (v) (entity-set-value! "occupation-labour" "int" v) '())))
+     (horiz
+      (mtoggle-button-scale 'occupation-cows (lambda (v) (entity-set-value! "occupation-cows" "int" v) '()))
+      (mtoggle-button-scale 'occupation-fishing (lambda (v) (entity-set-value! "occupation-fishing" "int" v) '()))
+      (medit-text 'occupation-other "normal" (lambda (v) (entity-set-value! "occupation-other" "varchar" v) '()))))
+
     (horiz
      (mtoggle-button-scale 'contribute (lambda (v) (entity-set-value! "contribute" "int" v) '()))
      (mtoggle-button-scale 'own-land (lambda (v) (entity-set-value! "own-land" "int" v) '())))
     (horiz
      (mtoggle-button-scale 'rent-land (lambda (v) (entity-set-value! "rent-land" "int" v) '()))
      (mtoggle-button-scale 'hire-land (lambda (v) (entity-set-value! "hire-land" "int" v) '())))
+    (mtext 'crops-detail)
     (build-list-widget
      db "sync" 'crops "crop" "crop" (lambda () (get-current 'individual #f))
      (lambda () crop-ktvlist))
@@ -1107,7 +1153,12 @@
       (mupdate-spinner-other 'house-type "house-type" house-type-list)
       (list
        (update-list-widget db "sync" "crop" "crop" (get-current 'individual #f))
-       (mupdate-spinner 'occupation "occupation" occupation-list)
+       (mupdate 'toggle-button 'occupation-agriculture "occupation-agriculture")
+       (mupdate 'toggle-button 'occupation-gathering "occupation-gathering")
+       (mupdate 'toggle-button 'occupation-labour "occupation-labour")
+       (mupdate 'toggle-button 'occupation-cows "occupation-cows")
+       (mupdate 'toggle-button 'occupation-fishing "occupation-fishing")
+       (mupdate 'edit-text 'occupation-other "occupation-other")
        (mupdate 'toggle-button 'contribute "contribute")
        (mupdate 'toggle-button 'own-land "own-land")
        (mupdate 'toggle-button 'rent-land "rent-land")
@@ -1347,14 +1398,7 @@
    (vert
     (text-view (make-id "sync-title") "Sync database" 40 fillwrap)
     (mtext 'sync-dirty "...")
-    (horiz
-     (mtoggle-button-scale 'sync-all (lambda (v) (set-current! 'sync-on v) '()))
-     (mbutton-scale 'sync-syncall
-               (lambda ()
-                 (let ((r (append
-                           (spit db "sync" (dirty-and-all-entities db "sync"))
-                           (spit db "stream" (dirty-and-all-entities db "stream")))))
-                   (cons (toast "Uploading data...") r)))))
+    (mtoggle-button-scale 'sync-all (lambda (v) (set-current! 'sync-on v) '()))
     (mtitle 'export-data)
     (horiz
      (mbutton-scale 'sync-download

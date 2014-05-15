@@ -154,6 +154,17 @@
 	   (pluto-response
 	    r))))))
 
+   (register
+    (req 'file-list '())
+    (lambda ()
+      (syncro
+       (lambda ()
+         (msg "file-list")
+         (pluto-response
+          (scheme->txt
+           (dbg (directory-list "./htdocs/files/"))))))))
+
+
    ))
 
 (define (start request)
