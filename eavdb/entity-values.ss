@@ -122,8 +122,7 @@
                              " set dirty=0  where entity_id = ? and attribute_id = ?")
            entity-id (ktv-key kt)))
 
-;; simpler path than cleaning - should use the same as this???
-(define (dirty-all-values db table entity-id)
+(define (dirtify-value db table entity-id kt)
   (db-exec db (string-append "update " table "_value_" (ktv-type kt)
-                             " set dirty=1 where entity_id = ?")
-           entity-id))
+                             " set dirty=1  where entity_id = ? and attribute_id = ?")
+           entity-id (ktv-key kt)))

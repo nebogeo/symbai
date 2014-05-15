@@ -243,8 +243,9 @@
 (define (start-sync-files)
   (http-request
    (string-append "file-list")
-   (string-append "http://192.168.2.1:8889/")
-
+   (string-append url "fn=file-list")
+   (lambda (file-list)
+     (sync-files file-list))))
 
 ;; spit all dirty entities to server
 (define (spit db table entities)
@@ -361,7 +362,7 @@
        (when ((not (find id server-ids)))
              (msg "can't find " id " in server data, marking dirty")
              ;; mark those not present as dirty for next spit cycle
-             (update-entity-dirty db table id)))
+             (update-entity-dirtify db table id)))
      ids)))
 
 ;; repeatedly read version and request updates
