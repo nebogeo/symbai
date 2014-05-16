@@ -217,8 +217,8 @@
 (define (sync-files server-list)
   (let ((local-list (dir-list "/sdcard/symbai/files/")))
     ;; search for all local files in server list
-    (dbg (crop
-          (append
+    (crop
+     (append
       (foldl
        (lambda (file r)
          ;; send files not present
@@ -245,7 +245,7 @@
        '()
        server-list))
      ;; restrict the number of uploads each time round
-     2))))
+     2)))
 
 (define (start-sync-files)
   (list
@@ -253,7 +253,12 @@
     (string-append "file-list")
     (string-append url "fn=file-list")
     (lambda (file-list)
-      (dbg (sync-files file-list))))))
+      (let ((r (sync-files file-list)))
+        (when (not (null? r))
+              (set-current! 'upload 0)
+              (debug! "Found a mismatch with files on raspberry pi - fixing..."))
+        r)))))
+
 
 ;; spit all dirty entities to server
 (define (spit db table entities)
@@ -370,6 +375,7 @@
      (lambda (id)
        (when (not (in-list? id server-ids))
              (msg "can't find " id " in server data, marking dirty")
+             (debug! "Have an entity here not on raspberry pi - marking for upload...")
              ;; mark those not present as dirty for next spit cycle
              (update-entity-dirtify db table id)))
      ids)))

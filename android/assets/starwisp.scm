@@ -70,7 +70,7 @@
 (define gender-list '(male female))
 (define house-type-list '(concrete tin thatched other))
 
-(define social-types-list '(friendship knowledge prestige))
+(define social-types-list '(knowledge prestige))
 (define social-relationship-list '(mother father sister brother spouse children co-wife spouse-mother spouse-father spouse-brother-wife spouse-sister-husband friend neighbour other))
 (define social-residence-list '(same other))
 (define social-strength-list '(daily weekly monthly less))
@@ -139,6 +139,56 @@
    (ktv "mobile" "int" 0)
    (ktv "visit-market" "int" 0)
    (ktv "town-sell" "int" 0)
+   (ktv "social-one" "varchar" "")
+   (ktv "social-one-nickname" "varchar" "")
+   (ktv "social-one-relationship" "varchar" "")
+   (ktv "social-one-residence" "varchar" "")
+   (ktv "social-one-strength" "varchar" "")
+   (ktv "social-two" "varchar" "")
+   (ktv "social-two-nickname" "varchar" "")
+   (ktv "social-two-relationship" "varchar" "")
+   (ktv "social-two-residence" "varchar" "")
+   (ktv "social-two-strength" "varchar" "")
+   (ktv "social-three" "varchar" "")
+   (ktv "social-three-nickname" "varchar" "")
+   (ktv "social-three-relationship" "varchar" "")
+   (ktv "social-three-residence" "varchar" "")
+   (ktv "social-three-strength" "varchar" "")
+   (ktv "social-four" "varchar" "")
+   (ktv "social-four-nickname" "varchar" "")
+   (ktv "social-four-relationship" "varchar" "")
+   (ktv "social-four-residence" "varchar" "")
+   (ktv "social-four-strength" "varchar" "")
+   (ktv "social-five" "varchar" "")
+   (ktv "social-five-nickname" "varchar" "")
+   (ktv "social-five-relationship" "varchar" "")
+   (ktv "social-five-residence" "varchar" "")
+   (ktv "social-five-strength" "varchar" "")
+   (ktv "friendship-one" "varchar" "")
+   (ktv "friendship-one-nickname" "varchar" "")
+   (ktv "friendship-one-relationship" "varchar" "")
+   (ktv "friendship-one-residence" "varchar" "")
+   (ktv "friendship-one-strength" "varchar" "")
+   (ktv "friendship-two" "varchar" "")
+   (ktv "friendship-two-nickname" "varchar" "")
+   (ktv "friendship-two-relationship" "varchar" "")
+   (ktv "friendship-two-residence" "varchar" "")
+   (ktv "friendship-two-strength" "varchar" "")
+   (ktv "friendship-three" "varchar" "")
+   (ktv "friendship-three-nickname" "varchar" "")
+   (ktv "friendship-three-relationship" "varchar" "")
+   (ktv "friendship-three-residence" "varchar" "")
+   (ktv "friendship-three-strength" "varchar" "")
+   (ktv "friendship-four" "varchar" "")
+   (ktv "friendship-four-nickname" "varchar" "")
+   (ktv "friendship-four-relationship" "varchar" "")
+   (ktv "friendship-four-residence" "varchar" "")
+   (ktv "friendship-four-strength" "varchar" "")
+   (ktv "friendship-five" "varchar" "")
+   (ktv "friendship-five-nickname" "varchar" "")
+   (ktv "friendship-five-relationship" "varchar" "")
+   (ktv "friendship-five-residence" "varchar" "")
+   (ktv "friendship-five-strength" "varchar" "")
    ))
 
 (define crop-ktvlist
@@ -486,6 +536,17 @@
       (build-small-person-selector id key (list) request-code)
       (vert
        (horiz
+        (linear-layout
+         0 'vertical (layout 'fill-parent 'wrap-content 1 'centre 20) (list 0 0 0 0)
+         (list
+          (text-view 0 (mtext-lookup 'social-nickname)
+                     30 (layout 'wrap-content 'wrap-content 1 'centre 0))
+          (edit-text (make-id (string-append id-text "-nickname")) "" 30 "normal"
+                     (layout 'fill-parent 'wrap-content 1 'centre 0)
+                     (lambda (v)
+                       (entity-set-value! (string-append key "-nickname") "varchar" v)
+                       '()))))
+
         (mspinner-other-vert
          (string->symbol (string-append id-text "-relationship"))
          'social-relationship
@@ -493,24 +554,26 @@
          (lambda (v)
            (entity-set-value! (string-append key "-relationship") "varchar"
                               (spinner-choice social-relationship-list v))
-           '()))
+           '())))
+
+       (horiz
         (mspinner-other-vert
          (string->symbol (string-append id-text "-residence"))
          'social-residence
          social-residence-list
          (lambda (v)
            (entity-set-value! (string-append key "-residence") "varchar"
-                              (spinner-choice social-residence-list v)) '())))
-       (vert
-        (text-view 0 (mtext-lookup 'social-strength)
-                   30 (layout 'wrap-content 'wrap-content 1 'centre 10))
-        (spinner
-         (make-id (string-append id-text "-strength-spinner"))
-         (map mtext-lookup social-strength-list)
-         (layout 'wrap-content 'wrap-content 1 'centre 0)
-         (lambda (v)
-           (entity-set-value! (string-append key "-strength") "varchar"
-                              (spinner-choice social-strength-list v)) '()))))))))
+                              (spinner-choice social-residence-list v)) '()))
+        (vert
+         (text-view 0 (mtext-lookup 'social-strength)
+                    30 (layout 'wrap-content 'wrap-content 1 'centre 10))
+         (spinner
+          (make-id (string-append id-text "-strength-spinner"))
+          (map mtext-lookup social-strength-list)
+          (layout 'wrap-content 'wrap-content 1 'centre 0)
+          (lambda (v)
+            (entity-set-value! (string-append key "-strength") "varchar"
+                               (spinner-choice social-strength-list v)) '())))))))))
 
 (define (social-connection-return request-code key choose-code)
   (when (eqv? request-code choose-code)
@@ -529,6 +592,10 @@
       (string-append key "-residence")
       social-residence-list)
      (list
+      (mupdate
+       'edit-text
+       (string->symbol (string-append id-text "-nickname"))
+       (string-append key "-nickname"))
       (mupdate-spinner
        (string->symbol (string-append id-text "-strength"))
        (string-append key "-strength")
@@ -791,7 +858,7 @@
    (lambda (activity arg)
      (activity-layout activity))
    (lambda (activity arg)
-     (set-current! 'activity-title "Household List")
+     (set-current! 'activity-title "Households")
      (append
       (update-top-bar)
       (list (update-list-widget
@@ -888,8 +955,10 @@
      (mbutton-scale 'income-button (lambda () (list (start-activity "income" 0 "")))))
     (horiz
      (mbutton-scale 'geneaology-button (lambda () (list (start-activity "geneaology" 0 ""))))
-     (mbutton-scale 'social-button (lambda () (list (start-activity "social" 0 "")))))
-    (mbutton-scale 'move-button (lambda () (list (start-activity "move" 0 ""))))
+     (mbutton-scale 'friendship-button (lambda () (list (start-activity "friendship" 0 "")))))
+    (horiz
+     (mbutton-scale 'social-button (lambda () (list (start-activity "social" 0 ""))))
+     (mbutton-scale 'move-button (lambda () (list (start-activity "move" 0 "")))))
     (spacer 20)
     (delete-button))
 
@@ -944,7 +1013,7 @@
    (lambda (activity arg)
      (activity-layout activity))
    (lambda (activity arg)
-     (set-current! 'activity-title "Individual details")
+     (set-current! 'activity-title "Details")
      (append
       (update-top-bar)
       (mupdate-spinner-other 'tribe "tribe" tribes-list)
@@ -1012,7 +1081,7 @@
    (lambda (activity arg)
      (activity-layout activity))
    (lambda (activity arg)
-     (set-current! 'activity-title "Individual family")
+     (set-current! 'activity-title "Family")
      (append
       (update-top-bar)
       (update-person-selector db "sync" 'spouse "id-spouse")
@@ -1062,7 +1131,7 @@
    (lambda (activity arg)
      (activity-layout activity))
    (lambda (activity arg)
-     (set-current! 'activity-title "Move individual")
+     (set-current! 'activity-title "Move")
      (set-current! 'move-household-list (build-array-from-names db "sync" "household"))
      (append
       (update-top-bar)
@@ -1089,7 +1158,7 @@
    (lambda (activity arg)
      (activity-layout activity))
    (lambda (activity arg)
-     (set-current! 'activity-title "Individual migration")
+     (set-current! 'activity-title "Migration")
      (append
       (update-top-bar)
       (list
@@ -1145,7 +1214,7 @@
    (lambda (activity arg)
      (activity-layout activity))
    (lambda (activity arg)
-     (set-current! 'activity-title "Individual income")
+     (set-current! 'activity-title "Income")
      ;; reset after crop entity
      (entity-init! db "sync" "individual" (get-entity-by-unique db "sync" (get-current 'individual #f)))
      (append
@@ -1256,7 +1325,7 @@
      (activity-layout activity))
    (lambda (activity arg)
      ;; reset after child entity
-     (set-current! 'activity-title "Individual geneaology")
+     (set-current! 'activity-title "Geneaology")
      (entity-init! db "sync" "individual" (get-entity-by-unique db "sync" (get-current 'individual #f)))
      (append
       (update-top-bar)
@@ -1288,7 +1357,7 @@
    (lambda (activity arg)
      (activity-layout activity))
    (lambda (activity arg)
-     (set-current! 'activity-title "Individual social network")
+     (set-current! 'activity-title "Social network")
      (append
       (update-top-bar)
       (list
@@ -1311,11 +1380,44 @@
      '()))
 
   (activity
+   "friendship"
+   (build-activity
+    (build-social-connection 'social-one "friendship-one" "friend" social-request-code-one #t)
+    (build-social-connection 'social-two "friendship-two" "friend" social-request-code-two #f)
+    (build-social-connection 'social-three "friendship-three" "friend" social-request-code-three #t)
+    (build-social-connection 'social-four "friendship-four" "friend" social-request-code-four #f)
+    (build-social-connection 'social-five "friendship-five" "friend" social-request-code-five #t)
+    )
+   (lambda (activity arg)
+     (activity-layout activity))
+   (lambda (activity arg)
+     (set-current! 'activity-title "Frienships")
+     (append
+      (update-top-bar)
+      (update-social-connection db "sync" 'social-one "friendship-one" "friend" social-request-code-one)
+      (update-social-connection db "sync" 'social-two "friendship-two" "friend" social-request-code-two)
+      (update-social-connection db "sync" 'social-three "friendship-three" "friend" social-request-code-three)
+      (update-social-connection db "sync" 'social-four "friendship-four" "friend" social-request-code-four)
+      (update-social-connection db "sync" 'social-five "friendship-five" "friend" social-request-code-five)))
+   (lambda (activity) '())
+   (lambda (activity) '())
+   (lambda (activity) '())
+   (lambda (activity) '())
+   (lambda (activity requestcode resultcode)
+     (social-connection-return requestcode "friendship-one" social-request-code-one)
+     (social-connection-return requestcode "friendship-two" social-request-code-two)
+     (social-connection-return requestcode "friendship-three" social-request-code-three)
+     (social-connection-return requestcode "friendship-four" social-request-code-four)
+     (social-connection-return requestcode "friendship-five" social-request-code-five)
+     '()))
+
+
+  (activity
    "agreement"
    (build-activity
     )
    (lambda (activity arg)
-     (set-current! 'activity-title "Individual agreement")
+     (set-current! 'activity-title "Agreement")
      (activity-layout activity))
    (lambda (activity arg) '())
    (lambda (activity) '())
@@ -1382,7 +1484,7 @@
                (list)))))))))
      ))
    (lambda (activity arg)
-     (set-current! 'activity-title "Individual chooser")
+     (set-current! 'activity-title "Chooser")
      (activity-layout activity))
    (lambda (activity arg)
      (list (update-individual-filter (list))))

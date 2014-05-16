@@ -27,6 +27,7 @@
     <activity android:name="foam.symbai.IncomeActivity" android:configChanges="orientation"></activity>
     <activity android:name="foam.symbai.GeneaologyActivity" android:configChanges="orientation"></activity>
     <activity android:name="foam.symbai.SocialActivity" android:configChanges="orientation"></activity>
+    <activity android:name="foam.symbai.FriendshipActivity" android:configChanges="orientation"></activity>
     <activity android:name="foam.symbai.AgreementActivity" android:configChanges="orientation"></activity>
     <activity android:name="foam.symbai.IndividualChooserActivity" android:configChanges="orientation"></activity>
     <activity android:name="foam.symbai.SyncActivity" android:configChanges="orientation"></activity>

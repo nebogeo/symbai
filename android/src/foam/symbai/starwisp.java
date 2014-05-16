@@ -72,6 +72,7 @@ public class starwisp extends StarwispActivity
         ActivityManager.RegisterActivity("income",IncomeActivity.class);
         ActivityManager.RegisterActivity("geneaology",GeneaologyActivity.class);
         ActivityManager.RegisterActivity("social",SocialActivity.class);
+        ActivityManager.RegisterActivity("friendship",FriendshipActivity.class);
         ActivityManager.RegisterActivity("individual-chooser",IndividualChooserActivity.class);
         ActivityManager.RegisterActivity("sync",SyncActivity.class);
         ActivityManager.RegisterActivity("crop",CropActivity.class);

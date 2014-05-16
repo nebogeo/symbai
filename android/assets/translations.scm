@@ -1,7 +1,5 @@
 (define i18n-text
   (list
-
-
 (list 'test-num (list "1" "1" "1" "" ))
 (list 'test-text (list "I am test text" "I am test text" "I am test text" "" ))
 (list 'one (list "one" "" ))
@@ -111,6 +109,7 @@
 (list 'details-button (list "Details" "" ))
 (list 'family-button (list "Family" "Family/Clan" ))
 (list 'migration-button (list "Migration" "" ))
+(list 'friendship-button (list "Friendship" ))
 (list 'income-button (list "Income" "" ))
 (list 'geneaology-button (list "Geneaology" "" ))
 (list 'social-button (list "Social" "" ))
@@ -161,7 +160,7 @@
 (list 'place-of-birth (list "Place of birth" "" ))
 (list 'num-residence-changes (list "Number of time place of residence changed since birth" "" ))
 (list 'village-visits-month (list "Number of times you have visited another village in the last month" "" ))
-(list 'village-visits-year (list "Number of times you have visited another village in the last year (i.e. betwen last summer and this summer)" "" ))
+(list 'village-visits-year (list "Number of times you have visited another village in the last year (i.e. between last summer and this summer)" "" ))
 (list 'occupation (list "Occupation" "" ))
 (list 'occupation (list "Occupation" "" ))
 (list 'num-people-in-house (list "People living in house" "" ))
@@ -209,7 +208,8 @@
 (list 'social-three (list "Three" "" ))
 (list 'social-four (list "Four" "" ))
 (list 'social-five (list "Five" "" ))
-(list 'social-relationship (list "Relationship" "" ))
+(list 'social-nickname (list "Name" ))
+(list 'social-relationship (list "Relation" "" ))
 (list 'social-residence (list "Residence" "" ))
 (list 'social-strength (list "Strength" "" ))
 (list 'mother (list "Mother" "" ))
