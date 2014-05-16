@@ -100,7 +100,10 @@
         ;;
         (begin
           (msg "entity-set-value! - adding new " key "of type" type "to entity")
-          (entity-add-value-create! key type value)))))
+          (entity-add-value-create! key type value)))
+    ;; save straight to local db every time
+    (entity-update-single-value! (list key type value))
+    ))
 
 
 (define (date-time->string dt)
@@ -154,6 +157,17 @@
         )
        (else
         (msg "no values or no id to update as entity:" unique-id "values:" values))))))
+
+(define (entity-update-single-value! ktv)
+  (let ((db (get-current 'db #f))
+        (table (get-current 'table #f))
+        (unique-id (ktv-get (get-current 'entity-values '()) "unique_id")))
+    (cond
+     (unique-id
+      (update-entity db table (entity-id-from-unique db table unique-id) (list ktv)))
+     (else
+      (msg "no values or no id to update as entity:" unique-id "values:" values)))))
+
 
 (define (entity-reset!)
   (set-current! 'entity-values '())

@@ -328,20 +328,20 @@
     (layout 'fill-parent 'fill-parent 1 'centre 0)
     (list 0 0 0 0)
     (list
-     (mbutton-scale
-      'save
-      (lambda ()
-        (list
-         (alert-dialog
-          "ok-check"
-          (mtext-lookup 'save-are-you-sure)
-          (lambda (v)
-            (cond
-             ((eqv? v 1)
-              (entity-update-values!)
-              (list))
-             (else
-              (list))))))))
+;     (mbutton-scale
+;      'save
+;      (lambda ()
+;        (list
+;         (alert-dialog
+;          "ok-check"
+;          (mtext-lookup 'save-are-you-sure)
+;          (lambda (v)
+;            (cond
+;             ((eqv? v 1)
+;              (entity-update-values!)
+;              (list))
+;             (else
+;              (list))))))))
      (mbutton-scale 'back (lambda () (list (finish-activity 1))))))
    (lambda (fragment arg)
      (activity-layout fragment))
