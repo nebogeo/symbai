@@ -1,5 +1,6 @@
 (define i18n-text
   (list
+
 (list 'test-num (list "1" "1" "1" "" ))
 (list 'test-text (list "I am test text" "I am test text" "I am test text" "" ))
 (list 'one (list "one" "" ))
@@ -251,5 +252,9 @@
 (list 'occupation-cows (list "Cows" ))
 (list 'occupation-fishing (list "Fishing" ))
 (list 'occupation-other (list "Other" ))
+(list 'friendship-question (list "LIST UP TO FIVE PERSONS whom you have really liked to talk to in the last year. They can be of either sex. They can be friends, neighbours, relatives, co-wives; they can live in this village or elsewhere; anyone you like to talk to." ))
+(list 'prestige-question (list "LIST UP TO FIVE PERSONS who you think are the most respected in the village:" ))
+(list 'knowledge-question (list "LIST UP TO FIVE PERSONS who you think are the most knowledgeable in the village:" ))
+
 
 ))

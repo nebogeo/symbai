@@ -1345,9 +1345,16 @@
    "social"
    (build-activity
     (mspinner 'social-type social-types-list
-              (lambda (v) (entity-set-value!
-                           "social-type" "varchar"
-                           (spinner-choice social-types-list v)) '()))
+              (lambda (v)
+                (entity-set-value! "social-type" "varchar"
+                                   (spinner-choice social-types-list v))
+                (list
+                 (update-widget 'text-view (get-id "social-question") 'text
+                                (cond
+                                 ((eqv? v 1) (mtext-lookup 'prestige-question))
+                                 (else (mtext-lookup 'knowledge-question)))))))
+    (text-view (make-id "social-question")
+               "" 30 (layout 'wrap-content 'wrap-content -1 'centre 20))
     (build-social-connection 'social-one "social-one" "friend" social-request-code-one #t)
     (build-social-connection 'social-two "social-two" "friend" social-request-code-two #f)
     (build-social-connection 'social-three "social-three" "friend" social-request-code-three #t)
@@ -1382,6 +1389,9 @@
   (activity
    "friendship"
    (build-activity
+    (text-view (symbol->id 'friendship-question)
+               (mtext-lookup 'friendship-question)
+               30 (layout 'wrap-content 'wrap-content -1 'centre 20))
     (build-social-connection 'social-one "friendship-one" "friend" social-request-code-one #t)
     (build-social-connection 'social-two "friendship-two" "friend" social-request-code-two #f)
     (build-social-connection 'social-three "friendship-three" "friend" social-request-code-three #t)
