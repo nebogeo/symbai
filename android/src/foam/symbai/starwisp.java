@@ -62,6 +62,7 @@ public class starwisp extends StarwispActivity
     static {
         // register all activities here
         ActivityManager.RegisterActivity("main",starwisp.class);
+        ActivityManager.RegisterActivity("main2",MainActivity.class);
         ActivityManager.RegisterActivity("village",VillageActivity.class);
         ActivityManager.RegisterActivity("household-list",HouseholdListActivity.class);
         ActivityManager.RegisterActivity("household",HouseholdActivity.class);
@@ -79,6 +80,7 @@ public class starwisp extends StarwispActivity
         ActivityManager.RegisterActivity("child",ChildActivity.class);
         ActivityManager.RegisterActivity("move",MoveActivity.class);
         ActivityManager.RegisterActivity("villages",VillagesActivity.class);
+        ActivityManager.RegisterActivity("agreement",AgreementActivity.class);
     };
 
     /** Called when the activity is first created. */

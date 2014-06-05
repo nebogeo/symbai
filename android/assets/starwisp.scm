@@ -84,7 +84,7 @@
 
 (define household-ktvlist
   (list
-   (ktv "name" "varchar" (mtext-lookup 'default-household-name))
+   (ktv "name" "varchar" "")
    (ktv "num-pots" "int" 0)
    (ktv "num-children" "int" 0)
    (ktv "house-lat" "real" 0) ;; get from current location?
@@ -94,9 +94,10 @@
 
 (define individual-ktvlist
   (list
-   (ktv "name" "varchar" (mtext-lookup 'default-individual-name))
-   (ktv "family" "varchar" (mtext-lookup 'default-family-name))
-   (ktv "photo-id" "varchar" (mtext-lookup 'default-photo-id))
+   (ktv "name" "varchar" "")
+   (ktv "first-name" "varchar" "")
+   (ktv "family" "varchar" "")
+   (ktv "photo-id" "varchar" "")
    (ktv "photo" "file" "")
    (ktv "tribe" "varchar" "")
    (ktv "subtribe" "varchar" "")
@@ -296,7 +297,8 @@
   (fragment
    "top"
    (horiz
-    (image-view 0 "face" (layout 48 64 -1 'centre 0))
+    (image-button (make-id "top-icon") "logo" (layout 48 64 -1 'centre 0)
+                  (lambda () (list (start-activity-goto "main2" 0 ""))))
     (text-view (make-id "title") "" 30
                (layout 'fill-parent 'fill-parent 0.5 'centre 10))
 
@@ -672,6 +674,19 @@
 
   (activity
    "main"
+   (vert
+    (mbutton 'start (lambda () (list (start-activity-goto "main2" 0 "")))))
+   (lambda (activity arg)
+     (activity-layout activity))
+   (lambda (activity arg) '())
+   (lambda (activity) '())
+   (lambda (activity) '())
+   (lambda (activity) '())
+   (lambda (activity) '())
+   (lambda (activity requestcode resultcode) '()))
+
+  (activity
+   "main2"
    (build-activity
     (mtitle 'title)
     (horiz
@@ -696,10 +711,9 @@
         household-ktvlist
         (list (ktv "name" "varchar"
                    (string-append
-                    (mtext-lookup 'default-household-name) "-"
-                    (get-setting-value "user-id") "-"
+                    (ktv-get (get-entity-by-unique db "sync" (get-setting-value "current-village")) "name")
+                    (get-setting-value "user-id")
                     (number->string (get/inc-setting "house-id"))))))))
-
 
     (mbutton 'villages (lambda () (list (start-activity "villages" 0 ""))))
 
@@ -713,11 +727,12 @@
    (lambda (activity arg)
      (activity-layout activity))
    (lambda (activity arg)
+     (alog "start main start")
      (set-current! 'activity-title "Main screen")
      (set-current! 'village (get-setting-value "current-village"))
      (set-current! 'household #f)
      (set-current! 'individual #f)
-     (append
+     (let ((r (append
       (update-top-bar)
       (list
        (update-widget 'edit-text (get-id "user-id") 'text (get-setting-value "user-id"))
@@ -731,7 +746,8 @@
                                         (number->string (car loc)) ", "
                                         (number->string (cadr loc)))))))
        (update-list-widget
-        db "sync" "household" "household" (get-setting-value "current-village")))))
+        db "sync" "household" "household" (get-setting-value "current-village"))))))
+       (alog "end main start") r))
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
@@ -852,8 +868,8 @@
         household-ktvlist
         (list (ktv "name" "varchar"
                    (string-append
-                    (mtext-lookup 'default-household-name) "-"
-                    (get-setting-value "user-id") "-"
+                    (ktv-get (get-entity-by-unique db "sync" (get-setting-value "current-village")) "name")
+                    (get-setting-value "user-id")
                     (number->string (get/inc-setting "house-id")))))))))
    (lambda (activity arg)
      (activity-layout activity))
@@ -873,10 +889,8 @@
    "household"
    (build-activity
     (horiz
-     (medit-text 'household-name "normal" (lambda (v) (entity-set-value! "name" "varchar" v) '()))
-     (vert
-      (medit-text 'num-pots "numeric" (lambda (v) (entity-set-value! "num-pots" "int" v) '()))
-      (medit-text 'num-children "numeric" (lambda (v) (entity-set-value! "num-children" "int" v) '()))))
+     (medit-text 'num-pots "numeric" (lambda (v) (entity-set-value! "num-pots" "int" v) '()))
+     (medit-text 'num-children "numeric" (lambda (v) (entity-set-value! "num-children" "int" v) '())))
     (horiz
      (vert
       (mtext 'location)
@@ -894,15 +908,18 @@
      db "sync" 'individuals "individual" "individual"
      (lambda () (get-current 'household #f))
      (lambda ()
-       (let ((photo-id (get/inc-setting "photo-id")))
+       (let ((photo-id (get/inc-setting "photo-id"))
+             (household-name (ktv-get (dbg (get-entity-by-unique db "sync" (dbg (get-current 'household #f)))) "name")))
+         (msg household-name)
          (ktvlist-merge
           individual-ktvlist
           (list
-           (ktv "photo-id" "varchar"
+           (ktv "name" "varchar"
                 (string-append
-                 (get-setting-value "user-id")
-                 "-"
+                 household-name ":"
                  (number->string photo-id)))
+           (ktv "photo-id" "varchar"
+                (number->string photo-id))
            (ktv "social-type" "varchar"
                 (symbol->string
                  (list-ref social-types-list
@@ -922,7 +939,6 @@
       (update-top-bar)
       (list
        (update-list-widget db "sync" "individual" "individual" arg)
-       (mupdate 'edit-text 'household-name "name")
        (mupdate 'edit-text 'num-pots "num-pots")
        (mupdate 'edit-text 'num-children "num-children"))
       (mupdate-gps 'house "house")
@@ -941,6 +957,8 @@
      (image-view (make-id "photo") "face" (layout 240 320 -1 'centre 10))
      (vert
       (mtext 'name-display)
+      (spacer 20)
+      (mtext 'first-name-display)
       (spacer 20)
       (mtext 'family-display)
       (spacer 20)
@@ -972,6 +990,7 @@
       (update-top-bar)
       (list
        (mupdate 'text-view 'name-display "name")
+       (mupdate 'text-view 'first-name-display "first-name")
        (mupdate 'text-view 'family-display "family")
        (mupdate 'text-view 'photo-id-display "photo-id")
        (mupdate 'image-view 'photo "photo"))))
@@ -998,9 +1017,8 @@
          )))
 
      (vert
-      (medit-text 'details-name "normal" (lambda (v) (entity-set-value! "name" "varchar" v) '()))
-      (medit-text 'details-family "normal" (lambda (v) (entity-set-value! "family" "varchar" v) '()))
-      (medit-text 'details-photo-id "normal" (lambda (v) (entity-set-value! "photo-id" "varchar" v) '()))))
+      (medit-text 'details-first-name "normal" (lambda (v) (entity-set-value! "first-name" "varchar" v) '()))
+      (medit-text 'details-family "normal" (lambda (v) (entity-set-value! "family" "varchar" v) '()))))
     (mspinner-other 'tribe tribes-list (lambda (v) (entity-set-value! "tribe" "varchar" (spinner-choice tribes-list v)) '()))
     (mspinner-other 'sub-tribe subtribe-list (lambda (v) (entity-set-value! "subtribe" "varchar" (spinner-choice subtribe-list v)) '()))
     (horiz
@@ -1019,9 +1037,8 @@
       (mupdate-spinner-other 'tribe "tribe" tribes-list)
       (mupdate-spinner-other 'sub-tribe "subtribe" subtribe-list)
       (list
-       (mupdate 'edit-text 'details-name "name")
+       (mupdate 'edit-text 'details-first-name "first-name")
        (mupdate 'edit-text 'details-family "family")
-       (mupdate 'edit-text 'details-photo-id "photo-id")
        (mupdate 'image-view 'photo "photo")
        (mupdate 'edit-text 'age "age")
        (mupdate-spinner 'gender "gender" gender-list)
@@ -1421,11 +1438,25 @@
      (social-connection-return requestcode "friendship-five" social-request-code-five)
      '()))
 
-
+  ;; todo: stop/rec/play on exit
   (activity
    "agreement"
    (build-activity
-    )
+    (horiz
+
+     (mtoggle-button-scale
+      'agree-record
+      (lambda (v)
+        (list
+         (if (eqv? v 1) (soundfile-start-recording "/sdcard/symbai/test.3gp")
+             (soundfile-stop-recording)))))
+     (mtoggle-button-scale
+      'agree-playback
+      (lambda (v)
+        (list
+         (if (eqv? v 1) (soundfile-start-playback "/sdcard/symbai/test.3gp")
+             (soundfile-stop-playback)))))
+     ))
    (lambda (activity arg)
      (set-current! 'activity-title "Agreement")
      (activity-layout activity))

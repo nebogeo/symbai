@@ -73,6 +73,7 @@
     <item name="android:colorBackground">@color/bg</item>
     <item name="android:buttonStyle">@style/StarwispButton</item>
     <item name="android:buttonStyleToggle">@style/StarwispButton</item>
+    <item name="android:imageButtonStyle">@style/StarwispButton</item>
 
     <item name="android:seekBarStyle">@style/StarwispSeekBar</item>
     <item name="android:spinnerItemStyle">@style/StarwispSpinnerItem</item>

@@ -500,6 +500,10 @@
 
 (define (toast msg) (list "toast" 0 "toast" msg))
 (define (play-sound wav) (list "play-sound" 0 "play-sound" wav))
+(define (soundfile-start-recording wav) (list "soundfile-start-recording" 0 "soundfile-start-recording" wav))
+(define (soundfile-stop-recording) (list "soundfile-stop-recording" 0 "soundfile-stop-recording"))
+(define (soundfile-start-playback wav) (list "soundfile-start-playback" 0 "soundfile-start-playback" wav))
+(define (soundfile-stop-playback) (list "soundfile-stop-playback" 0 "soundfile-stop-playback"))
 (define (vibrate time) (list "vibrate" 0 "vibrate" time))
 (define (make-directory name) (list "make-directory" 0 "make-directory" name))
 ;; treat this like a dialog so the callback fires
