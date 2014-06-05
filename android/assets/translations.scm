@@ -5,6 +5,7 @@
 (list 'one (list "one" "" ))
 (list 'two (list "two" "" ))
 (list 'three (list "three" "" ))
+(list 'next (list "Next" ))
 (list 'village (list "Village" "" ))
 (list 'household (list "Household" "" ))
 (list 'households (list "Households" "" ))

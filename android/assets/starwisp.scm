@@ -706,14 +706,25 @@
     (build-list-widget
      db "sync" 'households "household" "household" (lambda () (get-setting-value "current-village"))
      (lambda ()
-       ;; autogenerate the name from the current ID
-       (ktvlist-merge
-        household-ktvlist
-        (list (ktv "name" "varchar"
-                   (string-append
-                    (ktv-get (get-entity-by-unique db "sync" (get-setting-value "current-village")) "name")
-                    (get-setting-value "user-id")
-                    (number->string (get/inc-setting "house-id"))))))))
+       (let ((name
+              ;; if it's the first household - change the id...
+              (if (zero? (length (db-filter-only
+                                  db "sync" "household"
+                                  (list (list "parent" "varchar" "="
+                                              (get-setting-value "current-village")))
+                                  (list (list "name" "varchar")))))
+                  (string-append
+                   (ktv-get (get-entity-by-unique db "sync" (get-setting-value "current-village")) "name")
+                   (get-setting-value "user-id")
+                   "gamehousehold")
+                  (string-append
+                   (ktv-get (get-entity-by-unique db "sync" (get-setting-value "current-village")) "name")
+                   (get-setting-value "user-id")
+                   (number->string (get/inc-setting "house-id"))))))
+         ;; autogenerate the name from the current ID
+         (ktvlist-merge
+          household-ktvlist
+          (list (ktv "name" "varchar" name))))))
 
     (mbutton 'villages (lambda () (list (start-activity "villages" 0 ""))))
 
@@ -1027,6 +1038,9 @@
     (horiz
      (mtoggle-button-scale 'literate (lambda (v) (entity-set-value! "literate" "int" v) '()))
      (mspinner 'education education-list (lambda (v) (entity-set-value! "education" "varchar" v) '())))
+
+    (mbutton 'next (lambda () (list (start-activity "family" 0 ""))))
+    (spacer 20)
     )
    (lambda (activity arg)
      (activity-layout activity))
@@ -1094,7 +1108,10 @@
                                                                           "residence-after-marriage" "varchar"
                                                                           (spinner-choice residence-list v)) '()))
     (medit-text 'num-siblings "numeric" (lambda (v) (entity-set-value! "num-siblings" "int" v) '()))
-    (medit-text 'birth-order "numeric" (lambda (v) (entity-set-value! "birth-order" "int" v) '())))
+    (medit-text 'birth-order "numeric" (lambda (v) (entity-set-value! "birth-order" "int" v) '()))
+    (mbutton 'next (lambda () (list (start-activity "migration" 0 ""))))
+    (spacer 20)
+    )
    (lambda (activity arg)
      (activity-layout activity))
    (lambda (activity arg)
@@ -1171,6 +1188,8 @@
     (medit-text 'num-residence-changes "numeric" (lambda (v) (entity-set-value! "num-residence-changes" "int" v) '()))
     (medit-text 'village-visits-month "numeric" (lambda (v) (entity-set-value! "village-visits-month" "int" v) '()))
     (medit-text 'village-visits-year "numeric" (lambda (v) (entity-set-value! "village-visits-year" "int" v) '()))
+    (mbutton 'next (lambda () (list (start-activity "income" 0 ""))))
+    (spacer 20)
     )
    (lambda (activity arg)
      (activity-layout activity))
@@ -1227,6 +1246,8 @@
     (horiz
      (medit-text 'visit-market "numeric" (lambda (v) (entity-set-value! "visit-market" "int" v) '()))
      (medit-text 'town-sell "numeric" (lambda (v) (entity-set-value! "town-sell" "int" v) '())))
+    (mbutton 'next (lambda () (list (start-activity "geneaology" 0 ""))))
+    (spacer 20)
     )
    (lambda (activity arg)
      (activity-layout activity))
@@ -1337,7 +1358,9 @@
      (build-person-selector 'father "id-father" (list) father-request-code))
     (build-list-widget
      db "sync" 'children "child" "child" (lambda () (get-current 'individual #f))
-     (lambda () child-ktvlist)))
+     (lambda () child-ktvlist))
+    (mbutton 'next (lambda () (list (start-activity "friendship" 0 ""))))
+    (spacer 20))
    (lambda (activity arg)
      (activity-layout activity))
    (lambda (activity arg)
@@ -1377,6 +1400,8 @@
     (build-social-connection 'social-three "social-three" "friend" social-request-code-three #t)
     (build-social-connection 'social-four "social-four" "friend" social-request-code-four #f)
     (build-social-connection 'social-five "social-five" "friend" social-request-code-five #t)
+    (mbutton 'next (lambda () (list (start-activity-goto "individual" 0 (get-current 'individual #f)))))
+    (spacer 20)
     )
    (lambda (activity arg)
      (activity-layout activity))
@@ -1414,6 +1439,8 @@
     (build-social-connection 'social-three "friendship-three" "friend" social-request-code-three #t)
     (build-social-connection 'social-four "friendship-four" "friend" social-request-code-four #f)
     (build-social-connection 'social-five "friendship-five" "friend" social-request-code-five #t)
+    (mbutton 'next (lambda () (list (start-activity "social" 0 ""))))
+    (spacer 20)
     )
    (lambda (activity arg)
      (activity-layout activity))
@@ -1456,7 +1483,10 @@
         (list
          (if (eqv? v 1) (soundfile-start-playback "/sdcard/symbai/test.3gp")
              (soundfile-stop-playback)))))
-     ))
+     )
+    (mbutton 'next (lambda () (list (start-activity "details" 0 ""))))
+    (spacer 20)
+    )
    (lambda (activity arg)
      (set-current! 'activity-title "Agreement")
      (activity-layout activity))
