@@ -423,49 +423,70 @@
                           (inexact->exact (round (* 256 0.9)))))
 
 
+(define (build-photo-buttons search)
+  (grid-ify
+   (map
+    (lambda (e)
+      (let* ((id (ktv-get e "unique_id"))
+             (image-name (ktv-get e "photo"))
+             (image (if (image-invalid? image-name)
+                        "face" (string-append "/sdcard/symbai/files/" image-name))))
+        (cond
+         ((> (length search) 50)
+          (button
+           (make-id (string-append "chooser-" id))
+           (ktv-get e "name") 30 (layout (car button-size) (/ (cadr button-size) 3) 1 'centre 5)
+           (lambda ()
+             (set-current! 'choose-result id)
+             (list (finish-activity 0)))))
+
+         ((equal? image "face")
+          (button
+           (make-id (string-append "chooser-" id))
+           (ktv-get e "name") 30 (layout (car button-size) (cadr button-size) 1 'centre 5)
+           (lambda ()
+             (set-current! 'choose-result id)
+             (list (finish-activity 0)))))
+
+         (else
+          (vert
+           (image-button
+            (make-id (string-append "chooser-" id))
+            image (layout (car button-size) (cadr button-size) 1 'centre 5)
+            (lambda ()
+              (set-current! 'choose-result id)
+              (list (finish-activity 0))))
+           (text-view 0 (ktv-get e "name") 20 (layout 'wrap-content 'wrap-content -1 'centre 0)))
+          ))))
+    search)
+   3))
+
+
+(define (update-individual-filter-inner households)
+  (map
+   (lambda (household)
+     (let ((search (db-filter-only db "sync" "individual"
+                                   (append (filter-get)
+                                           (list (list "parent" "varchar" "="
+                                                       (ktv-get household "unique_id"))))
+                                   (list
+                                    (list "photo" "file")
+                                    (list "name" "varchar")))))
+       (apply vert
+              (cons (text-view 0 (ktv-get household "name") 20 fillwrap)
+                    (build-photo-buttons search)))
+       ))
+   households))
+
 (define (update-individual-filter)
-  (let ((search (db-filter-only db "sync" "individual" (filter-get)
-                                (list
-                                 (list "photo" "file")
-                                 (list "name" "varchar")))))
+  (msg "update if")
+  (let ((households (db-filter-only db "sync" "household"
+                                    (list (list "parent" "varchar" "=" (get-setting-value "current-village")))
+                                    (list (list "name" "varchar")))))
+    (msg households)
     (update-widget
      'linear-layout (get-id "choose-pics") 'contents
-     (grid-ify
-      (map
-       (lambda (e)
-         (let* ((id (ktv-get e "unique_id"))
-                (image-name (ktv-get e "photo"))
-                (image (if (image-invalid? image-name)
-                           "face" (string-append "/sdcard/symbai/files/" image-name))))
-           (cond
-            ((> (length search) 50)
-             (button
-              (make-id (string-append "chooser-" id))
-              (ktv-get e "name") 30 (layout (car button-size) (/ (cadr button-size) 3) 1 'centre 5)
-              (lambda ()
-                (set-current! 'choose-result id)
-                (list (finish-activity 0)))))
-
-            ((equal? image "face")
-             (button
-              (make-id (string-append "chooser-" id))
-              (ktv-get e "name") 30 (layout (car button-size) (cadr button-size) 1 'centre 5)
-              (lambda ()
-                (set-current! 'choose-result id)
-                (list (finish-activity 0)))))
-
-            (else
-             (vert
-              (image-button
-               (make-id (string-append "chooser-" id))
-               image (layout (car button-size) (cadr button-size) 1 'centre 5)
-               (lambda ()
-                 (set-current! 'choose-result id)
-                 (list (finish-activity 0))))
-              (text-view 0 (ktv-get e "name") 20 (layout 'wrap-content 'wrap-content -1 'centre 0)))
-             ))))
-       search)
-     3))))
+     (update-individual-filter-inner  households))))
 
 (define (image/name-from-unique-id db table unique-id)
   (let ((e (get-entity-by-unique db table unique-id)))
