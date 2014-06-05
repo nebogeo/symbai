@@ -786,7 +786,8 @@
    (lambda (activity) '())
    (lambda (activity requestcode resultcode)
      (cond
-      ((eqv? requestcode choose-code)
+      ((and (eqv? requestcode choose-code)
+            (get-current 'choose-result 0))
        (list (start-activity "individual" 0 (get-current 'choose-result 0))))
       ((eqv? requestcode photo-code)
        (list (update-widget
@@ -1577,6 +1578,7 @@
      ))
    (lambda (activity arg)
      (set-current! 'activity-title "Chooser")
+     (set-current! 'choose-result #f)
      (activity-layout activity))
    (lambda (activity arg)
      (list (update-individual-filter (list))))
