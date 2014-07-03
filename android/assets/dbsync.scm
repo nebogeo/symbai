@@ -17,6 +17,8 @@
 
 (msg "dbsync.scm")
 
+(define unset-int 2147483647)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; stuff in memory
 
@@ -650,15 +652,20 @@
 (define (image-invalid? image-name)
   (or (null? image-name)
       (not image-name)
-      (equal? image-name "none")))
+      (equal? image-name "none")
+      (equal? image-name "")))
 
 ;; fill out the widget from the current entity in the memory store
 ;; dispatches based on widget type
 (define (mupdate widget-type id-symbol key)
   (cond
    ((or (eq? widget-type 'edit-text) (eq? widget-type 'text-view))
-    (update-widget widget-type (get-symbol-id id-symbol) 'text
-                   (entity-get-value key)))
+    (let ((v (entity-get-value key)))
+      (update-widget widget-type (get-symbol-id id-symbol) 'text
+                     ;; hide -1 as it represents unset
+                     (if (and (number? v) (eqv? v -1))
+                         ""
+                         (entity-get-value key)))))
    ((eq? widget-type 'toggle-button)
     (update-widget widget-type (get-symbol-id id-symbol) 'checked
                    (entity-get-value key)))

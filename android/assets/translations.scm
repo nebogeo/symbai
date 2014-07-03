@@ -11,7 +11,7 @@
 (list 'households (list "Households" "" ))
 (list 'individual (list "Individual" "" ))
 (list 'individuals (list "Individuals" "" ))
-(list 'add-item-to-list (list "0" "" ))
+(list 'add-item-to-list (list "+" "" ))
 (list 'default-village-name (list "New village" "" ))
 (list 'title (list "Symbai" "Symbai" "Symbai" "" ))
 (list 'sync (list "Sync" "Sync" "Sync" "" ))
