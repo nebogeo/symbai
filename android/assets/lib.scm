@@ -795,7 +795,8 @@
          ((null? w) #f)
          ;; drill deeper
          ((eq? (update-widget-token w) 'contents)
-          (msg "updateing contents from callback")
+          (update-callbacks! (update-widget-value w)))
+         ((eq? (update-widget-token w) 'contents-add)
           (update-callbacks! (update-widget-value w)))
          ((eq? (update-widget-token w) 'grid-buttons)
           (add-callback! (callback (update-widget-id w)
@@ -862,6 +863,7 @@
         (begin (display "no dialog called ")(display name)(newline))
         (let ((events (apply (dialog-fn dialog) args)))
           (update-dialogs! events)
+          (update-callbacks-from-update! events)
           (send (scheme->json events))))))
 
 ;; called by java

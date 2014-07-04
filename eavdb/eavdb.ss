@@ -73,8 +73,9 @@
 
 ;; only return (eg. name and photo)
 (define (db-filter-only db table type filter kt-list)
-  (msg "db-filter-only")
+  (alog "db-filter-only")
   (map
    (lambda (i)
+     (alog "get-entity-only")
      (get-entity-only db table i kt-list))
-   (dbg (filter-entities db table type filter))))
+   (filter-entities db table type filter)))

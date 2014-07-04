@@ -51,6 +51,7 @@
    (else (cons (car fl) (delete-filter key (cdr fl))))))
 
 (define (build-query table filter)
+  (alog "build-query start")
   (string-append
    (foldl
     (lambda (i r)
@@ -82,16 +83,20 @@
    filter))
 
 (define (filter-entities db table type filter)
+  (let ((q (build-query table filter)))
+    (alog q)
+  (alog "filter-entities start")
   (let ((s (apply
             db-select
-            (dbg (append
-                  (list db (build-query table filter))
-                  (build-args filter)
-                  (list type))))))
+            (append
+             (list db q)
+             (build-args filter)
+             (list type)))))
+    (alog "filter-entities end")
     (msg (db-status db))
     (if (null? s)
         '()
         (map
          (lambda (i)
            (vector-ref i 0))
-         (cdr s)))))
+         (cdr s))))))

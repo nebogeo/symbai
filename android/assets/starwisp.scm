@@ -87,7 +87,7 @@
    (ktv "state-bus-service-closest-access" "varchar" "")
    (ktv "district-bus-service-closest-access" "varchar" "")
    (ktv "panchayat-closest-access" "varchar" "")
-   (ktv "NGO-closest-access" "varchar" "")
+   (ktv "ngo-closest-access" "varchar" "")
    (ktv "market-closest-access" "varchar" "")
    (ktv "car" "int" 0)))
 
@@ -142,8 +142,8 @@
    (ktv "rent-land" "int" 0)
    (ktv "hire-land" "int" 0)
    (ktv "house-type" "varchar" "")
-   (ktv "loan" "int" 0)
-   (ktv "earning" "int" 0)
+   (ktv "loan" "int" -1)
+   (ktv "earning" "int" -1)
    (ktv "radio" "int" 0)
    (ktv "tv" "int" 0)
    (ktv "mobile" "int" 0)
@@ -229,20 +229,21 @@
                  (get-current 'debug-text "")))
 
 (define (debug-timer-cb)
+  (alog "debug timer cb")
   (append
    (cond
     ((get-current 'sync-on #f)
      ;(when (zero? (random 10))
      ;      (msg "mangling...")
      ;      (mangle-test! db "sync" entity-types))
-     (msg "one")
      (set-current! 'upload 0)
      (set-current! 'download 0)
      (connect-to-net
       (lambda ()
         (msg "connected, going in...")
+        (alog "got here...")
         (append
-         (list (toast "sync-cb"))
+         (list (toast "Syncing"))
          (upload-dirty db)
          ;; important - don't receive until all are sent...
          (if (have-dirty? db "sync") '()
@@ -441,7 +442,7 @@
              (image (if (image-invalid? image-name)
                         "face" (string-append "/sdcard/symbai/files/" image-name))))
         (cond
-         ((> (length search) 50)
+         ((> (length search) 500)
           (button
            (make-id (string-append "chooser-" id))
            (ktv-get e "name") 30 (layout (car button-size) (/ (cadr button-size) 3) 1 'centre 5)
@@ -470,32 +471,60 @@
     search)
    3))
 
+;; getting late in the day...
+(define filter-index 0)
+(define filter-households '())
+
+(define (gradual-build)
+  (if (or (null? filter-households)
+          (> filter-index (- (length filter-households) 1)))
+      '()
+      (let ((household (list-ref filter-households filter-index)))
+        (set! filter-index (+ filter-index 1))
+        (let ((search (db-filter-only db "sync" "individual"
+                                      (append (filter-get)
+                                              (list (list "parent" "varchar" "="
+                                                          (ktv-get household "unique_id"))))
+                                      (list
+                                       (list "photo" "file")
+                                       (list "name" "varchar")))))
+          (list
+           (delayed "filter-delayed" 100 gradual-build)
+           (update-widget
+            'linear-layout (get-id "choose-pics") 'contents-add
+            (list
+             (apply vert
+                    (cons (text-view 0 (ktv-get household "name") 40 fillwrap)
+                          (build-photo-buttons search)))))
+           )))))
+
+
 
 (define (update-individual-filter-inner households)
-  (map
-   (lambda (household)
-     (let ((search (db-filter-only db "sync" "individual"
-                                   (append (filter-get)
-                                           (list (list "parent" "varchar" "="
-                                                       (ktv-get household "unique_id"))))
-                                   (list
-                                    (list "photo" "file")
-                                    (list "name" "varchar")))))
-       (apply vert
-              (cons (text-view 0 (ktv-get household "name") 20 fillwrap)
-                    (build-photo-buttons search)))
-       ))
-   households))
+  (set! filter-households households)
+  (delayed "filter-delayed" 100 gradual-build))
 
 (define (update-individual-filter)
-  (msg "update if")
   (let ((households (db-filter-only db "sync" "household"
                                     (list (list "parent" "varchar" "=" (get-setting-value "current-village")))
                                     (list (list "name" "varchar")))))
-    (msg households)
+    (update-individual-filter-inner households)))
+
+
+(define (update-individual-filter2)
+  (alog "uif-inner")
+  (let ((search (db-filter-only db "sync" "individual"
+                                (filter-get)
+                                (list
+                                 (list "photo" "file")
+                                 (list "name" "varchar")))))
+    (alog "uif-house-search end")
     (update-widget
      'linear-layout (get-id "choose-pics") 'contents
-     (update-individual-filter-inner  households))))
+     (build-photo-buttons search))
+    ))
+
+
 
 (define (image/name-from-unique-id db table unique-id)
   (let ((e (get-entity-by-unique db table unique-id)))
@@ -636,6 +665,7 @@
 
 (define (build-amenity-widgets id shade)
   (let ((id-text (symbol->string id)))
+
     (horiz-colour
      (if shade colour-one colour-two)
      (linear-layout
@@ -705,7 +735,11 @@
   (activity
    "main"
    (vert
-    (mbutton 'start (lambda () (list (start-activity-goto "main2" 0 "")))))
+    (image-view 0 "logo" (layout 'wrap-content 'wrap-content -1 'centre 0))
+    (button (make-id "main-start")
+            "Symbai"
+            40 (layout 'wrap-content 'wrap-content -1 'centre 5)
+            (lambda () (list (start-activity-goto "main2" 0 "")))))
    (lambda (activity arg)
      (activity-layout activity))
    (lambda (activity arg) '())
@@ -745,11 +779,13 @@
                                   (list (list "name" "varchar")))))
                   (string-append
                    (ktv-get (get-entity-by-unique db "sync" (get-setting-value "current-village")) "name")
+                   ":"
                    (get-setting-value "user-id")
-                   "gamehousehold")
+                   ":gamehousehold")
                   (string-append
                    (ktv-get (get-entity-by-unique db "sync" (get-setting-value "current-village")) "name")
-                   (get-setting-value "user-id")
+                   ":"
+                   (get-setting-value "user-id") ":"
                    (number->string (get/inc-setting "house-id"))))))
          ;; autogenerate the name from the current ID
          (ktvlist-merge
@@ -951,14 +987,14 @@
      (lambda () (get-current 'household #f))
      (lambda ()
        (let ((photo-id (get/inc-setting "photo-id"))
-             (household-name (ktv-get (dbg (get-entity-by-unique db "sync" (dbg (get-current 'household #f)))) "name")))
-         (msg household-name)
+             (household-name (ktv-get (get-entity-by-unique db "sync" (get-current 'household #f)) "name")))
          (ktvlist-merge
           individual-ktvlist
           (list
            (ktv "name" "varchar"
                 (string-append
                  household-name ":"
+                 (get-current 'user-id "no id") ":"
                  (number->string photo-id)))
            (ktv "photo-id" "varchar"
                 (number->string photo-id))
@@ -1014,7 +1050,7 @@
      (mbutton-scale 'migration-button (lambda () (list (start-activity "migration" 0 ""))))
      (mbutton-scale 'income-button (lambda () (list (start-activity "income" 0 "")))))
     (horiz
-     (mbutton-scale 'geneaology-button (lambda () (list (start-activity "geneaology" 0 ""))))
+     (mbutton-scale 'genealogy-button (lambda () (list (start-activity "genealogy" 0 ""))))
      (mbutton-scale 'friendship-button (lambda () (list (start-activity "friendship" 0 "")))))
     (horiz
      (mbutton-scale 'social-button (lambda () (list (start-activity "social" 0 ""))))
@@ -1070,7 +1106,7 @@
      (mtoggle-button-scale 'literate (lambda (v) (entity-set-value! "literate" "int" v) '()))
      (mspinner 'education education-list (lambda (v) (entity-set-value! "education" "varchar" v) '())))
 
-    (mbutton 'next (lambda () (list (start-activity "family" 0 ""))))
+    (mbutton 'details-next (lambda () (list (start-activity "family" 0 ""))))
     (spacer 20)
     )
    (lambda (activity arg)
@@ -1101,8 +1137,9 @@
        ;; need to do this before init is called again in on-start,
        ;; which happens next
        (let ((unique-id (entity-get-value "unique_id")))
-         (entity-set-value! "photo" "file" (get-current 'photo-name "error no photo name!!"))
-         (entity-update-values!)
+         (when (eqv? resultcode -1) ;; success!
+               (entity-set-value! "photo" "file" (get-current 'photo-name "error no photo name!!"))
+               (entity-update-values!))
          ;; need to reset the individual from the db now (as update reset it)
          (entity-init! db "sync" "individual" (get-entity-by-unique db "sync" unique-id)))
        (list
@@ -1140,7 +1177,7 @@
                                                                           (spinner-choice residence-list v)) '()))
     (medit-text 'num-siblings "numeric" (lambda (v) (entity-set-value! "num-siblings" "int" v) '()))
     (medit-text 'birth-order "numeric" (lambda (v) (entity-set-value! "birth-order" "int" v) '()))
-    (mbutton 'next (lambda () (list (start-activity "migration" 0 ""))))
+    (mbutton 'family-next (lambda () (list (start-activity "migration" 0 ""))))
     (spacer 20)
     )
    (lambda (activity arg)
@@ -1219,7 +1256,7 @@
     (medit-text 'num-residence-changes "numeric" (lambda (v) (entity-set-value! "num-residence-changes" "int" v) '()))
     (medit-text 'village-visits-month "numeric" (lambda (v) (entity-set-value! "village-visits-month" "int" v) '()))
     (medit-text 'village-visits-year "numeric" (lambda (v) (entity-set-value! "village-visits-year" "int" v) '()))
-    (mbutton 'next (lambda () (list (start-activity "income" 0 ""))))
+    (mbutton 'migration-next (lambda () (list (start-activity "income" 0 ""))))
     (spacer 20)
     )
    (lambda (activity arg)
@@ -1277,7 +1314,7 @@
     (horiz
      (medit-text 'visit-market "numeric" (lambda (v) (entity-set-value! "visit-market" "int" v) '()))
      (medit-text 'town-sell "numeric" (lambda (v) (entity-set-value! "town-sell" "int" v) '())))
-    (mbutton 'next (lambda () (list (start-activity "geneaology" 0 ""))))
+    (mbutton 'income-next (lambda () (list (start-activity "genealogy" 0 ""))))
     (spacer 20)
     )
    (lambda (activity arg)
@@ -1382,7 +1419,7 @@
 
 
   (activity
-   "geneaology"
+   "genealogy"
    (build-activity
     (horiz
      (build-person-selector 'mother "id-mother" (list) mother-request-code)
@@ -1390,13 +1427,13 @@
     (build-list-widget
      db "sync" 'children "child" "child" (lambda () (get-current 'individual #f))
      (lambda () child-ktvlist))
-    (mbutton 'next (lambda () (list (start-activity "friendship" 0 ""))))
+    (mbutton 'gene-next (lambda () (list (start-activity "friendship" 0 ""))))
     (spacer 20))
    (lambda (activity arg)
      (activity-layout activity))
    (lambda (activity arg)
      ;; reset after child entity
-     (set-current! 'activity-title "Geneaology")
+     (set-current! 'activity-title "Genealogy")
      (entity-init! db "sync" "individual" (get-entity-by-unique db "sync" (get-current 'individual #f)))
      (append
       (update-top-bar)
@@ -1431,7 +1468,7 @@
     (build-social-connection 'social-three "social-three" "friend" social-request-code-three #t)
     (build-social-connection 'social-four "social-four" "friend" social-request-code-four #f)
     (build-social-connection 'social-five "social-five" "friend" social-request-code-five #t)
-    (mbutton 'next (lambda () (list (start-activity-goto "individual" 0 (get-current 'individual #f)))))
+    (mbutton 'social-next (lambda () (list (start-activity-goto "individual" 0 (get-current 'individual #f)))))
     (spacer 20)
     )
    (lambda (activity arg)
@@ -1470,7 +1507,7 @@
     (build-social-connection 'social-three "friendship-three" "friend" social-request-code-three #t)
     (build-social-connection 'social-four "friendship-four" "friend" social-request-code-four #f)
     (build-social-connection 'social-five "friendship-five" "friend" social-request-code-five #t)
-    (mbutton 'next (lambda () (list (start-activity "social" 0 ""))))
+    (mbutton 'friendship-next (lambda () (list (start-activity "social" 0 ""))))
     (spacer 20)
     )
    (lambda (activity arg)
@@ -1515,7 +1552,7 @@
          (if (eqv? v 1) (soundfile-start-playback "/sdcard/symbai/test.3gp")
              (soundfile-stop-playback)))))
      )
-    (mbutton 'next (lambda () (list (start-activity "details" 0 ""))))
+    (mbutton 'agreement-next (lambda () (list (start-activity "details" 0 ""))))
     (spacer 20)
     )
    (lambda (activity arg)
@@ -1533,6 +1570,13 @@
    "individual-chooser"
    (build-activity
     (vert
+
+     (linear-layout
+      (make-id "choose-pics") 'vertical
+      (layout 'fill-parent 'wrap-content 0.75 'centre 0)
+      (list 0 0 0 0)
+      (list))
+
      (mtitle 'filter)
      (horiz
       (mspinner 'gender '(off female male)
@@ -1541,7 +1585,8 @@
                       (filter-remove! "gender")
                       (filter-add! (make-filter "gender" "varchar" "="
                                                 (spinner-choice '(off female male) v))))
-                  (list (update-individual-filter))
+                  (if (get-current 'filter-switch #f)
+                      (list (update-individual-filter)) '())
                   ))
       (medit-text
        'name "normal"
@@ -1549,15 +1594,13 @@
          (if (equal? v "")
              (filter-remove! "name")
              (filter-add! (make-filter "name" "varchar" "like" (string-append v "%"))))
-         (list (update-individual-filter))
-         )))
-
-     (linear-layout
-      (make-id "choose-pics") 'vertical
-      (layout 'fill-parent 'wrap-content 0.75 'centre 0)
-      (list 0 0 0 0)
-      (list))
-
+         (if (get-current 'filter-switch #f)
+             (list (update-individual-filter)) '()))
+         )
+      (mtoggle-button-scale 'filter-switch
+                            (lambda (v)
+                              (set-current! 'filter-switch (not (zero? v)))
+                              '())))
 
      (horiz
       (medit-text 'quick-name "normal"
