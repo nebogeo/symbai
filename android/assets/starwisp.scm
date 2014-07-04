@@ -502,12 +502,14 @@
 
 (define (update-individual-filter-inner households)
   (set! filter-households households)
+  (set! filter-index 0)
   (delayed "filter-delayed" 100 gradual-build))
 
 (define (update-individual-filter)
   (let ((households (db-filter-only db "sync" "household"
                                     (list (list "parent" "varchar" "=" (get-setting-value "current-village")))
                                     (list (list "name" "varchar")))))
+    (msg "UIF" households)
     (update-individual-filter-inner households)))
 
 

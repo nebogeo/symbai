@@ -457,7 +457,7 @@
   (list
    (network-connect
     "network"
-    "mongoose-web"
+    "symbai-web"
     (lambda (state)
       (debug! (string-append "Raspberry Pi connection state now: " state))
       (append
@@ -1031,7 +1031,7 @@
 
 (define (build-test! db table village-ktvlist household-ktvlist individual-ktvlist)
   (looper!
-   3
+   1
    (lambda (i)
      (msg "making village" i)
      (let ((village (simpsons-village db table village-ktvlist)))
@@ -1042,7 +1042,7 @@
           (msg "making household" i)
           (let ((household (simpsons-household db table village household-ktvlist)))
             (looper!
-             (+ 5 (random 10))
+             (+ 2 (random 5))
              (lambda (i)
                (msg "making individual" i)
                (simpsons-individual db table household individual-ktvlist))))))))))
