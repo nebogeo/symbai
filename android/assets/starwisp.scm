@@ -570,7 +570,8 @@
 ;; from activity on result with request id: choose-code
 ;; todo determine *which* selector this came from...
 (define (person-selector-return request-code key choose-code)
-  (when (eqv? request-code choose-code)
+  (when (and (eqv? request-code choose-code)
+             (get-current 'choose-result #f))
         (entity-set-value! key "varchar" (get-current 'choose-result "not set"))
         (entity-update-values!)))
 
@@ -969,8 +970,8 @@
    "household"
    (build-activity
     (horiz
-     (medit-text 'num-pots "numeric" (lambda (v) (entity-set-value! "num-pots" "int" v) '()))
-     (medit-text 'num-children "numeric" (lambda (v) (entity-set-value! "num-children" "int" v) '())))
+     (medit-text 'num-pots "numeric" (lambda (v) (entity-set-value! "num-pots" "int" (string->number v)) '()))
+     (medit-text 'num-children "numeric" (lambda (v) (entity-set-value! "num-children" "int" (string->number v)) '())))
     (horiz
      (vert
       (mtext 'location)
@@ -1102,11 +1103,14 @@
     (mspinner-other 'tribe tribes-list (lambda (v) (entity-set-value! "tribe" "varchar" (spinner-choice tribes-list v)) '()))
     (mspinner-other 'sub-tribe subtribe-list (lambda (v) (entity-set-value! "subtribe" "varchar" (spinner-choice subtribe-list v)) '()))
     (horiz
-     (medit-text 'age "numeric" (lambda (v) (entity-set-value! "age" "int" v) '()))
+     (medit-text 'age "numeric" (lambda (v) (entity-set-value! "age" "int" (string->number v)) '()))
      (mspinner 'gender gender-list (lambda (v) (entity-set-value! "gender" "varchar" (spinner-choice gender-list v)) '())))
     (horiz
      (mtoggle-button-scale 'literate (lambda (v) (entity-set-value! "literate" "int" v) '()))
-     (mspinner 'education education-list (lambda (v) (entity-set-value! "education" "varchar" v) '())))
+     (mspinner 'education education-list
+               (lambda (v)
+                 (entity-set-value! "education" "varchar"
+                                    (spinner-choice education-list v)) '())))
 
     (mbutton 'details-next (lambda () (list (start-activity "family" 0 ""))))
     (spacer 20)
@@ -1158,7 +1162,7 @@
       (mspinner 'marital-status married-list (lambda (v) (entity-set-value! "marital-status" "varchar" (spinner-choice married-list v)) '()))
       (medit-text 'times-married "numeric"
                   (lambda (v)
-                    (entity-set-value! "times-married" "int" v)
+                    (entity-set-value! "times-married" "int" (string->number v))
                     (list
                      (update-widget 'linear-layout (get-id "residence-after-marriage-container")
                                     (if (equal? v "0") 'hide 'show) 0)))))
@@ -1177,8 +1181,8 @@
     (mspinner-other 'residence-after-marriage residence-list (lambda (v) (entity-set-value!
                                                                           "residence-after-marriage" "varchar"
                                                                           (spinner-choice residence-list v)) '()))
-    (medit-text 'num-siblings "numeric" (lambda (v) (entity-set-value! "num-siblings" "int" v) '()))
-    (medit-text 'birth-order "numeric" (lambda (v) (entity-set-value! "birth-order" "int" v) '()))
+    (medit-text 'num-siblings "numeric" (lambda (v) (entity-set-value! "num-siblings" "int" (string->number v)) '()))
+    (medit-text 'birth-order "numeric" (lambda (v) (entity-set-value! "birth-order" "int" (string->number v)) '()))
     (mbutton 'family-next (lambda () (list (start-activity "migration" 0 ""))))
     (spacer 20)
     )
@@ -1253,11 +1257,11 @@
   (activity
    "migration"
    (build-activity
-    (medit-text 'length-time "numeric" (lambda (v) (entity-set-value! "length-time" "int" v) '()))
+    (medit-text 'length-time "numeric" (lambda (v) (entity-set-value! "length-time" "int" (string->number v)) '()))
     (medit-text 'place-of-birth "normal" (lambda (v) (entity-set-value! "place-of-birth" "varchar" v) '()))
-    (medit-text 'num-residence-changes "numeric" (lambda (v) (entity-set-value! "num-residence-changes" "int" v) '()))
-    (medit-text 'village-visits-month "numeric" (lambda (v) (entity-set-value! "village-visits-month" "int" v) '()))
-    (medit-text 'village-visits-year "numeric" (lambda (v) (entity-set-value! "village-visits-year" "int" v) '()))
+    (medit-text 'num-residence-changes "numeric" (lambda (v) (entity-set-value! "num-residence-changes" "int" (string->number v)) '()))
+    (medit-text 'village-visits-month "numeric" (lambda (v) (entity-set-value! "village-visits-month" "int" (string->number v)) '()))
+    (medit-text 'village-visits-year "numeric" (lambda (v) (entity-set-value! "village-visits-year" "int" (string->number v)) '()))
     (mbutton 'migration-next (lambda () (list (start-activity "income" 0 ""))))
     (spacer 20)
     )
@@ -1306,16 +1310,16 @@
     (mspinner-other 'house-type house-type-list (lambda (v) (entity-set-value! "house-type" "varchar"
                                                                                (spinner-choice house-type-list v)) '()))
     (horiz
-     (medit-text 'loan "numeric" (lambda (v) (entity-set-value! "loan" "int" v) '()))
-     (medit-text 'earning "numeric" (lambda (v) (entity-set-value! "earning" "int" v) '())))
+     (medit-text 'loan "numeric" (lambda (v) (entity-set-value! "loan" "int" (string->number v)) '()))
+     (medit-text 'earning "numeric" (lambda (v) (entity-set-value! "earning" "int" (string->number v)) '())))
     (mtext 'in-the-home)
     (horiz
      (mtoggle-button-scale 'radio (lambda (v) (entity-set-value! "radio" "int" v) '()))
      (mtoggle-button-scale 'tv (lambda (v) (entity-set-value! "tv" "int" v) '()))
      (mtoggle-button-scale 'mobile (lambda (v) (entity-set-value! "mobile" "int" v) '())))
     (horiz
-     (medit-text 'visit-market "numeric" (lambda (v) (entity-set-value! "visit-market" "int" v) '()))
-     (medit-text 'town-sell "numeric" (lambda (v) (entity-set-value! "town-sell" "int" v) '())))
+     (medit-text 'visit-market "numeric" (lambda (v) (entity-set-value! "visit-market" "int" (string->number v)) '()))
+     (medit-text 'town-sell "numeric" (lambda (v) (entity-set-value! "town-sell" "int" (string->number v)) '())))
     (mbutton 'income-next (lambda () (list (start-activity "genealogy" 0 ""))))
     (spacer 20)
     )

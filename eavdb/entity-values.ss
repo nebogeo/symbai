@@ -88,7 +88,7 @@
     ;;(msg ktv)
     ;;(msg entity-id)
     (if (null? s)
-        (insert-value db table entity-id ktv #t)
+        (insert-value db table entity-id ktv #t) ;; <- don't make dirty!?
         (db-exec
          db (string-append "update " table "_value_" (ktv-type ktv)
                            " set value=?, dirty=0 where entity_id = ? and attribute_id = ?")

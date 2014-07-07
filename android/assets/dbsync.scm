@@ -90,8 +90,22 @@
 (define (entity-get-value key)
   (ktv-get (get-current 'entity-values '()) key))
 
+(define (check-type type value)
+  (cond
+   ((equal? type "varchar")
+    (string? value))
+   ((equal? type "file")
+    (string? value))
+   ((equal? type "int")
+    (number? value))
+   ((equal? type "real")
+    (number? value))))
+
 ;; version to check the entity has the key
 (define (entity-set-value! key type value)
+  (when (not (check-type type value))
+        (msg "INCORRECT TYPE FOR" key ":" type ":" value))
+
   (let ((existing-type (ktv-get-type (get-current 'entity-values '()) key)))
     (if (equal? existing-type type)
         (set-current!
@@ -664,8 +678,7 @@
       (update-widget widget-type (get-symbol-id id-symbol) 'text
                      ;; hide -1 as it represents unset
                      (if (and (number? v) (eqv? v -1))
-                         ""
-                         (entity-get-value key)))))
+                         "" v))))
    ((eq? widget-type 'toggle-button)
     (update-widget widget-type (get-symbol-id id-symbol) 'checked
                    (entity-get-value key)))
