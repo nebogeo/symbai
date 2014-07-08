@@ -107,19 +107,21 @@
         (msg "INCORRECT TYPE FOR" key ":" type ":" value))
 
   (let ((existing-type (ktv-get-type (get-current 'entity-values '()) key)))
-    (if (equal? existing-type type)
-        (set-current!
-         'entity-values
-         (ktv-set
-          (get-current 'entity-values '())
-          (ktv key type value)))
-        ;;
-        (begin
-          (msg "entity-set-value! - adding new " key "of type" type "to entity")
-          (entity-add-value-create! key type value)))
-    ;; save straight to local db every time
-    (entity-update-single-value! (list key type value))
-    ))
+    (cond
+     ((equal? existing-type type)
+      ;; save straight to local db every time (checks for modification)
+      (entity-update-single-value! (list key type value))
+      ;; then save to memory
+      (set-current!
+       'entity-values
+       (ktv-set
+        (get-current 'entity-values '())
+        (ktv key type value))))
+      ;;
+     (else
+      (msg "entity-set-value! - adding new " key "of type" type "to entity")
+      (entity-add-value-create! key type value))
+     )))
 
 
 (define (date-time->string dt)
@@ -179,6 +181,8 @@
         (table (get-current 'table #f))
         (unique-id (ktv-get (get-current 'entity-values '()) "unique_id")))
     (cond
+     ((ktv-eq? (ktv-get-whole (get-current 'entity-values '()) (ktv-key ktv)) ktv)
+      (msg "eusv: no change for" (ktv-key ktv)))
      (unique-id
       (update-entity db table (entity-id-from-unique db table unique-id) (list ktv)))
      (else
@@ -595,7 +599,7 @@
   (vert
    (text-view (symbol->id id)
               (mtext-lookup id)
-              30 (layout 'wrap-content 'wrap-content 1 'centre 10))
+              30 (layout 'wrap-content 'wrap-content 1 'centre 0))
    (spinner (make-id (string-append (symbol->string id) "-spinner"))
             (map mtext-lookup types)
             (layout 'wrap-content 'wrap-content 1 'centre 0)

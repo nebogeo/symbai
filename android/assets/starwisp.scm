@@ -19,7 +19,7 @@
 
 ;; colours
 (msg "starting up....")
-(define entity-types (list "village" "household" "individual"))
+(define entity-types (list "village" "household" "individual" "child" "crop"))
 
 (define trans-col (list 0 0 0 0))
 (define colour-one (list 0 0 255 100))
@@ -62,18 +62,19 @@
 
 ;;(display (db-all db "local" "app-settings"))(newline)
 
-(define tribes-list '(khasi other))
-(define subtribe-list '(khynriam pnar bhoi war other))
-(define education-list   '(primary middle high secondary university))
-(define married-list '(currently-married currently-single seperated))
-(define residence-list '(birthplace spouse-village))
-(define gender-list '(male female))
-(define house-type-list '(concrete tin thatched other))
+(define tribes-list '(not-set khasi other no-answered))
+(define subtribe-list '(not-set khynriam pnar bhoi war other not-answered))
+(define education-list   '(not-set primary middle high secondary university not-answered))
+(define married-list '(not-set currently-married currently-single seperated not-answered))
+(define residence-list '(not-set birthplace spouse-village not-answered))
+(define gender-list '(not-set male female not-answered))
+(define house-type-list '(not-set concrete tin thatched other not-answered))
 
+(define yesno-list '(not-set yes no not-answered))
 (define social-types-list '(knowledge prestige))
-(define social-relationship-list '(mother father sister brother spouse children co-wife spouse-mother spouse-father spouse-brother-wife spouse-sister-husband friend neighbour other))
-(define social-residence-list '(same other))
-(define social-strength-list '(daily weekly monthly less))
+(define social-relationship-list '(not-set mother father sister brother spouse children co-wife spouse-mother spouse-father spouse-brother-wife spouse-sister-husband friend neighbour other not-answered))
+(define social-residence-list '(not-set same other not-answered))
+(define social-strength-list '(not-set daily weekly monthly less not-answered))
 
 (define village-ktvlist
   (list
@@ -103,20 +104,22 @@
 
 (define individual-ktvlist
   (list
+   (ktv "edit-history" "varchar" "")
+   (ktv "social-edit-history" "varchar" "")
    (ktv "name" "varchar" "")
    (ktv "first-name" "varchar" "")
    (ktv "family" "varchar" "")
    (ktv "photo-id" "varchar" "")
    (ktv "photo" "file" "")
-   (ktv "tribe" "varchar" "")
-   (ktv "subtribe" "varchar" "")
+   (ktv "tribe" "varchar" "not-set")
+   (ktv "subtribe" "varchar" "not-set")
    (ktv "child" "int" -1)
    (ktv "age" "int" -1)
-   (ktv "gender" "varchar" "")
-   (ktv "literate" "int" 0)
-   (ktv "education" "varchar" "")
+   (ktv "gender" "varchar" "not-set")
+   (ktv "literate" "varchar" "not-set")
+   (ktv "education" "varchar" "not-set")
    (ktv "head-of-house" "varchar" "")
-   (ktv "marital-status" "varchar" "")
+   (ktv "marital-status" "varchar" "not-set")
    (ktv "times-married" "int" -1)
    (ktv "id-spouse" "varchar" "")
    (ktv "children-living" "int" -1)
@@ -131,22 +134,22 @@
    (ktv "num-residence-changes" "int" -1)
    (ktv "village-visits-month" "int" -1)
    (ktv "village-visits-year" "int" -1)
-   (ktv "occupation-agriculture" "int" 0)
-   (ktv "occupation-gathering" "int" 0)
-   (ktv "occupation-labour" "int" 0)
-   (ktv "occupation-cows" "int" 0)
-   (ktv "occupation-fishing" "int" 0)
+   (ktv "occupation-agriculture" "varchar" "not-set")
+   (ktv "occupation-gathering" "varchar" "not-set")
+   (ktv "occupation-labour" "varchar" "not-set")
+   (ktv "occupation-cows" "varchar" "not-set")
+   (ktv "occupation-fishing" "varchar" "not-set")
    (ktv "occupation-other" "varchar" "")
-   (ktv "contribute" "int" 0)
-   (ktv "own-land" "int" 0)
-   (ktv "rent-land" "int" 0)
-   (ktv "hire-land" "int" 0)
-   (ktv "house-type" "varchar" "")
+   (ktv "contribute" "varchar" "not-set")
+   (ktv "own-land" "varchar" "not-set")
+   (ktv "rent-land" "varchar" "not-set")
+   (ktv "hire-land" "varchar" "not-set")
+   (ktv "house-type" "varchar" "not-set")
    (ktv "loan" "int" -1)
    (ktv "earning" "int" -1)
-   (ktv "radio" "int" 0)
-   (ktv "tv" "int" 0)
-   (ktv "mobile" "int" 0)
+   (ktv "radio" "varchar" "not-set")
+   (ktv "tv" "varchar" "not-set")
+   (ktv "mobile" "varchar" "not-set")
    (ktv "visit-market" "int" -1)
    (ktv "town-sell" "int" -1)
    (ktv "social-one" "varchar" "")
@@ -212,10 +215,10 @@
 (define child-ktvlist
   (list
    (ktv "name" "varchar" (mtext-lookup 'default-child-name))
-   (ktv "alive" "int" 1)
-   (ktv "gender" "varchar" "")
+   (ktv "alive" "varchar" "varchar" "not-set")
+   (ktv "gender" "varchar" "not-set")
    (ktv "age" "int" -1)
-   (ktv "living-at-home" "int" 0)))
+   (ktv "living-at-home" "varchar" "not-set")))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -227,6 +230,50 @@
 (define (update-debug)
   (update-widget 'debug-text-view (get-id "sync-debug") 'text
                  (get-current 'debug-text "")))
+
+
+;; return last element from comma seperated list
+(define (history-get-last txt)
+  (let ((l (string-split txt '(#\,))))
+    (if (null? l) ""
+        (car (reverse l)))))
+
+(define (contains-social? ktv-list)
+  (foldl
+   (lambda (ktv r)
+     (if (and
+          (not r)
+          (> (string-length (ktv-key ktv)) 5)
+          (or
+           (equal? (substring (ktv-key ktv) 0 6) "friend")
+           (equal? (substring (ktv-key ktv) 0 6) "social")))
+         #t r))
+   #f ktv-list))
+
+(define (update-edit-history db table user-id)
+  ;; get dirty individual entities
+  (let ((de (db-select
+             db (string-append
+                 "select entity_id from "
+                 table "_entity where dirty=1 and entity_type='individual';"))))
+    (when (not (null? de))
+          (for-each
+           (lambda (i)
+             (msg i)
+             (let* ((entity-id (vector-ref i 0))
+                    (dirty-items (dbg (get-entity-plain-for-sync db table entity-id))))
+               (when (not (null? dirty-items))
+                     ;; check if social change
+                     (let ((type (if (contains-social? dirty-items) "social-edit-history" "edit-history")))
+                       ;; check if last editor is different
+                       (let ((editors (car (get-value db table entity-id (list type "varchar")))))
+                         (when (or (equal? editors "") (not (equal? (history-get-last editors) user-id)))
+                               ;; append user id
+                               (msg "history - setting" type)
+                               (if (equal? editors "")
+                                   (update-value db table entity-id (ktv type "varchar" (dbg user-id)))
+                                   (update-value db table entity-id (ktv type "varchar" (dbg (string-append editors "," user-id)))))))))))
+           (cdr de)))))
 
 (define (debug-timer-cb)
   (alog "debug timer cb")
@@ -242,6 +289,7 @@
       (lambda ()
         (msg "connected, going in...")
         (alog "got here...")
+        (update-edit-history db "sync" (get-current 'user-id "no id"))
         (append
          (list (toast "Syncing"))
          (upload-dirty db)
@@ -1045,20 +1093,23 @@
       (spacer 20)
       (mtext 'photo-id-display)
       ))
-    (mbutton 'agreement-button (lambda () (list (start-activity "agreement" 0 ""))))
+    (mtext 'last-editor)
     (horiz
-     (mbutton-scale 'details-button (lambda () (list (start-activity "details" 0 ""))))
-     (mbutton-scale 'family-button (lambda () (list (start-activity "family" 0 "")))))
+     (mbutton-scale 'agreement-button (lambda () (list (start-activity "agreement" 0 ""))))
+     (mbutton-scale 'details-button (lambda () (list (start-activity "details" 0 "")))))
     (horiz
-     (mbutton-scale 'migration-button (lambda () (list (start-activity "migration" 0 ""))))
-     (mbutton-scale 'income-button (lambda () (list (start-activity "income" 0 "")))))
+     (mbutton-scale 'family-button (lambda () (list (start-activity "family" 0 ""))))
+     (mbutton-scale 'migration-button (lambda () (list (start-activity "migration" 0 "")))))
     (horiz
-     (mbutton-scale 'genealogy-button (lambda () (list (start-activity "genealogy" 0 ""))))
-     (mbutton-scale 'friendship-button (lambda () (list (start-activity "friendship" 0 "")))))
-    (horiz
-     (mbutton-scale 'social-button (lambda () (list (start-activity "social" 0 ""))))
-     (mbutton-scale 'move-button (lambda () (list (start-activity "move" 0 "")))))
+     (mbutton-scale 'income-button (lambda () (list (start-activity "income" 0 ""))))
+     (mbutton-scale 'genealogy-button (lambda () (list (start-activity "genealogy" 0 "")))))
     (spacer 20)
+    (mtext 'last-social-editor)
+    (horiz
+     (mbutton-scale 'friendship-button (lambda () (list (start-activity "friendship" 0 ""))))
+     (mbutton-scale 'social-button (lambda () (list (start-activity "social" 0 "")))))
+    (spacer 20)
+    (mbutton-scale 'move-button (lambda () (list (start-activity "move" 0 ""))))
     (delete-button))
 
    (lambda (activity arg)
@@ -1070,6 +1121,10 @@
      (append
       (update-top-bar)
       (list
+       (update-widget 'text-view (get-id "last-editor") 'text
+                      (string-append "Last edit by " (history-get-last (entity-get-value "edit-history"))))
+       (update-widget 'text-view (get-id "last-social-editor") 'text
+                      (string-append "Last edit by " (history-get-last (entity-get-value "social-edit-history"))))
        (mupdate 'text-view 'name-display "name")
        (mupdate 'text-view 'first-name-display "first-name")
        (mupdate 'text-view 'family-display "family")
@@ -1106,7 +1161,8 @@
      (medit-text 'age "numeric" (lambda (v) (entity-set-value! "age" "int" (string->number v)) '()))
      (mspinner 'gender gender-list (lambda (v) (entity-set-value! "gender" "varchar" (spinner-choice gender-list v)) '())))
     (horiz
-     (mtoggle-button-scale 'literate (lambda (v) (entity-set-value! "literate" "int" v) '()))
+     (mspinner 'literate yesno-list (lambda (v) (entity-set-value! "literate" "varchar" (spinner-choice yesno-list v)) '()))
+
      (mspinner 'education education-list
                (lambda (v)
                  (entity-set-value! "education" "varchar"
@@ -1129,7 +1185,7 @@
        (mupdate 'image-view 'photo "photo")
        (mupdate 'edit-text 'age "age")
        (mupdate-spinner 'gender "gender" gender-list)
-       (mupdate 'toggle-button 'literate "literate")
+       (mupdate-spinner 'literate "literate" yesno-list)
        (mupdate-spinner 'education "education" education-list)
        )))
    (lambda (activity) '())
@@ -1289,20 +1345,20 @@
     (vert
      (mtitle 'occupation)
      (horiz
-      (mtoggle-button-scale 'occupation-agriculture (lambda (v) (entity-set-value! "occupation-agriculture" "int" v) '()))
-      (mtoggle-button-scale 'occupation-gathering (lambda (v) (entity-set-value! "occupation-gathering" "int" v) '()))
-      (mtoggle-button-scale 'occupation-labour (lambda (v) (entity-set-value! "occupation-labour" "int" v) '())))
+      (mspinner 'occupation-agriculture yesno-list (lambda (v) (entity-set-value! "occupation-agriculture" "varchar" (spinner-choice yesno-list v)) '()))
+      (mspinner 'occupation-gathering yesno-list (lambda (v) (entity-set-value! "occupation-gathering" "varchar" (spinner-choice yesno-list v)) '()))
+      (mspinner 'occupation-labour yesno-list (lambda (v) (entity-set-value! "occupation-labour" "varchar" (spinner-choice yesno-list v)) '())))
      (horiz
-      (mtoggle-button-scale 'occupation-cows (lambda (v) (entity-set-value! "occupation-cows" "int" v) '()))
-      (mtoggle-button-scale 'occupation-fishing (lambda (v) (entity-set-value! "occupation-fishing" "int" v) '()))
+      (mspinner 'occupation-cows yesno-list (lambda (v) (entity-set-value! "occupation-cows" "varchar" (spinner-choice yesno-list v)) '()))
+      (mspinner 'occupation-fishing yesno-list (lambda (v) (entity-set-value! "occupation-fishing" "varchar" (spinner-choice yesno-list v)) '()))
       (medit-text 'occupation-other "normal" (lambda (v) (entity-set-value! "occupation-other" "varchar" v) '()))))
 
     (horiz
-     (mtoggle-button-scale 'contribute (lambda (v) (entity-set-value! "contribute" "int" v) '()))
-     (mtoggle-button-scale 'own-land (lambda (v) (entity-set-value! "own-land" "int" v) '())))
+     (mspinner 'contribute yesno-list (lambda (v) (entity-set-value! "contribute" "varchar" (spinner-choice yesno-list v)) '()))
+     (mspinner 'own-land yesno-list (lambda (v) (entity-set-value! "own-land" "varchar" (spinner-choice yesno-list v)) '())))
     (horiz
-     (mtoggle-button-scale 'rent-land (lambda (v) (entity-set-value! "rent-land" "int" v) '()))
-     (mtoggle-button-scale 'hire-land (lambda (v) (entity-set-value! "hire-land" "int" v) '())))
+     (mspinner 'rent-land yesno-list (lambda (v) (entity-set-value! "rend-land" "varchar" (spinner-choice yesno-list v)) '()))
+     (mspinner 'hire-land yesno-list (lambda (v) (entity-set-value! "hire-land" "varchar" (spinner-choice yesno-list v)) '())))
     (mtext 'crops-detail)
     (build-list-widget
      db "sync" 'crops "crop" "crop" (lambda () (get-current 'individual #f))
@@ -1314,9 +1370,9 @@
      (medit-text 'earning "numeric" (lambda (v) (entity-set-value! "earning" "int" (string->number v)) '())))
     (mtext 'in-the-home)
     (horiz
-     (mtoggle-button-scale 'radio (lambda (v) (entity-set-value! "radio" "int" v) '()))
-     (mtoggle-button-scale 'tv (lambda (v) (entity-set-value! "tv" "int" v) '()))
-     (mtoggle-button-scale 'mobile (lambda (v) (entity-set-value! "mobile" "int" v) '())))
+     (mspinner 'radio yesno-list (lambda (v) (entity-set-value! "radio" "varchar" (spinner-choice yesno-list v)) '()))
+     (mspinner 'tv yesno-list (lambda (v) (entity-set-value! "tv" "varchar" (spinner-choice yesno-list v)) '()))
+     (mspinner 'mobile yesno-list (lambda (v) (entity-set-value! "mobile" "varchar" (spinner-choice yesno-list v)) '())))
     (horiz
      (medit-text 'visit-market "numeric" (lambda (v) (entity-set-value! "visit-market" "int" (string->number v)) '()))
      (medit-text 'town-sell "numeric" (lambda (v) (entity-set-value! "town-sell" "int" (string->number v)) '())))
@@ -1334,21 +1390,21 @@
       (mupdate-spinner-other 'house-type "house-type" house-type-list)
       (list
        (update-list-widget db "sync" "crop" "crop" (get-current 'individual #f))
-       (mupdate 'toggle-button 'occupation-agriculture "occupation-agriculture")
-       (mupdate 'toggle-button 'occupation-gathering "occupation-gathering")
-       (mupdate 'toggle-button 'occupation-labour "occupation-labour")
-       (mupdate 'toggle-button 'occupation-cows "occupation-cows")
-       (mupdate 'toggle-button 'occupation-fishing "occupation-fishing")
+       (mupdate-spinner 'occupation-agriculture "occupation-agriculture" yesno-list)
+       (mupdate-spinner 'occupation-gathering "occupation-gathering" yesno-list)
+       (mupdate-spinner 'occupation-labour "occupation-labour" yesno-list)
+       (mupdate-spinner 'occupation-cows "occupation-cows" yesno-list)
+       (mupdate-spinner 'occupation-fishing "occupation-fishing" yesno-list)
        (mupdate 'edit-text 'occupation-other "occupation-other")
-       (mupdate 'toggle-button 'contribute "contribute")
-       (mupdate 'toggle-button 'own-land "own-land")
-       (mupdate 'toggle-button 'rent-land "rent-land")
-       (mupdate 'toggle-button 'hire-land "hire-land")
-       (mupdate 'edit-text 'loan "loan")
+       (mupdate-spinner 'contribute "contribute" yesno-list)
+       (mupdate-spinner 'own-land "own-land" yesno-list)
+       (mupdate-spinner 'rent-land "rent-land" yesno-list)
+       (mupdate-spinner 'hire-land "hire-land" yesno-list)
+       (mupdate 'edit-text 'loan "loan" )
        (mupdate 'edit-text 'earning "earning")
-       (mupdate 'toggle-button 'radio "radio")
-       (mupdate 'toggle-button 'tv "tv")
-       (mupdate 'toggle-button 'mobile "mobile")
+       (mupdate-spinner 'radio "radio" yesno-list)
+       (mupdate-spinner 'tv "tv" yesno-list)
+       (mupdate-spinner 'mobile "mobile" yesno-list)
        (mupdate 'edit-text 'visit-market "visit-market")
        (mupdate 'edit-text 'town-sell "town-sell"))))
    (lambda (activity) '())
@@ -1398,8 +1454,8 @@
       (mspinner 'child-gender gender-list (lambda (v) (entity-set-value! "gender" "varchar" (spinner-choice gender-list v)) '()))
       (medit-text 'child-age "numeric" (lambda (v) (entity-set-value! "age" "int" (string->number v)) '())))
      (horiz
-      (mtoggle-button-scale 'child-alive (lambda (v) (entity-set-value! "alive" "int" v) '()))
-      (mtoggle-button-scale 'child-home (lambda (v) (entity-set-value! "living-at-home" "int" v) '())))
+      (mspinner-other 'child-alive yesno-list (lambda (v) (entity-set-value! "alive" "varchar" (spinner-choice yesno-list v)) '()))
+      (mspinner-other 'child-home yesno-list (lambda (v) (entity-set-value! "living-at-home" "varchar" (spinner-choice yesno-list v)) '())))
      (delete-button)))
    (lambda (activity arg)
      (activity-layout activity))
@@ -1413,8 +1469,8 @@
        (mupdate 'edit-text 'child-name "name")
        (mupdate-spinner 'child-gender "gender" gender-list)
        (mupdate 'edit-text 'child-age "age")
-       (mupdate 'toggle-button 'child-alive "alive")
-       (mupdate 'toggle-button 'child-home "living-at-home")
+       (mupdate-spinner 'child-alive "alive" yesno-list)
+       (mupdate-spnner 'child-home "living-at-home" yesno-list)
        )))
 
    (lambda (activity) '())
@@ -1673,6 +1729,10 @@
                     "getting-db"
                     "http://192.168.2.1:8889/symbai.db"
                     (string-append "/sdcard/symbai/symbai.db"))
+                   (http-download
+                    "getting-log"
+                    "http://192.168.2.1:8889/log.txt"
+                    (string-append "/sdcard/symbai/server-log.txt"))
                    )
                   entity-types)
                  (list))))
@@ -1683,8 +1743,10 @@
                   (send-mail
                    ""
                    "From Symbai" "Please find attached your data"
-                   (cons
-                    "/sdcard/symbai/symbai.db"
+                   (append
+                    (list
+                     "/sdcard/symbai/symbai.db"
+                     "/sdcard/symbai/server-log.txt")
                     (map
                      (lambda (e)
                        (string-append "/sdcard/symbai/" e ".csv"))

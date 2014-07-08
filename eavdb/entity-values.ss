@@ -114,8 +114,8 @@
                               " where entity_id = ? and attribute_id = ?")
             entity-id (ktv-key kt))))
     (if (null? s) '()
-	(list (vector-ref (cadr s) 0)
-	      (vector-ref (cadr s) 1)))))
+        (list (vector-ref (cadr s) 0)
+              (vector-ref (cadr s) 1)))))
 
 (define (clean-value db table entity-id kt)
   (db-exec db (string-append "update " table "_value_" (ktv-type kt)
