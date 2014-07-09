@@ -484,6 +484,10 @@
                           (inexact->exact (round (* 256 0.9)))))
 
 
+(define (make-photo-button-title e)
+  (string-append
+   (ktv-get e "name") "\n" (ktv-get e "first-name") " " (ktv-get e "family")))
+
 (define (build-photo-buttons search)
   (grid-ify
    (map
@@ -496,7 +500,7 @@
          ((> (length search) 500)
           (button
            (make-id (string-append "chooser-" id))
-           (ktv-get e "name") 30 (layout (car button-size) (/ (cadr button-size) 3) 1 'centre 5)
+           (make-photo-button-title e) 20 (layout (car button-size) (/ (cadr button-size) 3) 1 'centre 5)
            (lambda ()
              (set-current! 'choose-result id)
              (list (finish-activity 0)))))
@@ -504,7 +508,7 @@
          ((equal? image "face")
           (button
            (make-id (string-append "chooser-" id))
-           (ktv-get e "name") 30 (layout (car button-size) (cadr button-size) 1 'centre 5)
+           (make-photo-button-title e) 20 (layout (car button-size) (cadr button-size) 1 'centre 5)
            (lambda ()
              (set-current! 'choose-result id)
              (list (finish-activity 0)))))
@@ -517,7 +521,7 @@
             (lambda ()
               (set-current! 'choose-result id)
               (list (finish-activity 0))))
-           (text-view 0 (ktv-get e "name") 20 (layout 'wrap-content 'wrap-content -1 'centre 0)))
+           (text-view 0 (make-photo-button-title e) 20 (layout 'wrap-content 'wrap-content -1 'centre 0)))
           ))))
     search)
    3))
@@ -538,7 +542,10 @@
                                                           (ktv-get household "unique_id"))))
                                       (list
                                        (list "photo" "file")
-                                       (list "name" "varchar")))))
+                                       (list "name" "varchar")
+                                       (list "first-name" "varchar")
+                                       (list "family" "varchar")
+                                       ))))
           (list
            (delayed "filter-delayed" 100 gradual-build)
            (update-widget
@@ -825,7 +832,7 @@
      (mbutton-scale 'find-individual (lambda () (list (start-activity "individual-chooser" choose-code "")))))
 
     (build-list-widget
-     db "sync" 'households "household" "household" (lambda () (get-setting-value "current-village"))
+     db "sync" 'households (list "name") "household" "household" (lambda () (get-setting-value "current-village"))
      (lambda ()
        (let ((name
               ;; if it's the first household - change the id...
@@ -880,7 +887,7 @@
                                         (number->string (car loc)) ", "
                                         (number->string (cadr loc)))))))
        (update-list-widget
-        db "sync" "household" "household" (get-setting-value "current-village"))))))
+        db "sync" (list "name") "household" "household" (get-setting-value "current-village"))))))
        (alog "end main start") r))
    (lambda (activity) '())
    (lambda (activity) '())
@@ -907,7 +914,7 @@
                               (cadr (list-ref (get-current 'villages-list '()) v)))
                 '()))
     (build-list-widget
-     db "sync" 'villages "village" "village" (lambda () #f)
+     db "sync" 'villages (list "name") "village" "village" (lambda () #f)
      (lambda () village-ktvlist)))
 
 
@@ -925,7 +932,7 @@
                       (find-index-from-name-array
                        (get-current 'villages-list '())
                        (get-current 'village #f)))
-       (update-list-widget db "sync" "village" "village" #f))))
+       (update-list-widget db "sync" (list "name") "village" "village" #f))))
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
@@ -996,7 +1003,7 @@
    "household-list"
    (build-activity
     (build-list-widget
-     db "sync" 'households "household" "household" (lambda () (get-current 'village #f))
+     db "sync" 'households (list "name") "household" "household" (lambda () (get-current 'village #f))
      (lambda ()
        ;; autogenerate the name from the current ID
        (ktvlist-merge
@@ -1013,7 +1020,7 @@
      (append
       (update-top-bar)
       (list (update-list-widget
-             db "sync" "household" "household" arg))))
+             db "sync" (list "name") "household" "household" arg))))
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
@@ -1040,7 +1047,7 @@
 
 
     (build-list-widget
-     db "sync" 'individuals "individual" "individual"
+     db "sync" 'individuals (list "name" "first-name" "family") "individual" "individual"
      (lambda () (get-current 'household #f))
      (lambda ()
        (let ((photo-id (get/inc-setting "photo-id"))
@@ -1073,7 +1080,7 @@
      (append
       (update-top-bar)
       (list
-       (update-list-widget db "sync" "individual" "individual" arg)
+       (update-list-widget db "sync" (list "name" "first-name" "family") "individual" "individual" arg)
        (mupdate 'edit-text 'num-pots "num-pots")
        (mupdate 'edit-text 'num-children "num-children"))
       (mupdate-gps 'house "house")
@@ -1387,7 +1394,7 @@
      (mspinner 'hire-land yesno-list (lambda (v) (entity-set-value! "hire-land" "varchar" (spinner-choice yesno-list v)) '())))
     (mtext 'crops-detail)
     (build-list-widget
-     db "sync" 'crops "crop" "crop" (lambda () (get-current 'individual #f))
+     db "sync" 'crops (list "name") "crop" "crop" (lambda () (get-current 'individual #f))
      (lambda () crop-ktvlist))
     (mspinner-other 'house-type house-type-list (lambda (v) (entity-set-value! "house-type" "varchar"
                                                                                (spinner-choice house-type-list v)) '()))
@@ -1415,7 +1422,7 @@
       (update-top-bar)
       (mupdate-spinner-other 'house-type "house-type" house-type-list)
       (list
-       (update-list-widget db "sync" "crop" "crop" (get-current 'individual #f))
+       (update-list-widget db "sync" (list "name") "crop" "crop" (get-current 'individual #f))
        (mupdate-spinner 'occupation-agriculture "occupation-agriculture" yesno-list)
        (mupdate-spinner 'occupation-gathering "occupation-gathering" yesno-list)
        (mupdate-spinner 'occupation-labour "occupation-labour" yesno-list)
@@ -1513,7 +1520,7 @@
      (build-person-selector 'mother "id-mother" (list) mother-request-code)
      (build-person-selector 'father "id-father" (list) father-request-code))
     (build-list-widget
-     db "sync" 'children "child" "child" (lambda () (get-current 'individual #f))
+     db "sync" 'children (list "name") "child" "child" (lambda () (get-current 'individual #f))
      (lambda () child-ktvlist))
     (mbutton 'gene-next (lambda () (list (start-activity "friendship" 0 ""))))
     (spacer 20))
@@ -1525,7 +1532,7 @@
      (entity-init! db "sync" "individual" (get-entity-by-unique db "sync" (get-current 'individual #f)))
      (append
       (update-top-bar)
-      (list (update-list-widget db "sync" "child" "child" (get-current 'individual #f)))
+      (list (update-list-widget db "sync" (list "name") "child" "child" (get-current 'individual #f)))
       (update-person-selector db "sync" 'mother "id-mother")
       (update-person-selector db "sync" 'father "id-father")))
    (lambda (activity) '())

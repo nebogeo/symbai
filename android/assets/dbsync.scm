@@ -803,7 +803,7 @@
 
 ;; a standard builder for list widgets of entities and a
 ;; make new button, to add defaults to the list
-(define (build-list-widget db table title entity-type edit-activity parent-fn ktv-default-fn)
+(define (build-list-widget db table title title-ids entity-type edit-activity parent-fn ktv-default-fn)
     (vert-colour
      colour-two
      (horiz
@@ -818,7 +818,7 @@
           (ktvlist-merge
            (ktv-default-fn)
            (list (ktv "parent" "varchar" (parent-fn)))))
-         (list (update-list-widget db table entity-type edit-activity (parent-fn))))))
+         (list (update-list-widget db table title-ids entity-type edit-activity (parent-fn))))))
      (linear-layout
       (make-id (string-append entity-type "-list"))
       'vertical
@@ -826,13 +826,28 @@
       (list 0 0 0 0)
       (list))))
 
+(define (make-list-widget-title e title-ids)
+  (if (eqv? (length title-ids) 1)
+      (ktv-get e (car title-ids))
+      (string-append
+       (ktv-get e (car title-ids)) "\n"
+       (foldl
+        (lambda (id r)
+          (if (equal? r "")
+              (ktv-get e id)
+              (string-append r " " (ktv-get e id))))
+        "" (cdr title-ids)))))
+
 ;; pull db data into list of button widgets
-(define (update-list-widget db table entity-type edit-activity parent)
+(define (update-list-widget db table title-ids entity-type edit-activity parent)
   (let ((search-results
          (if parent
              (db-filter-only db table entity-type
                              (list (list "parent" "varchar" "=" parent))
-                             (list (list "name" "varchar")))
+                             (map
+                              (lambda (id)
+                                (list id "varchar"))
+                              title-ids))
              (db-all db table entity-type))))
     (update-widget
      'linear-layout
@@ -844,8 +859,8 @@
           (lambda (e)
             (button
              (make-id (string-append "list-button-" (ktv-get e "unique_id")))
-             (or (ktv-get e "name") "Unamed item")
-             40 (layout 'fill-parent 'wrap-content 1 'centre 5)
+             (make-list-widget-title e title-ids)
+             30 (layout 'fill-parent 'wrap-content 1 'centre 5)
              (lambda ()
                (list (start-activity edit-activity 0 (ktv-get e "unique_id"))))))
           search-results)))))
