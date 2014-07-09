@@ -250,6 +250,8 @@
          #t r))
    #f ktv-list))
 
+;; go through each dirty entity and stick the user id
+;; on the end of the edit history lists - only for individuals
 (define (update-edit-history db table user-id)
   ;; get dirty individual entities
   (let ((de (db-select
@@ -259,7 +261,6 @@
     (when (not (null? de))
           (for-each
            (lambda (i)
-             (msg i)
              (let* ((entity-id (vector-ref i 0))
                     (dirty-items (dbg (get-entity-plain-for-sync db table entity-id))))
                (when (not (null? dirty-items))
@@ -558,7 +559,10 @@
                                     (list (list "parent" "varchar" "=" (get-setting-value "current-village")))
                                     (list (list "name" "varchar")))))
     (msg "UIF" households)
-    (update-individual-filter-inner households)))
+    (list
+     ;; clear contents...
+     (update-widget 'linear-layout (get-id "choose-pics") 'contents '())
+     (update-individual-filter-inner households))))
 
 
 (define (update-individual-filter2)
@@ -1648,7 +1652,7 @@
                       (filter-add! (make-filter "gender" "varchar" "="
                                                 (spinner-choice '(off female male) v))))
                   (if (get-current 'filter-switch #f)
-                      (list (update-individual-filter)) '())
+                      (update-individual-filter) '())
                   ))
       (medit-text
        'name "normal"
@@ -1657,12 +1661,12 @@
              (filter-remove! "name")
              (filter-add! (make-filter "name" "varchar" "like" (string-append v "%"))))
          (if (get-current 'filter-switch #f)
-             (list (update-individual-filter)) '()))
+             (update-individual-filter) '()))
          )
       (mtoggle-button-scale 'filter-switch
                             (lambda (v)
                               (set-current! 'filter-switch (not (zero? v)))
-                              '())))
+                              (if (not (zero? v)) (update-individual-filter) '()))))
 
      (horiz
       (medit-text 'quick-name "normal"
@@ -1695,7 +1699,7 @@
      (set-current! 'choose-result #f)
      (activity-layout activity))
    (lambda (activity arg)
-     (list (update-individual-filter (list))))
+     (update-individual-filter (list)))
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
