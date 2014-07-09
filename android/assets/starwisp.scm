@@ -1806,6 +1806,11 @@
                     "getting-db"
                     "http://192.168.2.1:8889/symbai.db"
                     (string-append "/sdcard/symbai/symbai.db"))
+                   ;; save paranoid backup
+                   (http-download
+                    "getting-db"
+                    "http://192.168.2.1:8889/symbai.db"
+                    (string-append "/sdcard/symbai/backup/symbai-" (date-time->string (date-time)) ".db"))
                    (http-download
                     "getting-log"
                     "http://192.168.2.1:8889/log.txt"
