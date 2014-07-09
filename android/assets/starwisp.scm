@@ -77,6 +77,7 @@
 (define village-ktvlist
   (list
    (ktv "name" "varchar" (mtext-lookup 'default-village-name))
+   (ktv "notes" "varchar" "")
    (ktv "block" "varchar" "")
    (ktv "district" "varchar" "")
    (ktv "school-closest-access" "varchar" "")
@@ -93,6 +94,7 @@
 (define household-ktvlist
   (list
    (ktv "name" "varchar" "")
+   (ktv "notes" "varchar" "")
    (ktv "num-pots" "int" 0)
    (ktv "num-children" "int" 0)
    (ktv "house-lat" "real" 0) ;; get from current location?
@@ -105,6 +107,7 @@
    (ktv "edit-history" "varchar" "")
    (ktv "social-edit-history" "varchar" "")
    (ktv "name" "varchar" "")
+   (ktv "notes" "varchar" "")
    (ktv "first-name" "varchar" "")
    (ktv "family" "varchar" "")
    (ktv "photo-id" "varchar" "")
@@ -207,6 +210,7 @@
 (define crop-ktvlist
   (list
    (ktv "name" "varchar" (mtext-lookup 'default-crop-name))
+   (ktv "notes" "varchar" "")
    (ktv "unit" "varchar" "unit")
    (ktv "used" "real" -1)
    (ktv "sold" "real" -1)
@@ -215,6 +219,7 @@
 (define child-ktvlist
   (list
    (ktv "name" "varchar" (mtext-lookup 'default-child-name))
+   (ktv "notes" "varchar" "")
    (ktv "alive" "varchar" "varchar" "not-set")
    (ktv "gender" "varchar" "not-set")
    (ktv "age" "int" -1)
@@ -859,9 +864,9 @@
           household-ktvlist
           (list (ktv "name" "varchar" name))))))
 
-    (mbutton 'villages (lambda () (list (start-activity "villages" 0 ""))))
-
-    (mbutton 'sync (lambda () (list (start-activity "sync" 0 ""))))
+    (horiz
+     (mbutton-scale 'villages (lambda () (list (start-activity "villages" 0 ""))))
+     (mbutton-scale 'sync (lambda () (list (start-activity "sync" 0 "")))))
     )
 
    (lambda (activity arg)
@@ -940,7 +945,7 @@
 
   (activity
    "village"
-     (build-activity
+   (build-activity
       (horiz
        (medit-text 'village-name "normal" (lambda (v) (entity-set-value! "name" "varchar" v) '()))
        (medit-text 'block "normal" (lambda (v) (entity-set-value! "block" "varchar" v) '())))
@@ -952,6 +957,8 @@
                (lambda ()
                  (list (start-activity "household-list" 0
                                        (get-current 'village #f)))))
+
+      (medit-text-large 'village-notes "normal" (lambda (v) (entity-set-value! "notes" "varchar" v) '()))
 
       (mtitle 'amenities)
       (build-amenity-widgets 'school #t)
@@ -977,6 +984,7 @@
       (list
        (mupdate 'edit-text 'village-name "name")
        (mupdate 'edit-text 'block "block")
+       (mupdate 'edit-text 'village-notes "notes")
        (mupdate 'edit-text 'district "district")
        (mupdate 'toggle-button 'car "car"))
       (update-amenity-widgets 'school)
@@ -1065,6 +1073,7 @@
                            (modulo photo-id (length social-types-list)))))
          )))))
 
+    (medit-text-large 'household-notes "normal" (lambda (v) (entity-set-value! "notes" "varchar" v) '()))
 
     (delete-button))
    (lambda (activity arg)
@@ -1078,6 +1087,7 @@
       (update-top-bar)
       (list
        (update-list-widget db "sync" (list "name" "first-name" "family") "individual" "individual" arg)
+       (mupdate 'edit-text 'household-notes "notes")
        (mupdate 'edit-text 'num-pots "num-pots")
        (mupdate 'edit-text 'num-children "num-children"))
       (mupdate-gps 'house "house")
@@ -1129,6 +1139,8 @@
      (mbutton-scale 'friendship-button (lambda () (list (start-activity "friendship" 0 ""))))
      (mbutton-scale 'social-button (lambda () (list (start-activity "social" 0 "")))))
     (spacer 20)
+    (medit-text-large 'individual-notes "normal" (lambda (v) (entity-set-value! "notes" "varchar" v) '()))
+    (spacer 20)
     (mbutton-scale 'move-button (lambda () (list (start-activity "move" 0 ""))))
     (delete-button))
 
@@ -1164,6 +1176,7 @@
                       (string-append "Last edit by " (history-get-last (entity-get-value "edit-history"))))
        (update-widget 'text-view (get-id "last-social-editor") 'text
                       (string-append "Last edit by " (history-get-last (entity-get-value "social-edit-history"))))
+       (mupdate 'edit-text 'individual-notes "notes")
        (mupdate 'text-view 'name-display "name")
        (mupdate 'text-view 'first-name-display "first-name")
        (mupdate 'text-view 'family-display "family")
@@ -1452,6 +1465,7 @@
      (medit-text 'crop-used "numeric" (lambda (v) (entity-set-value! "used" "real" (string->number v)) '()))
      (medit-text 'crop-sold "numeric" (lambda (v) (entity-set-value! "sold" "real" (string->number v)) '()))
      (medit-text 'crop-seed "numeric" (lambda (v) (entity-set-value! "seed" "varchar" v) '()))
+     (medit-text-large 'crop-notes "normal" (lambda (v) (entity-set-value! "notes" "varchar" v) '()))
      (delete-button)))
    (lambda (activity arg)
      (activity-layout activity))
@@ -1467,6 +1481,7 @@
        (mupdate 'edit-text 'crop-used "used")
        (mupdate 'edit-text 'crop-sold "sold")
        (mupdate 'edit-text 'crop-seed "seed")
+       (mupdate 'edit-text 'crop-notes "notes")
        )))
 
    (lambda (activity) '())
@@ -1486,6 +1501,7 @@
      (horiz
       (mspinner-other 'child-alive yesno-list (lambda (v) (entity-set-value! "alive" "varchar" (spinner-choice yesno-list v)) '()))
       (mspinner-other 'child-home yesno-list (lambda (v) (entity-set-value! "living-at-home" "varchar" (spinner-choice yesno-list v)) '())))
+     (medit-text-large 'child-notes "normal" (lambda (v) (entity-set-value! "notes" "varchar" v) '()))
      (delete-button)))
    (lambda (activity arg)
      (activity-layout activity))
@@ -1499,6 +1515,7 @@
        (mupdate 'edit-text 'child-name "name")
        (mupdate-spinner 'child-gender "gender" gender-list)
        (mupdate 'edit-text 'child-age "age")
+       (mupdate 'edit-text 'child-notes "notes")
        (mupdate-spinner 'child-alive "alive" yesno-list)
        (mupdate-spnner 'child-home "living-at-home" yesno-list)
        )))
