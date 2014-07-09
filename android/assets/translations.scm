@@ -6,6 +6,8 @@
    (list 'no (list "No" ))
    (list 'not-answered (list "Unanswered" ))
    (list 'not-set (list "Not set" ))
+   (list 'years-old (list " years old"))
+   (list 'birth-year (list "Birth year"))
    (list 'agree-record (list "Record"))
    (list 'agree-playback (list "Play"))
    (list 'photo-agree-record (list "Record"))

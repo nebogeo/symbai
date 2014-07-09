@@ -1216,7 +1216,14 @@
     (mspinner-other 'tribe tribes-list (lambda (v) (entity-set-value! "tribe" "varchar" (spinner-choice tribes-list v)) '()))
     (mspinner-other 'sub-tribe subtribe-list (lambda (v) (entity-set-value! "subtribe" "varchar" (spinner-choice subtribe-list v)) '()))
     (horiz
-     (medit-text 'age "numeric" (lambda (v) (entity-set-value! "age" "int" (string->number v)) '()))
+     (medit-text 'birth-year "numeric" (lambda (v)
+                                         (entity-set-value! "birth-year" "int" (string->number v))
+                                         (list (update-widget 'text-view (get-id "age") 'text
+                                                              (string-append
+                                                               "= "
+                                                               (number->string (- date-year (string->number v)))
+                                                               (mtext-lookup 'years-old))))))
+     (mtext 'age)
      (mspinner 'gender gender-list (lambda (v) (entity-set-value! "gender" "varchar" (spinner-choice gender-list v)) '())))
     (horiz
      (mspinner 'literate yesno-list (lambda (v) (entity-set-value! "literate" "varchar" (spinner-choice yesno-list v)) '()))
@@ -1241,7 +1248,7 @@
        (mupdate 'edit-text 'details-first-name "first-name")
        (mupdate 'edit-text 'details-family "family")
        (mupdate 'image-view 'photo "photo")
-       (mupdate 'edit-text 'age "age")
+       (mupdate 'edit-text 'birth-year "birth-year")
        (mupdate-spinner 'gender "gender" gender-list)
        (mupdate-spinner 'literate "literate" yesno-list)
        (mupdate-spinner 'education "education" education-list)
