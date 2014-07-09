@@ -123,6 +123,19 @@
       (entity-add-value-create! key type value))
      )))
 
+;; version to check the entity has the key
+(define (entity-set-value-mem! key type value)
+  (when (not (check-type type value))
+        (msg "INCORRECT TYPE FOR" key ":" type ":" value))
+
+  ;; then save to memory
+  (set-current!
+   'entity-values
+   (ktv-set
+    (get-current 'entity-values '())
+    (ktv key type value))))
+
+
 
 (define (date-time->string dt)
   (string-append
