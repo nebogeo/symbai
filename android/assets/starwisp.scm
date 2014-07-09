@@ -111,6 +111,8 @@
    (ktv "family" "varchar" "")
    (ktv "photo-id" "varchar" "")
    (ktv "photo" "file" "")
+   (ktv "agreement-photo" "file" "")
+   (ktv "agreement-general" "file" "")
    (ktv "tribe" "varchar" "not-set")
    (ktv "subtribe" "varchar" "not-set")
    (ktv "child" "int" -1)
@@ -234,7 +236,7 @@
 
 ;; return last element from comma seperated list
 (define (history-get-last txt)
-  (let ((l (string-split txt '(#\,))))
+  (let ((l (string-split txt '(#\:))))
     (if (null? l) ""
         (car (reverse l)))))
 
@@ -273,7 +275,7 @@
                                (msg "history - setting" type)
                                (if (equal? editors "")
                                    (update-value db table entity-id (ktv type "varchar" (dbg user-id)))
-                                   (update-value db table entity-id (ktv type "varchar" (dbg (string-append editors "," user-id)))))))))))
+                                   (update-value db table entity-id (ktv type "varchar" (dbg (string-append editors ":" user-id)))))))))))
            (cdr de)))))
 
 (define (debug-timer-cb)
@@ -1087,7 +1089,17 @@
    "individual"
    (build-activity
     (horiz
-     (image-view (make-id "photo") "face" (layout 240 320 -1 'centre 10))
+     (vert
+      (image-view (make-id "photo") "face" (layout 240 320 -1 'centre 10))
+      (mbutton
+       'change-photo
+       (lambda ()
+         (set-current!
+          'photo-name (string-append (entity-get-value "unique_id") "-" (get-unique "p") "-face.jpg"))
+         (list
+          (take-photo (string-append dirname "files/" (get-current 'photo-name "")) photo-code))
+         )))
+
      (vert
       (mtext 'name-display)
       (spacer 20)
@@ -1122,9 +1134,28 @@
      (set-current! 'activity-title "Individual")
      (entity-init! db "sync" "individual" (get-entity-by-unique db "sync" arg))
      (set-current! 'individual arg)
+     (msg "individual on create")
      (append
       (update-top-bar)
       (list
+       (update-widget 'button (get-id "details-button") 'set-enabled
+                      (if (equal? (entity-get-value "agreement-general") "") 0 1))
+       (update-widget 'button (get-id "family-button") 'set-enabled
+                      (if (equal? (entity-get-value "agreement-general") "") 0 1))
+       (update-widget 'button (get-id "migration-button") 'set-enabled
+                      (if (equal? (entity-get-value "agreement-general") "") 0 1))
+       (update-widget 'button (get-id "income-button") 'set-enabled
+                      (if (equal? (entity-get-value "agreement-general") "") 0 1))
+       (update-widget 'button (get-id "genealogy-button") 'set-enabled
+                      (if (equal? (entity-get-value "agreement-general") "") 0 1))
+       (update-widget 'button (get-id "friendship-button") 'set-enabled
+                      (if (equal? (entity-get-value "agreement-general") "") 0 1))
+       (update-widget 'button (get-id "social-button") 'set-enabled
+                      (if (equal? (entity-get-value "agreement-general") "") 0 1))
+
+       (update-widget 'button (get-id "change-photo") 'set-enabled
+                      (if (equal? (entity-get-value "agreement-photo") "") 0 1))
+
        (update-widget 'text-view (get-id "last-editor") 'text
                       (string-append "Last edit by " (history-get-last (entity-get-value "edit-history"))))
        (update-widget 'text-view (get-id "last-social-editor") 'text
@@ -1138,23 +1169,29 @@
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
-   (lambda (activity requestcode resultcode) '()))
+   (lambda (activity requestcode resultcode)
+     (cond
+      ((eqv? requestcode photo-code)
+       ;; todo: means we save when the camera happens
+       ;; need to do this before init is called again in on-start,
+       ;; which happens next
+       (let ((unique-id (entity-get-value "unique_id")))
+         (when (eqv? resultcode -1) ;; success!
+               (entity-set-value! "photo" "file" (get-current 'photo-name "error no photo name!!"))
+               (entity-update-values!))
+         ;; need to reset the individual from the db now (as update reset it)
+         (entity-init! db "sync" "individual" (get-entity-by-unique db "sync" unique-id)))
+       (list
+        (mupdate 'image-view 'photo "photo")))
+      (else
+       '()))))
 
   (activity
    "details"
    (build-activity
     (horiz
 
-     (vert
-      (image-view (make-id "photo") "face" (layout 240 320 -1 'centre 10))
-      (mbutton
-       'change-photo
-       (lambda ()
-         (set-current!
-          'photo-name (string-append (entity-get-value "unique_id") "-" (get-unique "p") "-face.jpg"))
-         (list
-          (take-photo (string-append dirname "files/" (get-current 'photo-name "")) photo-code))
-         )))
+     (image-view (make-id "photo") "face" (layout 240 320 -1 'centre 10))
 
      (vert
       (medit-text 'details-first-name "normal" (lambda (v) (entity-set-value! "first-name" "varchar" v) '()))
@@ -1196,22 +1233,7 @@
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
-   (lambda (activity requestcode resultcode)
-     (cond
-      ((eqv? requestcode photo-code)
-       ;; todo: means we save when the camera happens
-       ;; need to do this before init is called again in on-start,
-       ;; which happens next
-       (let ((unique-id (entity-get-value "unique_id")))
-         (when (eqv? resultcode -1) ;; success!
-               (entity-set-value! "photo" "file" (get-current 'photo-name "error no photo name!!"))
-               (entity-update-values!))
-         ;; need to reset the individual from the db now (as update reset it)
-         (entity-init! db "sync" "individual" (get-entity-by-unique db "sync" unique-id)))
-       (list
-        (mupdate 'image-view 'photo "photo")))
-      (else
-       '()))))
+   (lambda (activity requestcode resultcode) '()))
 
   (activity
    "family"
@@ -1603,23 +1625,52 @@
   (activity
    "agreement"
    (build-activity
+    (mtext 'general-agreement-text)
     (horiz
-
      (mtoggle-button-scale
       'agree-record
       (lambda (v)
         (list
-         (if (eqv? v 1) (soundfile-start-recording "/sdcard/symbai/test.3gp")
-             (soundfile-stop-recording)))))
+         (cond
+          ((eqv? v 1)
+           (let ((filename (string-append
+                            "sdcard/symbai/files/"
+                            (entity-get-value "unique_id") "-" (get-unique "general") "-record.3gp")))
+             (entity-set-value! "agreement-general" "file" filename)
+             (soundfile-start-recording filename)))
+          (else (soundfile-stop-recording))))))
      (mtoggle-button-scale
       'agree-playback
       (lambda (v)
         (list
-         (if (eqv? v 1) (soundfile-start-playback "/sdcard/symbai/test.3gp")
+         (if (eqv? v 1)
+             (soundfile-start-playback (entity-get-value "agreement-general"))
              (soundfile-stop-playback)))))
      )
-    (mbutton 'agreement-next (lambda () (list (start-activity "details" 0 ""))))
-    (spacer 20)
+    (spacer 100)
+    (mtext 'photo-agreement-text)
+    (horiz
+     (mtoggle-button-scale
+      'photo-agree-record
+      (lambda (v)
+        (list
+         (cond
+          ((eqv? v 1)
+           (let ((filename (string-append
+                            "sdcard/symbai/files/"
+                            (entity-get-value "unique_id") "-" (get-unique "photo") "-record.3gp")))
+             (entity-set-value! "agreement-photo" "file" filename)
+             (msg "recording" filename)
+             (soundfile-start-recording filename)))
+          (else (soundfile-stop-recording))))))
+     (mtoggle-button-scale
+      'photo-agree-playback
+      (lambda (v)
+        (list
+         (if (eqv? v 1)
+             (soundfile-start-playback (entity-get-value "agreement-photo"))
+             (soundfile-stop-playback)))))
+     )
     )
    (lambda (activity arg)
      (set-current! 'activity-title "Agreement")
