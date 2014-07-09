@@ -76,6 +76,29 @@
     filter)
    "where e.entity_type = ? order by n.value"))
 
+(define (build-query-inc-deleted table filter)
+  (alog "build-query start")
+  (string-append
+   (foldl
+    (lambda (i r)
+      (let ((var (string-append (filter-key i) "_var")))
+        ;; add a query chunk
+        (string-append
+         r "join " table "_value_" (filter-type i) " "
+         "as " var " on "
+         var ".entity_id = e.entity_id and " var ".attribute_id = '" (filter-key i) "' and "
+         var ".value " (filter-op i) " ? ")))
+
+    ;; boilerplate query start
+    (string-append
+     "select e.entity_id from " table "_entity as e "
+     ;; order by name
+     "join " table "_value_varchar "
+     "as n on n.entity_id = e.entity_id and n.attribute_id = 'name' ")
+    filter)
+   "where e.entity_type = ? order by n.value"))
+
+
 (define (build-args filter)
   (map
    (lambda (i)
@@ -86,6 +109,25 @@
   (let ((q (build-query table filter)))
     (alog q)
   (alog "filter-entities start")
+  (let ((s (apply
+            db-select
+            (append
+             (list db q)
+             (build-args filter)
+             (list type)))))
+    (alog "filter-entities end")
+    (msg (db-status db))
+    (if (null? s)
+        '()
+        (map
+         (lambda (i)
+           (vector-ref i 0))
+         (cdr s))))))
+
+(define (filter-entities-inc-deleted db table type filter)
+  (let ((q (build-query-inc-deleted table filter)))
+    (alog q)
+    (alog "filter-entities start")
   (let ((s (apply
             db-select
             (append

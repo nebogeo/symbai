@@ -41,8 +41,6 @@
  (list
   (ktv "user-id" "varchar" "not set")
   (ktv "language" "int" 0)
-  (ktv "house-id" "int" 0)
-  (ktv "photo-id" "int" 0)
   (ktv "current-village" "varchar" "none")))
 
 (define (get-setting-value name)
@@ -483,6 +481,11 @@
 (define button-size (list (inexact->exact (round (* 192 0.9)))
                           (inexact->exact (round (* 256 0.9)))))
 
+(define (get-next-id db table type parent)
+  (+ 1 (length (filter-entities-inc-deleted
+                db table type
+                (list (list "parent" "varchar" "=" parent))))))
+
 
 (define (make-photo-button-title e)
   (string-append
@@ -850,7 +853,7 @@
                    (ktv-get (get-entity-by-unique db "sync" (get-setting-value "current-village")) "name")
                    ":"
                    (get-setting-value "user-id") ":"
-                   (number->string (get/inc-setting "house-id"))))))
+                   (number->string (get-next-id db "sync" "household" (get-setting-value "current-village")))))))
          ;; autogenerate the name from the current ID
          (ktvlist-merge
           household-ktvlist
@@ -859,10 +862,6 @@
     (mbutton 'villages (lambda () (list (start-activity "villages" 0 ""))))
 
     (mbutton 'sync (lambda () (list (start-activity "sync" 0 ""))))
-
-    (horiz
-     (medit-text 'house-id "numeric" (lambda (v) (set-setting! "house-id" "int" (string->number v)) (list)))
-     (medit-text 'photo-id "numeric" (lambda (v) (set-setting! "photo-id" "int" (string->number v)) (list))))
     )
 
    (lambda (activity arg)
@@ -877,8 +876,6 @@
       (update-top-bar)
       (list
        (update-widget 'edit-text (get-id "user-id") 'text (get-setting-value "user-id"))
-       (update-widget 'edit-text (get-id "house-id") 'text (get-setting-value "house-id"))
-       (update-widget 'edit-text (get-id "photo-id") 'text (get-setting-value "photo-id"))
        (update-widget 'spinner (get-id "languages-spinner") 'selection
                       (get-setting-value "language"))
        (gps-start "gps" (lambda (loc)
@@ -1012,7 +1009,7 @@
                    (string-append
                     (ktv-get (get-entity-by-unique db "sync" (get-setting-value "current-village")) "name")
                     (get-setting-value "user-id")
-                    (number->string (get/inc-setting "house-id")))))))))
+                    (number->string (get-next-id db "sync" "household" (get-setting-value "current-village"))))))))))
    (lambda (activity arg)
      (activity-layout activity))
    (lambda (activity arg)
@@ -1050,7 +1047,7 @@
      db "sync" 'individuals (list "name" "first-name" "family") "individual" "individual"
      (lambda () (get-current 'household #f))
      (lambda ()
-       (let ((photo-id (get/inc-setting "photo-id"))
+       (let ((photo-id (get-next-id db "sync" "individual" (get-current 'household #f)))
              (household-name (ktv-get (get-entity-by-unique db "sync" (get-current 'household #f)) "name")))
          (ktvlist-merge
           individual-ktvlist
