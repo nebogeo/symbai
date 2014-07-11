@@ -71,7 +71,7 @@ public class starwisp extends StarwispActivity
         ActivityManager.RegisterActivity("family",FamilyActivity.class);
         ActivityManager.RegisterActivity("migration",MigrationActivity.class);
         ActivityManager.RegisterActivity("income",IncomeActivity.class);
-        ActivityManager.RegisterActivity("geneaology",GeneaologyActivity.class);
+        ActivityManager.RegisterActivity("genealogy",GenealogyActivity.class);
         ActivityManager.RegisterActivity("social",SocialActivity.class);
         ActivityManager.RegisterActivity("friendship",FriendshipActivity.class);
         ActivityManager.RegisterActivity("individual-chooser",IndividualChooserActivity.class);
@@ -96,6 +96,8 @@ public class starwisp extends StarwispActivity
 
         File filesdir = new File(m_AppDir+"/files/");
         filesdir.mkdirs();
+        File backupdir = new File(m_AppDir+"/backup/");
+        backupdir.mkdirs();
 
         // build static things
         m_Scheme = new Scheme(this);

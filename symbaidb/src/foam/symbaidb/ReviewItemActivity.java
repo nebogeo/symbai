@@ -13,18 +13,18 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package foam.symbai;
+package foam.symbaidb;
 
 import android.app.Activity;
 import android.os.Bundle;
 import android.content.Context;
 
-public class GeneaologyActivity extends foam.starwisp.StarwispActivity
+public class ReviewItemActivity extends foam.starwisp.StarwispActivity
 {
     @Override
     public void onCreate(Bundle savedInstanceState)
     {
-        m_Name = "geneaology";
+        m_Name = "review-item";
         super.onCreate(savedInstanceState);
     }
 }

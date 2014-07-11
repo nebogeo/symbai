@@ -86,3 +86,10 @@
    (lambda (i)
      (get-entity-only db table i kt-list))
    (filter-entities db table type filter)))
+
+;; only return (eg. name and photo)
+(define (db-filter-only-inc-deleted db table type filter kt-list)
+  (map
+   (lambda (i)
+     (get-entity-only db table i kt-list))
+   (filter-entities-inc-deleted db table type filter)))

@@ -17,6 +17,8 @@
 
 (msg "dbsync.scm")
 
+(define unset-int 2147483647)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; stuff in memory
 
@@ -88,22 +90,51 @@
 (define (entity-get-value key)
   (ktv-get (get-current 'entity-values '()) key))
 
+(define (check-type type value)
+  (cond
+   ((equal? type "varchar")
+    (string? value))
+   ((equal? type "file")
+    (string? value))
+   ((equal? type "int")
+    (number? value))
+   ((equal? type "real")
+    (number? value))))
+
 ;; version to check the entity has the key
 (define (entity-set-value! key type value)
+  (when (not (check-type type value))
+        (msg "INCORRECT TYPE FOR" key ":" type ":" value))
+
   (let ((existing-type (ktv-get-type (get-current 'entity-values '()) key)))
-    (if (equal? existing-type type)
-        (set-current!
-         'entity-values
-         (ktv-set
-          (get-current 'entity-values '())
-          (ktv key type value)))
-        ;;
-        (begin
-          (msg "entity-set-value! - adding new " key "of type" type "to entity")
-          (entity-add-value-create! key type value)))
-    ;; save straight to local db every time
-    (entity-update-single-value! (list key type value))
-    ))
+    (cond
+     ((equal? existing-type type)
+      ;; save straight to local db every time (checks for modification)
+      (entity-update-single-value! (list key type value))
+      ;; then save to memory
+      (set-current!
+       'entity-values
+       (ktv-set
+        (get-current 'entity-values '())
+        (ktv key type value))))
+      ;;
+     (else
+      (msg "entity-set-value! - adding new " key "of type" type "to entity")
+      (entity-add-value-create! key type value))
+     )))
+
+;; version to check the entity has the key
+(define (entity-set-value-mem! key type value)
+  (when (not (check-type type value))
+        (msg "INCORRECT TYPE FOR" key ":" type ":" value))
+
+  ;; then save to memory
+  (set-current!
+   'entity-values
+   (ktv-set
+    (get-current 'entity-values '())
+    (ktv key type value))))
+
 
 
 (define (date-time->string dt)
@@ -163,6 +194,8 @@
         (table (get-current 'table #f))
         (unique-id (ktv-get (get-current 'entity-values '()) "unique_id")))
     (cond
+     ((ktv-eq? (ktv-get-whole (get-current 'entity-values '()) (ktv-key ktv)) ktv)
+      (msg "eusv: no change for" (ktv-key ktv)))
      (unique-id
       (update-entity db table (entity-id-from-unique db table unique-id) (list ktv)))
      (else
@@ -455,7 +488,7 @@
   (list
    (network-connect
     "network"
-    "mongoose-web"
+    "symbai-web"
     (lambda (state)
       (debug! (string-append "Raspberry Pi connection state now: " state))
       (append
@@ -575,11 +608,25 @@
                (layout 'fill-parent 'wrap-content 1 'centre 0)
                fn))))
 
+(define (medit-text-large id type fn)
+  (linear-layout
+   (make-id (string-append (symbol->string id) "-container"))
+   'vertical
+   (layout 'fill-parent 'wrap-content 1 'centre 20)
+   (list 0 0 0 0)
+   (list
+    (text-view 0 (mtext-lookup id)
+               30 (layout 'wrap-content 'wrap-content -1 'centre 0))
+    (edit-text (symbol->id id) "" 30 type
+               (layout 'fill-parent 300 -1 'left 0)
+               fn))))
+
+
 (define (mspinner id types fn)
   (vert
    (text-view (symbol->id id)
               (mtext-lookup id)
-              30 (layout 'wrap-content 'wrap-content 1 'centre 10))
+              30 (layout 'wrap-content 'wrap-content 1 'centre 0))
    (spinner (make-id (string-append (symbol->string id) "-spinner"))
             (map mtext-lookup types)
             (layout 'wrap-content 'wrap-content 1 'centre 0)
@@ -650,15 +697,19 @@
 (define (image-invalid? image-name)
   (or (null? image-name)
       (not image-name)
-      (equal? image-name "none")))
+      (equal? image-name "none")
+      (equal? image-name "")))
 
 ;; fill out the widget from the current entity in the memory store
 ;; dispatches based on widget type
 (define (mupdate widget-type id-symbol key)
   (cond
    ((or (eq? widget-type 'edit-text) (eq? widget-type 'text-view))
-    (update-widget widget-type (get-symbol-id id-symbol) 'text
-                   (entity-get-value key)))
+    (let ((v (entity-get-value key)))
+      (update-widget widget-type (get-symbol-id id-symbol) 'text
+                     ;; hide -1 as it represents unset
+                     (if (and (number? v) (eqv? v -1))
+                         "" v))))
    ((eq? widget-type 'toggle-button)
     (update-widget widget-type (get-symbol-id id-symbol) 'checked
                    (entity-get-value key)))
@@ -779,7 +830,7 @@
 
 ;; a standard builder for list widgets of entities and a
 ;; make new button, to add defaults to the list
-(define (build-list-widget db table title entity-type edit-activity parent-fn ktv-default-fn)
+(define (build-list-widget db table title title-ids entity-type edit-activity parent-fn ktv-default-fn)
     (vert-colour
      colour-two
      (horiz
@@ -794,7 +845,7 @@
           (ktvlist-merge
            (ktv-default-fn)
            (list (ktv "parent" "varchar" (parent-fn)))))
-         (list (update-list-widget db table entity-type edit-activity (parent-fn))))))
+         (list (update-list-widget db table title-ids entity-type edit-activity (parent-fn))))))
      (linear-layout
       (make-id (string-append entity-type "-list"))
       'vertical
@@ -802,13 +853,28 @@
       (list 0 0 0 0)
       (list))))
 
+(define (make-list-widget-title e title-ids)
+  (if (eqv? (length title-ids) 1)
+      (ktv-get e (car title-ids))
+      (string-append
+       (ktv-get e (car title-ids)) "\n"
+       (foldl
+        (lambda (id r)
+          (if (equal? r "")
+              (ktv-get e id)
+              (string-append r " " (ktv-get e id))))
+        "" (cdr title-ids)))))
+
 ;; pull db data into list of button widgets
-(define (update-list-widget db table entity-type edit-activity parent)
+(define (update-list-widget db table title-ids entity-type edit-activity parent)
   (let ((search-results
          (if parent
              (db-filter-only db table entity-type
                              (list (list "parent" "varchar" "=" parent))
-                             (list (list "name" "varchar")))
+                             (map
+                              (lambda (id)
+                                (list id "varchar"))
+                              title-ids))
              (db-all db table entity-type))))
     (update-widget
      'linear-layout
@@ -820,8 +886,8 @@
           (lambda (e)
             (button
              (make-id (string-append "list-button-" (ktv-get e "unique_id")))
-             (or (ktv-get e "name") "Unamed item")
-             40 (layout 'fill-parent 'wrap-content 1 'centre 5)
+             (make-list-widget-title e title-ids)
+             30 (layout 'fill-parent 'wrap-content 1 'centre 5)
              (lambda ()
                (list (start-activity edit-activity 0 (ktv-get e "unique_id"))))))
           search-results)))))
@@ -1029,13 +1095,13 @@
      (msg "making village" i)
      (let ((village (simpsons-village db table village-ktvlist)))
        (looper!
-        3
+        15
         (lambda (i)
           (alog "household")
           (msg "making household" i)
           (let ((household (simpsons-household db table village household-ktvlist)))
             (looper!
-             (random 10)
+             (+ 2 (random 5))
              (lambda (i)
                (msg "making individual" i)
                (simpsons-individual db table household individual-ktvlist))))))))))

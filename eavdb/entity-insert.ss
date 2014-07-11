@@ -65,7 +65,7 @@
     ;; add all the keys
     (for-each
      (lambda (ktv)
-       (insert-value db table id ktv dirty))
+       (insert-value db table id ktv (not (zero? dirty))))
      ktvlist)
 
     (db-exec db "end transaction")
