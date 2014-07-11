@@ -115,7 +115,7 @@
    filter))
 
 (define (filter-entities db table type filter)
-  (let ((q (build-query table filter)))
+  (let ((q (build-query table filter (not (equal? type "*")))))
     (let ((s (apply
 	      db-select
 	      (append
