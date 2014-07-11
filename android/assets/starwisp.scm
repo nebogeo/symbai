@@ -1401,7 +1401,7 @@
      (mspinner 'contribute yesno-list (lambda (v) (entity-set-value! "contribute" "varchar" (spinner-choice yesno-list v)) '()))
      (mspinner 'own-land yesno-list (lambda (v) (entity-set-value! "own-land" "varchar" (spinner-choice yesno-list v)) '())))
     (horiz
-     (mspinner 'rent-land yesno-list (lambda (v) (entity-set-value! "rend-land" "varchar" (spinner-choice yesno-list v)) '()))
+     (mspinner 'rent-land yesno-list (lambda (v) (entity-set-value! "rent-land" "varchar" (spinner-choice yesno-list v)) '()))
      (mspinner 'hire-land yesno-list (lambda (v) (entity-set-value! "hire-land" "varchar" (spinner-choice yesno-list v)) '())))
     (mtext 'crops-detail)
     (build-list-widget
