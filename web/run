@@ -1,4 +1,5 @@
 #!/bin/bash
-./server.scm 8889
+./server.scm 8889 >>client/htdocs/log.txt 2>&1
+
 
 

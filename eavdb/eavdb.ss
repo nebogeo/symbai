@@ -35,14 +35,24 @@
 
 (msg "hello from eavdb.ss")
 
+
+(define (upgrade-table db name)
+  (db-exec db (string-append "alter table " name " add version integer")))
+
+
 ;; create eav tables (add types as required)
 (define (setup db table)
+  (msg "db setup")
   (db-exec db (string-append "create table " table "_entity ( entity_id integer primary key autoincrement, entity_type varchar(256), unique_id varchar(256), dirty integer, version integer)"))
   (db-exec db (string-append "create table " table "_attribute ( id integer primary key autoincrement, attribute_id varchar(256), entity_type varchar(256), attribute_type varchar(256))"))
   (db-exec db (string-append "create table " table "_value_varchar ( id integer primary key autoincrement, entity_id integer, attribute_id varchar(255), value varchar(4096), dirty integer, version integer)"))
+  (upgrade-table db (string-append table "_value_varchar"))
   (db-exec db (string-append "create table " table "_value_int ( id integer primary key autoincrement, entity_id integer, attribute_id varchar(255), value integer, dirty integer, version integer)"))
+  (upgrade-table db (string-append table "_value_int"))
   (db-exec db (string-append "create table " table "_value_real ( id integer primary key autoincrement, entity_id integer, attribute_id varchar(255), value real, dirty integer, version integer)"))
-  (db-exec db (string-append "create table " table "_value_file ( id integer primary key autoincrement, entity_id integer, attribute_id varchar(255), value varchar(4096), dirty integer, version integer)")))
+  (upgrade-table db (string-append table "_value_real"))
+  (db-exec db (string-append "create table " table "_value_file ( id integer primary key autoincrement, entity_id integer, attribute_id varchar(255), value varchar(4096), dirty integer, version integer)"))
+  (upgrade-table db (string-append table "_value_file")))
 
 
 (define (validate db)
@@ -53,11 +63,10 @@
 ;; helpers
 
 (define (db-all db table type)
-  (msg "db-all")
   (map
    (lambda (i)
      (get-entity db table i))
-   (dbg (all-entities db table type))))
+   (all-entities db table type)))
 
 (define (db-with-parent db table type parent)
   (map
@@ -73,8 +82,7 @@
 
 ;; only return (eg. name and photo)
 (define (db-filter-only db table type filter kt-list)
-  (msg "db-filter-only")
   (map
    (lambda (i)
      (get-entity-only db table i kt-list))
-   (dbg (filter-entities db table type filter))))
+   (filter-entities db table type filter)))

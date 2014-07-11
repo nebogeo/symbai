@@ -1,5 +1,5 @@
-#!/usr//bin/env mzscheme
-#lang scheme/base
+#!/usr//bin/env racket
+#lang racket
 ;; Naked on Pluto Copyright (C) 2010 Aymeric Mansoux, Marloes de Valk, Dave Griffiths
 ;;
 ;; This program is free software: you can redistribute it and/or modify
@@ -15,7 +15,7 @@
 ;; You should have received a copy of the GNU Affero General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(require scheme/system
+(require racket/system
          scheme/foreign
          scheme/cmdline
          web-server/servlet
@@ -63,6 +63,15 @@
  ;     (begin
 ;	(msg "couldn't get lock")
 ;	(pluto-response (scheme->txt '("fail"))))))
+
+(define (syncro-new fn)
+   (msg "s-start")
+   (semaphore-wait sema)
+   (let ((r (fn)))
+     (msg "s-end")
+     (semaphore-post sema)
+     r))
+
 
 (define registered-requests
   (list
@@ -150,7 +159,7 @@
        (lambda ()
 	 (msg "entity-csv")
 	 (let ((r (csv db table type)))
-	   (msg "--------------------------------------- csv request for" type "[" r "]")
+	   ;;(msg "--------------------------------------- csv request for" type "[" r "]")
 	   (pluto-response
 	    r))))))
 
@@ -161,8 +170,8 @@
        (lambda ()
          (msg "file-list")
          (pluto-response
-          (dbg (scheme->txt
-           (map path->string (directory-list "files/")))))))))
+          (scheme->txt
+           (map path->string (directory-list "files/"))))))))
 
 
    ))
@@ -172,6 +181,7 @@
     (if (not (null? values))   ; do we have some parameters?
         (let ((name (assq 'fn values)))
 	  (msg "request incoming:" name)
+	  (msg "arguments:" values)
           (if name           ; is this a well formed request?
 	      (request-dispatch
 	       registered-requests

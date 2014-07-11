@@ -22,8 +22,11 @@
 ;; tinyscheme
 ;(define db-select db-exec)
 
+(define (db-exec . args) 
+  (with-handlers (((lambda (x) #t) (lambda (x) (msg "error:" x))))
+		 (apply exec/ignore args)))
+
 ;; racket
-(define db-exec exec/ignore)
 (define db-select select)
 (define db-insert insert)
 (define (db-status db) (errmsg db))
