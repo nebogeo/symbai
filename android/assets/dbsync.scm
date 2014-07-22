@@ -106,22 +106,15 @@
   (when (not (check-type type value))
         (msg "INCORRECT TYPE FOR" key ":" type ":" value))
 
-  (let ((existing-type (ktv-get-type (get-current 'entity-values '()) key)))
-    (cond
-     ((equal? existing-type type)
-      ;; save straight to local db every time (checks for modification)
-      (entity-update-single-value! (list key type value))
-      ;; then save to memory
-      (set-current!
-       'entity-values
-       (ktv-set
-        (get-current 'entity-values '())
-        (ktv key type value))))
-      ;;
-     (else
-      (msg "entity-set-value! - adding new " key "of type" type "to entity")
-      (entity-add-value-create! key type value))
-     )))
+  ;; save straight to local db every time (checks for modification)
+  (entity-update-single-value! (list key type value))
+
+  ;; save to memory
+  (set-current!
+   'entity-values
+   (ktv-set
+    (get-current 'entity-values '())
+    (ktv key type value))))
 
 ;; version to check the entity has the key
 (define (entity-set-value-mem! key type value)
@@ -192,9 +185,10 @@
 (define (entity-update-single-value! ktv)
   (let ((db (get-current 'db #f))
         (table (get-current 'table #f))
-        (unique-id (ktv-get (get-current 'entity-values '()) "unique_id")))
+        (unique-id (ktv-get (get-current 'entity-values '()) "unique_id"))
+        (previous (ktv-get-whole (get-current 'entity-values '()) (ktv-key ktv))))
     (cond
-     ((ktv-eq? (ktv-get-whole (get-current 'entity-values '()) (ktv-key ktv)) ktv)
+     ((and previous (ktv-eq? previous ktv))
       (msg "eusv: no change for" (ktv-key ktv)))
      (unique-id
       (update-entity db table (entity-id-from-unique db table unique-id) (list ktv)))
@@ -707,9 +701,11 @@
    ((or (eq? widget-type 'edit-text) (eq? widget-type 'text-view))
     (let ((v (entity-get-value key)))
       (update-widget widget-type (get-symbol-id id-symbol) 'text
-                     ;; hide -1 as it represents unset
-                     (if (and (number? v) (eqv? v -1))
-                         "" v))))
+                     (cond
+                      ;; hide -1 as it represents unset
+                      ((and (number? v) (eqv? v -1)) "")
+                      ((not v) "") ;; unset text
+                      (else v)))))
    ((eq? widget-type 'toggle-button)
     (update-widget widget-type (get-symbol-id id-symbol) 'checked
                    (entity-get-value key)))
@@ -837,8 +833,7 @@
       (mtitle-scale title)
       (button
        (make-id (string-append (symbol->string title) "-add"))
-       (mtext-lookup 'add-item-to-list)
-       40 (layout 100 'wrap-content 1 'centre 5)
+       "+" 40 (layout 100 'wrap-content 1 'centre 5)
        (lambda ()
          (entity-create!
           db table entity-type

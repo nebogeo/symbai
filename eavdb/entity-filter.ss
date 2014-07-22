@@ -78,10 +78,10 @@
      ;; order by name
      "join " table "_value_varchar "
      "as n on n.entity_id = e.entity_id and n.attribute_id = 'name' "
-     ;; ignore deleted (if exists)
-     "left join " table "_value_int "
+     ;; ignore deleted
+     "join " table "_value_int "
      "as d on d.entity_id = e.entity_id and d.attribute_id = 'deleted' and "
-     "d.value = 0 or d.value = NULL ")
+     "d.value = 0 ")
     filter)
    (if typed "where e.entity_type = ? order by n.value"
        "order by n.value")))
@@ -135,7 +135,7 @@
   (let ((s (apply
             db-select
             (append
-             (list db (build-query table filter (not (equal? type "*"))))
+             (list db q)
              (build-args filter)
              (if (equal? type "*") '() (list type))))))
     (msg (db-status db))

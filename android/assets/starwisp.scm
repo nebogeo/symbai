@@ -95,10 +95,19 @@
   (list
    (ktv "name" "varchar" "")
    (ktv "notes" "varchar" "")
+   (ktv "agreement" "file" "")
    (ktv "num-pots" "int" 0)
-   (ktv "num-children" "int" 0)
+   (ktv "num-male-children" "int" 0)
+   (ktv "num-female-children" "int" 0)
+   (ktv "num-male-adults" "int" 0)
+   (ktv "num-female-adults" "int" 0)
    (ktv "house-lat" "real" 0) ;; get from current location?
    (ktv "house-lon" "real" 0)
+   (ktv "radio" "varchar" "not-set")
+   (ktv "tv" "varchar" "not-set")
+   (ktv "mobile" "varchar" "not-set")
+   (ktv "locality" "varchar" "not-set")
+   (ktv "house-type" "varchar" "not-set")
    (ktv "toilet-lat" "real" 0)
    (ktv "toilet-lon" "real" 0)))
 
@@ -147,12 +156,8 @@
    (ktv "own-land" "varchar" "not-set")
    (ktv "rent-land" "varchar" "not-set")
    (ktv "hire-land" "varchar" "not-set")
-   (ktv "house-type" "varchar" "not-set")
    (ktv "loan" "int" -1)
    (ktv "earning" "int" -1)
-   (ktv "radio" "varchar" "not-set")
-   (ktv "tv" "varchar" "not-set")
-   (ktv "mobile" "varchar" "not-set")
    (ktv "visit-market" "int" -1)
    (ktv "town-sell" "int" -1)
    (ktv "social-one" "varchar" "")
@@ -678,7 +683,17 @@
                      (layout 'fill-parent 'wrap-content 1 'centre 0)
                      (lambda (v)
                        (entity-set-value! (string-append key "-nickname") "varchar" v)
-                       '()))))
+                       '()))
+
+          (mtext 'social-gender)
+
+          (spinner (make-id (string-append id-text "-gender-spinner"))
+                   (map mtext-lookup gender-list)
+                   (layout 'wrap-content 'wrap-content 1 'centre 0)
+                   (lambda (v) (entity-set-value!
+                                (string-append key "-gender")
+                                "varchar" (spinner-choice gender-list v)) '()))
+          ))
 
         (mspinner-other-vert
          (string->symbol (string-append id-text "-relationship"))
@@ -732,7 +747,11 @@
       (mupdate-spinner
        (string->symbol (string-append id-text "-strength"))
        (string-append key "-strength")
-       social-strength-list))
+       social-strength-list)
+      (mupdate-spinner
+       (string->symbol (string-append id-text "-gender"))
+       (string-append key "-gender")
+       gender-list))
      )))
 
 (define (build-amenity-widgets id shade)
@@ -785,6 +804,22 @@
      (mupdate-gps
       (string->symbol (string-append id-text "-gps"))
       (string-append id-text "-gps")))))
+
+
+(define (widgets-set-enabled key widgets)
+  (map
+   (lambda (id)
+     (update-widget
+      'button (get-id id) 'set-enabled
+      (if (equal? (entity-get-value key) "") 0 1)))
+   widgets))
+
+(define (widgets-set-hidden key widgets)
+  (map
+   (lambda (id)
+     (update-widget
+      'spinner (get-id id) (if (equal? (entity-get-value key) "") 'hide 'show) 0))
+   widgets))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1036,20 +1071,19 @@
    "household"
    (build-activity
     (horiz
-     (medit-text 'num-pots "numeric" (lambda (v) (entity-set-value! "num-pots" "int" (string->number v)) '()))
-     (medit-text 'num-children "numeric" (lambda (v) (entity-set-value! "num-children" "int" (string->number v)) '())))
+     (medit-text 'locality "normal" (lambda (v) (entity-set-value! "locality" "varchar" v) '()))
+     (medit-text 'num-pots "numeric" (lambda (v) (entity-set-value! "num-pots" "int" (string->number v)) '())))
     (horiz
-     (vert
-      (mtext 'location)
-      (mbutton 'house-gps (lambda () (do-gps 'house "house")))
-      (mtext-small 'house-lat)
-      (mtext-small 'house-lon))
-     (vert
-      (mtext 'toilet-location)
-      (mbutton 'toilet-gps (lambda () (do-gps 'toilet "toilet")))
-      (mtext-small 'toilet-lat)
-      (mtext-small 'toilet-lon)))
+     (medit-text 'num-male-children "numeric" (lambda (v) (entity-set-value! "num-male-children" "int" (string->number v)) '()))
+     (medit-text 'num-female-children "numeric" (lambda (v) (entity-set-value! "num-female-children" "int" (string->number v)) '())))
+    (horiz
+     (medit-text 'num-male-adults "numeric" (lambda (v) (entity-set-value! "num-male-adults" "int" (string->number v)) '()))
+     (medit-text 'num-female-adults "numeric" (lambda (v) (entity-set-value! "num-female-adults" "int" (string->number v)) '())))
 
+    (mspinner-other 'house-type house-type-list (lambda (v) (entity-set-value! "house-type" "varchar"
+                                                                               (spinner-choice house-type-list v)) '()))
+
+    (mbutton 'household-agreement-button (lambda () (list (start-activity "agreement" 0 "household"))))
 
     (build-list-widget
      db "sync" 'individuals (list "name" "first-name" "family") "individual" "individual"
@@ -1073,6 +1107,26 @@
                            (modulo photo-id (length social-types-list)))))
          )))))
 
+    (horiz
+     (mspinner 'radio yesno-list (lambda (v) (entity-set-value! "radio" "varchar" (spinner-choice yesno-list v)) '()))
+     (mspinner 'tv yesno-list (lambda (v) (entity-set-value! "tv" "varchar" (spinner-choice yesno-list v)) '()))
+     (mspinner 'mobile yesno-list (lambda (v) (entity-set-value! "mobile" "varchar" (spinner-choice yesno-list v)) '())))
+
+
+    (horiz
+     (vert
+      (mtext 'location)
+      (mbutton 'house-gps (lambda () (do-gps 'house "house")))
+      (mtext-small 'house-lat)
+      (mtext-small 'house-lon))
+     (vert
+      (mtext 'toilet-location)
+      (mbutton 'toilet-gps (lambda () (do-gps 'toilet "toilet")))
+      (mtext-small 'toilet-lat)
+      (mtext-small 'toilet-lon)))
+
+
+
     (medit-text-large 'household-notes "normal" (lambda (v) (entity-set-value! "notes" "varchar" v) '()))
 
     (delete-button))
@@ -1085,11 +1139,25 @@
      (set-current! 'individual #f)
      (append
       (update-top-bar)
+      (widgets-set-enabled
+       "agreement" (list "house-gps" "toilet-gps" "individuals-add"))
+      ;; enabled not working on spinners
+      (widgets-set-hidden
+       "agreement" (list "radio-spinner" "tv-spinner" "mobile-spinner"))
       (list
        (update-list-widget db "sync" (list "name" "first-name" "family") "individual" "individual" arg)
        (mupdate 'edit-text 'household-notes "notes")
        (mupdate 'edit-text 'num-pots "num-pots")
-       (mupdate 'edit-text 'num-children "num-children"))
+       (mupdate 'edit-text 'locality "locality")
+       (mupdate 'edit-text 'num-male-children "num-male-children")
+       (mupdate 'edit-text 'num-female-children "num-female-children")
+       (mupdate 'edit-text 'num-male-adults "num-male-adults")
+       (mupdate 'edit-text 'num-female-adults "num-female-adults")
+       (mupdate-spinner 'radio "radio" yesno-list)
+       (mupdate-spinner 'tv "tv" yesno-list)
+       (mupdate-spinner 'mobile "mobile" yesno-list)
+       )
+      (mupdate-spinner-other 'house-type "house-type" house-type-list)
       (mupdate-gps 'house "house")
       (mupdate-gps 'toilet "toilet")))
 
@@ -1112,16 +1180,22 @@
           'photo-name (string-append (entity-get-value "unique_id") "-" (get-unique "p") "-face.jpg"))
          (list
           (take-photo (string-append dirname "files/" (get-current 'photo-name "")) photo-code))
-         )))
+         ))
+      (mbutton 'photo-agreement-button (lambda () (list (start-activity "agreement" 0 "photo")))))
 
      (vert
       (mtext 'name-display)
-      (spacer 20)
-      (mtext 'first-name-display)
+      (medit-text 'details-first-name "normal" (lambda (v) (entity-set-value! "first-name" "varchar" v) '()))
+      (medit-text 'details-family "normal" (lambda (v) (entity-set-value! "family" "varchar" v) '()))
+      (mspinner 'gender gender-list (lambda (v) (entity-set-value! "gender" "varchar" (spinner-choice gender-list v)) '()))
+      (mspinner 'head-of-house gender-list (lambda (v) (entity-set-value! "head-of-house" "varchar" (spinner-choice gender-list v)) '()))
       ))
+    (spacer 20)
+    (medit-text-large 'individual-notes "normal" (lambda (v) (entity-set-value! "notes" "varchar" v) '()))
+    (spacer 20)
     (mtext 'last-editor)
     (horiz
-     (mbutton-scale 'agreement-button (lambda () (list (start-activity "agreement" 0 ""))))
+     (mbutton-scale 'general-agreement-button (lambda () (list (start-activity "agreement" 0 "general"))))
      (mbutton-scale 'details-button (lambda () (list (start-activity "details" 0 "")))))
     (horiz
      (mbutton-scale 'family-button (lambda () (list (start-activity "family" 0 ""))))
@@ -1135,8 +1209,6 @@
      (mbutton-scale 'friendship-button (lambda () (list (start-activity "friendship" 0 ""))))
      (mbutton-scale 'social-button (lambda () (list (start-activity "social" 0 "")))))
     (spacer 20)
-    (medit-text-large 'individual-notes "normal" (lambda (v) (entity-set-value! "notes" "varchar" v) '()))
-    (spacer 20)
     (mbutton-scale 'move-button (lambda () (list (start-activity "move" 0 ""))))
     (delete-button))
 
@@ -1149,21 +1221,15 @@
      (msg "individual on create")
      (append
       (update-top-bar)
+      (widgets-set-enabled "agreement-general"
+                           (list "details-button" "family-button" "migration-button"
+                                 "income-button" "genealogy-button" "friendship-button"
+                                 "social-button"))
       (list
-       (update-widget 'button (get-id "details-button") 'set-enabled
-                      (if (equal? (entity-get-value "agreement-general") "") 0 1))
-       (update-widget 'button (get-id "family-button") 'set-enabled
-                      (if (equal? (entity-get-value "agreement-general") "") 0 1))
-       (update-widget 'button (get-id "migration-button") 'set-enabled
-                      (if (equal? (entity-get-value "agreement-general") "") 0 1))
-       (update-widget 'button (get-id "income-button") 'set-enabled
-                      (if (equal? (entity-get-value "agreement-general") "") 0 1))
-       (update-widget 'button (get-id "genealogy-button") 'set-enabled
-                      (if (equal? (entity-get-value "agreement-general") "") 0 1))
-       (update-widget 'button (get-id "friendship-button") 'set-enabled
-                      (if (equal? (entity-get-value "agreement-general") "") 0 1))
-       (update-widget 'button (get-id "social-button") 'set-enabled
-                      (if (equal? (entity-get-value "agreement-general") "") 0 1))
+       (mupdate 'edit-text 'details-first-name "first-name")
+       (mupdate 'edit-text 'details-family "family")
+       (mupdate-spinner 'gender "gender" gender-list)
+       (mupdate-spinner 'head-of-house "head-of-house" gender-list)
 
        (update-widget 'button (get-id "change-photo") 'set-enabled
                       (if (equal? (entity-get-value "agreement-photo") "") 0 1))
@@ -1257,17 +1323,19 @@
    "family"
    (build-activity
     (horiz
-     (vert
-      (mspinner 'head-of-house gender-list (lambda (v) (entity-set-value! "head-of-house" "varchar" (spinner-choice gender-list v)) '()))
-      (mspinner 'marital-status married-list (lambda (v) (entity-set-value! "marital-status" "varchar" (spinner-choice married-list v)) '()))
-      (medit-text 'times-married "numeric"
-                  (lambda (v)
-                    (entity-set-value! "times-married" "int" (string->number v))
-                    (list
-                     (update-widget 'linear-layout (get-id "residence-after-marriage-container")
-                                    (if (equal? v "0") 'hide 'show) 0)))))
+     (mspinner 'marital-status married-list (lambda (v) (entity-set-value! "marital-status" "varchar" (spinner-choice married-list v)) '()))
+     (medit-text 'times-married "numeric"
+                 (lambda (v)
+                   (entity-set-value! "times-married" "int" (string->number v))
+                   (list
+                    (update-widget 'linear-layout (get-id "residence-after-marriage-container")
+                                   (if (equal? v "0") 'hide 'show) 0)))))
 
+    (horiz
      (build-person-selector 'spouse "id-spouse" (list) spouse-request-code)
+     (vert
+      (medit-text 'spouse-name "normal" (lambda (v) (entity-set-value! "spouse-name" "varchar" v) '()))
+      (mspinner 'spouse-gender gender-list (lambda (v) (entity-set-value! "spouse-gender" "varchar" (spinner-choice gender-list v)) '())))
      )
 
 ;;    (mtitle 'children)
@@ -1294,7 +1362,8 @@
       (update-top-bar)
       (update-person-selector db "sync" 'spouse "id-spouse")
       (list
-       (mupdate-spinner 'head-of-house "head-of-house" gender-list)
+       (mupdate 'edit-text 'spouse-name "spouse-name")
+       (mupdate-spinner 'spouse-gender "spouse-gender" gender-list)
        (mupdate-spinner 'marital-status "marital-status" married-list)
        (mupdate 'edit-text 'times-married "times-married")
        ;;(mupdate 'id-spouse "id-spouse")
@@ -1407,16 +1476,9 @@
     (build-list-widget
      db "sync" 'crops (list "name") "crop" "crop" (lambda () (get-current 'individual #f))
      (lambda () crop-ktvlist))
-    (mspinner-other 'house-type house-type-list (lambda (v) (entity-set-value! "house-type" "varchar"
-                                                                               (spinner-choice house-type-list v)) '()))
     (horiz
      (medit-text 'loan "numeric" (lambda (v) (entity-set-value! "loan" "int" (string->number v)) '()))
      (medit-text 'earning "numeric" (lambda (v) (entity-set-value! "earning" "int" (string->number v)) '())))
-    (mtext 'in-the-home)
-    (horiz
-     (mspinner 'radio yesno-list (lambda (v) (entity-set-value! "radio" "varchar" (spinner-choice yesno-list v)) '()))
-     (mspinner 'tv yesno-list (lambda (v) (entity-set-value! "tv" "varchar" (spinner-choice yesno-list v)) '()))
-     (mspinner 'mobile yesno-list (lambda (v) (entity-set-value! "mobile" "varchar" (spinner-choice yesno-list v)) '())))
     (horiz
      (medit-text 'visit-market "numeric" (lambda (v) (entity-set-value! "visit-market" "int" (string->number v)) '()))
      (medit-text 'town-sell "numeric" (lambda (v) (entity-set-value! "town-sell" "int" (string->number v)) '())))
@@ -1431,7 +1493,6 @@
      (entity-init! db "sync" "individual" (get-entity-by-unique db "sync" (get-current 'individual #f)))
      (append
       (update-top-bar)
-      (mupdate-spinner-other 'house-type "house-type" house-type-list)
       (list
        (update-list-widget db "sync" (list "name") "crop" "crop" (get-current 'individual #f))
        (mupdate-spinner 'occupation-agriculture "occupation-agriculture" yesno-list)
@@ -1446,9 +1507,6 @@
        (mupdate-spinner 'hire-land "hire-land" yesno-list)
        (mupdate 'edit-text 'loan "loan" )
        (mupdate 'edit-text 'earning "earning")
-       (mupdate-spinner 'radio "radio" yesno-list)
-       (mupdate-spinner 'tv "tv" yesno-list)
-       (mupdate-spinner 'mobile "mobile" yesno-list)
        (mupdate 'edit-text 'visit-market "visit-market")
        (mupdate 'edit-text 'town-sell "town-sell"))))
    (lambda (activity) '())
@@ -1532,8 +1590,16 @@
    "genealogy"
    (build-activity
     (horiz
-     (build-person-selector 'mother "id-mother" (list) mother-request-code)
-     (build-person-selector 'father "id-father" (list) father-request-code))
+     (vert
+      (build-person-selector 'mother "id-mother" (list) mother-request-code)
+      (medit-text 'mother-name "normal" (lambda (v) (entity-set-value! "mother-name" "varchar" v) '()))
+      (mspinner 'mother-alive yesno-list (lambda (v) (entity-set-value! "mother-alive" "varchar" (spinner-choice yesno-list v)) '())))
+
+     (vert
+      (build-person-selector 'father "id-father" (list) father-request-code)
+      (medit-text 'father-name "normal" (lambda (v) (entity-set-value! "father-name" "varchar" v) '()))
+      (mspinner 'father-alive yesno-list (lambda (v) (entity-set-value! "father-alive" "varchar" (spinner-choice yesno-list v)) '())))
+     )
     (build-list-widget
      db "sync" 'children (list "name") "child" "child" (lambda () (get-current 'individual #f))
      (lambda () child-ktvlist))
@@ -1547,7 +1613,13 @@
      (entity-init! db "sync" "individual" (get-entity-by-unique db "sync" (get-current 'individual #f)))
      (append
       (update-top-bar)
-      (list (update-list-widget db "sync" (list "name") "child" "child" (get-current 'individual #f)))
+      (list
+       (update-list-widget db "sync" (list "name") "child" "child" (get-current 'individual #f))
+       (mupdate 'edit-text 'mother-name "mother-name")
+       (mupdate 'edit-text 'father-name "father-name")
+       (mupdate-spinner 'mother-alive "mother-alive" yesno-list)
+       (mupdate-spinner 'father-alive "father-alive" yesno-list)
+       )
       (update-person-selector db "sync" 'mother "id-mother")
       (update-person-selector db "sync" 'father "id-father")))
    (lambda (activity) '())
@@ -1612,25 +1684,25 @@
     (text-view (symbol->id 'friendship-question)
                (mtext-lookup 'friendship-question)
                30 (layout 'wrap-content 'wrap-content -1 'centre 20))
-    (build-social-connection 'social-one "friendship-one" "friend" social-request-code-one #t)
-    (build-social-connection 'social-two "friendship-two" "friend" social-request-code-two #f)
-    (build-social-connection 'social-three "friendship-three" "friend" social-request-code-three #t)
-    (build-social-connection 'social-four "friendship-four" "friend" social-request-code-four #f)
-    (build-social-connection 'social-five "friendship-five" "friend" social-request-code-five #t)
+    (build-social-connection 'friendship-one "friendship-one" "friend" social-request-code-one #t)
+    (build-social-connection 'friendship-two "friendship-two" "friend" social-request-code-two #f)
+    (build-social-connection 'friendship-three "friendship-three" "friend" social-request-code-three #t)
+    (build-social-connection 'friendship-four "friendship-four" "friend" social-request-code-four #f)
+    (build-social-connection 'friendship-five "friendship-five" "friend" social-request-code-five #t)
     (mbutton 'friendship-next (lambda () (list (start-activity "social" 0 ""))))
     (spacer 20)
     )
    (lambda (activity arg)
      (activity-layout activity))
    (lambda (activity arg)
-     (set-current! 'activity-title "Frienships")
+     (set-current! 'activity-title "Friendships")
      (append
       (update-top-bar)
-      (update-social-connection db "sync" 'social-one "friendship-one" "friend" social-request-code-one)
-      (update-social-connection db "sync" 'social-two "friendship-two" "friend" social-request-code-two)
-      (update-social-connection db "sync" 'social-three "friendship-three" "friend" social-request-code-three)
-      (update-social-connection db "sync" 'social-four "friendship-four" "friend" social-request-code-four)
-      (update-social-connection db "sync" 'social-five "friendship-five" "friend" social-request-code-five)))
+      (update-social-connection db "sync" 'friendship-one "friendship-one" "friend" social-request-code-one)
+      (update-social-connection db "sync" 'friendship-two "friendship-two" "friend" social-request-code-two)
+      (update-social-connection db "sync" 'friendship-three "friendship-three" "friend" social-request-code-three)
+      (update-social-connection db "sync" 'friendship-four "friendship-four" "friend" social-request-code-four)
+      (update-social-connection db "sync" 'friendship-five "friendship-five" "friend" social-request-code-five)))
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
@@ -1647,57 +1719,69 @@
   (activity
    "agreement"
    (build-activity
-    (mtext 'general-agreement-text)
+    (mtext 'agreement-text)
+    (spacer 20)
+    (mtext 'agreement-state)
+    (spacer 20)
+
     (horiz
-     (mtoggle-button-scale
-      'agree-record
-      (lambda (v)
-        (list
-         (cond
-          ((eqv? v 1)
-           (let ((filename (string-append
-                            "sdcard/symbai/files/"
-                            (entity-get-value "unique_id") "-" (get-unique "general") "-record.3gp")))
-             (entity-set-value! "agreement-general" "file" filename)
-             (soundfile-start-recording filename)))
-          (else (soundfile-stop-recording))))))
-     (mtoggle-button-scale
-      'agree-playback
-      (lambda (v)
-        (list
-         (if (eqv? v 1)
-             (soundfile-start-playback (entity-get-value "agreement-general"))
-             (soundfile-stop-playback)))))
+     (image-button (make-id "agree-record") "record" (layout 'wrap-content 'wrap-content 1 'centre 0)
+                   (lambda ()
+                     (let ((filename (string-append
+                                      "sdcard/symbai/files/"
+                                      (entity-get-value "unique_id") "-" (get-unique (get-current 'agreement-key "")) "-record.3gp")))
+                       (entity-set-value! (get-current 'agreement-key "") "file" filename)
+                       (list (soundfile-start-recording filename)
+                             (update-widget 'text-view (get-id "agreement-state") 'text "RECORDING")
+                             ))))
+
+     (image-button (make-id "agree-playback") "play" (layout 'wrap-content 'wrap-content 1 'centre 0)
+                   (lambda ()
+                     (if (equal? (entity-get-value (get-current 'agreement-key "")) "")
+                         '()
+                         (list (soundfile-start-playback (entity-get-value (get-current 'agreement-key "")))
+                               (update-widget 'text-view (get-id "agreement-state") 'text "Playing recording")
+                               ))))
+
+     (image-button (make-id "agree-stop") "stop" (layout 'wrap-content 'wrap-content 1 'centre 0)
+                   (lambda ()
+                     (list (soundfile-stop-recording)
+                           (soundfile-stop-playback)
+                           (update-widget 'text-view (get-id "agreement-state") 'text
+                                          (if (equal? (entity-get-value (get-current 'agreement-key "")) "")
+                                              "No agreement recorded yet"
+                                              "Agreement recorded"))
+                           )))
      )
     (spacer 100)
-    (mtext 'photo-agreement-text)
-    (horiz
-     (mtoggle-button-scale
-      'photo-agree-record
-      (lambda (v)
-        (list
-         (cond
-          ((eqv? v 1)
-           (let ((filename (string-append
-                            "sdcard/symbai/files/"
-                            (entity-get-value "unique_id") "-" (get-unique "photo") "-record.3gp")))
-             (entity-set-value! "agreement-photo" "file" filename)
-             (msg "recording" filename)
-             (soundfile-start-recording filename)))
-          (else (soundfile-stop-recording))))))
-     (mtoggle-button-scale
-      'photo-agree-playback
-      (lambda (v)
-        (list
-         (if (eqv? v 1)
-             (soundfile-start-playback (entity-get-value "agreement-photo"))
-             (soundfile-stop-playback)))))
-     )
     )
    (lambda (activity arg)
-     (set-current! 'activity-title "Agreement")
+     (msg "starting agreement with " arg)
+     (set-current! 'activity-title (string-append "Agreement: " arg))
+     (set-current! 'agreement-type arg)
+     (set-current! 'agreement-key
+                   (cond
+                    ((equal? arg "household") "agreement")
+                    ((equal? arg "photo") "agreement-photo")
+                    ((equal? arg "general") "agreement-general")
+                    (else "agreement-not-found")))
      (activity-layout activity))
-   (lambda (activity arg) '())
+   (lambda (activity arg)
+     (list
+      (update-widget 'text-view (get-id "agreement-state") 'text
+                     (if (equal? (entity-get-value (get-current 'agreement-key "")) "")
+                         "No agreement recorded yet"
+                         "Agreement recorded"))
+
+      (update-widget 'text-view (get-id "agreement-text") 'text
+                     (mtext-lookup
+                      (cond
+                       ((equal? arg "household") 'household-agreement-text)
+                       ((equal? arg "photo") 'photo-agreement-text)
+                       ((equal? arg "general") 'general-agreement-text)
+                       (else 'agreement-not-found))))
+
+      ))
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
@@ -1741,31 +1825,31 @@
                               (set-current! 'filter-switch (not (zero? v)))
                               (if (not (zero? v)) (update-individual-filter) '()))))
 
-     (horiz
-      (medit-text 'quick-name "normal"
-                  (lambda (v) (set-current! 'chooser-quick-name v) '()))
-      (mbutton-scale
-       'quick-add
-       (lambda ()
-         (list
-          (alert-dialog
-           "quick-add-check"
-           (mtext-lookup 'add-are-you-sure)
-           (lambda (v)
-             (cond
-              ((eqv? v 1)
-               (set-current!
-                'choose-result
-                (entity-create!
-                 db "sync" "individual"
-                 (ktvlist-merge
-                  individual-ktvlist
-                  (list
-                   (ktv "name" "varchar" (get-current 'chooser-quick-name (mtext-lookup 'no-name)))
-                   (ktv "parent" "varchar" (get-current 'household #f))))))
-               (list (finish-activity 0)))
-              (else
-               (list)))))))))
+;     (horiz
+;      (medit-text 'quick-name "normal"
+;                  (lambda (v) (set-current! 'chooser-quick-name v) '()))
+;      (mbutton-scale
+;       'quick-add
+;       (lambda ()
+;         (list
+;          (alert-dialog
+;           "quick-add-check"
+;           (mtext-lookup 'add-are-you-sure)
+;           (lambda (v)
+;             (cond
+;              ((eqv? v 1)
+;               (set-current!
+;                'choose-result
+;                (entity-create!
+;                 db "sync" "individual"
+;                 (ktvlist-merge
+;                  individual-ktvlist
+;                  (list
+;                   (ktv "name" "varchar" (get-current 'chooser-quick-name (mtext-lookup 'no-name)))
+;                   (ktv "parent" "varchar" (get-current 'household #f))))))
+;               (list (finish-activity 0)))
+;              (else
+;               (list)))))))))
      ))
    (lambda (activity arg)
      (set-current! 'activity-title "Chooser")
