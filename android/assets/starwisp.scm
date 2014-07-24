@@ -96,17 +96,17 @@
    (ktv "name" "varchar" "")
    (ktv "notes" "varchar" "")
    (ktv "agreement" "file" "")
-   (ktv "num-pots" "int" 0)
-   (ktv "num-male-children" "int" 0)
-   (ktv "num-female-children" "int" 0)
-   (ktv "num-male-adults" "int" 0)
-   (ktv "num-female-adults" "int" 0)
+   (ktv "num-pots" "int" -1)
+   (ktv "num-male-children" "int" -1)
+   (ktv "num-female-children" "int" -1)
+   (ktv "num-male-adults" "int" -1)
+   (ktv "num-female-adults" "int" -1)
    (ktv "house-lat" "real" 0) ;; get from current location?
    (ktv "house-lon" "real" 0)
    (ktv "radio" "varchar" "not-set")
    (ktv "tv" "varchar" "not-set")
    (ktv "mobile" "varchar" "not-set")
-   (ktv "locality" "varchar" "not-set")
+   (ktv "locality" "varchar" "")
    (ktv "house-type" "varchar" "not-set")
    (ktv "toilet-lat" "real" 0)
    (ktv "toilet-lon" "real" 0)))
@@ -217,8 +217,8 @@
    (ktv "name" "varchar" (mtext-lookup 'default-crop-name))
    (ktv "notes" "varchar" "")
    (ktv "unit" "varchar" "unit")
-   (ktv "used" "real" -1)
-   (ktv "sold" "real" -1)
+   (ktv "used" "real" 0)
+   (ktv "sold" "real" 0)
    (ktv "seed" "varchar" "")))
 
 (define child-ktvlist
@@ -1558,7 +1558,7 @@
       (mspinner 'child-gender gender-list (lambda (v) (entity-set-value! "gender" "varchar" (spinner-choice gender-list v)) '()))
       (medit-text 'child-age "numeric" (lambda (v) (entity-set-value! "age" "int" (string->number v)) '())))
      (horiz
-      (mspinner-other 'child-alive yesno-list (lambda (v) (entity-set-value! "alive" "varchar" (spinner-choice yesno-list v)) '()))
+      (mspinner 'child-alive yesno-list (lambda (v) (entity-set-value! "alive" "varchar" (spinner-choice yesno-list v)) '()))
       (mspinner-other 'child-home yesno-list (lambda (v) (entity-set-value! "living-at-home" "varchar" (spinner-choice yesno-list v)) '())))
      (medit-text-large 'child-notes "normal" (lambda (v) (entity-set-value! "notes" "varchar" v) '()))
      (delete-button)))
@@ -1576,7 +1576,7 @@
        (mupdate 'edit-text 'child-age "age")
        (mupdate 'edit-text 'child-notes "notes")
        (mupdate-spinner 'child-alive "alive" yesno-list)
-       (mupdate-spnner 'child-home "living-at-home" yesno-list)
+       (mupdate-spinner-other 'child-home "living-at-home" yesno-list)
        )))
 
    (lambda (activity) '())
@@ -1715,7 +1715,6 @@
      (social-connection-return requestcode "friendship-five" social-request-code-five)
      '()))
 
-  ;; todo: stop/rec/play on exit
   (activity
    "agreement"
    (build-activity
@@ -1727,11 +1726,9 @@
     (horiz
      (image-button (make-id "agree-record") "record" (layout 'wrap-content 'wrap-content 1 'centre 0)
                    (lambda ()
-                     (let ((filename (string-append
-                                      "sdcard/symbai/files/"
-                                      (entity-get-value "unique_id") "-" (get-unique (get-current 'agreement-key "")) "-record.3gp")))
+                     (let ((filename (entity-get-value "unique_id") "-" (get-unique (get-current 'agreement-key "")) "-record.3gp"))
                        (entity-set-value! (get-current 'agreement-key "") "file" filename)
-                       (list (soundfile-start-recording filename)
+                       (list (soundfile-start-recording (string-append "sdcard/symbai/files/" filename))
                              (update-widget 'text-view (get-id "agreement-state") 'text "RECORDING")
                              ))))
 
@@ -1739,7 +1736,7 @@
                    (lambda ()
                      (if (equal? (entity-get-value (get-current 'agreement-key "")) "")
                          '()
-                         (list (soundfile-start-playback (entity-get-value (get-current 'agreement-key "")))
+                         (list (soundfile-start-playback (string-append "sdcard/symbai/files/" (entity-get-value (get-current 'agreement-key ""))))
                                (update-widget 'text-view (get-id "agreement-state") 'text "Playing recording")
                                ))))
 
@@ -1783,8 +1780,14 @@
 
       ))
    (lambda (activity) '())
-   (lambda (activity) '())
-   (lambda (activity) '())
+   (lambda (activity)
+     (list
+      (soundfile-stop-playback)
+      (soundfile-stop-recording)))
+   (lambda (activity)
+     (list
+      (soundfile-stop-playback)
+      (soundfile-stop-recording)))
    (lambda (activity) '())
    (lambda (activity requestcode resultcode)
      '()))

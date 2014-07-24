@@ -431,7 +431,8 @@
     (lambda (data)
       (let ((new-entity-requests (build-entity-requests db table data)))
         (alog "suck-new: marking dirty")
-        (mark-unlisted-entities-dirty! db table data)
+        ;; now doing this first!...
+        ;;(mark-unlisted-entities-dirty! db table data)
         (alog "suck-new: done marking dirty")
         (cond
          ((null? new-entity-requests)
@@ -453,30 +454,41 @@
 (msg "build-dirty defined...")
 
 (define (build-dirty db)
-  (let ((sync (get-dirty-stats db "sync"))
-        (stream (get-dirty-stats db "stream")))
+  (let ((sync (get-dirty-stats db "sync")))
     (string-append
-     "Sync data: " (number->string (car sync)) "/" (number->string (cadr sync)) " "
-     "Stream data: " (number->string (car stream)) "/" (number->string (cadr stream)))))
+     "Sync data: " (number->string (car sync)) "/" (number->string (cadr sync)))))
 
 (define (upload-dirty db)
-  (let ((r (append
-            (spit db "sync" (dirty-entities db "sync"))
-            (spit db "stream" (dirty-entities db "stream")))))
-    (append (cond
-             ((> (length r) 0)
-              (debug! (string-append "Uploading " (number->string (length r)) " items..."))
-              (list
-               (toast "Uploading data...")
-               (play-sound "active")))
-             (else
-              (debug! "No data changed to upload")
-              (set-current! 'upload 1)
-              (append
-               (if (eqv? (get-current 'download 0) 1)
-                   (list (play-sound "ping")) '())
-               (list
-                (toast "No data changed to upload"))))) r)))
+  (list
+   ;; first check server for entities it doesn't have at all
+   ;; (they need all attr marked as dirty
+   (http-request
+    "upload-precheck-req"
+    (string-append url "fn=entity-versions&table=sync")
+    (lambda (data)
+
+      ;; todo - this is really slow and we're doing it all the time
+      ;; if there are loads to do it's bad
+      (msg "checking for unlisted")
+      (mark-unlisted-entities-dirty! db "sync" data)
+
+      (let ((r (append
+                (spit db "sync" (dirty-entities db "sync"))
+                (spit db "stream" (dirty-entities db "stream")))))
+        (append (cond
+                 ((> (length r) 0)
+                  (debug! (string-append "Uploading " (number->string (length r)) " items..."))
+                  (list
+                   (toast "Uploading data...")
+                   (play-sound "active")))
+                 (else
+                  (debug! "No data changed to upload")
+                  (set-current! 'upload 1)
+                  (append
+                   (if (eqv? (get-current 'download 0) 1)
+                       (list (play-sound "ping")) '())
+                   (list
+                    (toast "No data changed to upload"))))) r))))))
 
 (define (connect-to-net fn)
   (list
