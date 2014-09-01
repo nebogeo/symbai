@@ -62,7 +62,7 @@
 
 (define tribes-list '(not-set khasi pahari-korwa dwta other))
 (define subtribe-list '(not-set khynriam pnar bhoi war dwta other))
-(define education-list   '(not-set primary middle high secondary university dwta))
+(define education-list   '(not-set no-education primary middle high secondary university dwta))
 (define married-list '(not-set currently-married seperated dwta))
 (define residence-list '(not-set birthplace spouse-village dwta other))
 (define gender-list '(not-set male female dwta))
@@ -73,8 +73,14 @@
 (define yesno-list2 '(not-set yes no))
 (define yesno-list '(not-set yes no dwta))
 (define social-types-list '(knowledge prestige))
-(define social-relationship-list '(not-set mother father sister brother spouse children co-wife spouse-mother spouse-father spouse-brother-wife spouse-sister-husband friend neighbour dwta other))
-(define social-residence-list '(not-set same dwta other))
+
+(define social-relationship-list
+  '(not-set mother father sister brother spouse children eldest-uncle co-wife
+            spouse-mother spouse-father spouse-brother spouse-sister
+            spouse-brother-wife spouse-sister-husband
+            friend neighbour religious-leader village-leader dwta other))
+
+(define social-residence-list '(not-set same-village dwta other))
 (define social-strength-list '(not-set daily weekly monthly less dwta))
 
 (define village-ktvlist
@@ -168,12 +174,15 @@
    (ktv "own-land" "varchar" "not-set")
    (ktv "rent-land" "varchar" "not-set")
    (ktv "hire-land" "varchar" "not-set")
-   (ktv "income-notes" "varchar" "not-set")
+   (ktv "income-notes" "varchar" "")
    (ktv "loan" "int" -1)
    (ktv "earning" "int" -1)
-   (ktv "earning-text" "varchar" "not-set")
+   (ktv "earning-text" "varchar" "")
    (ktv "visit-market" "int" -1)
    (ktv "town-sell" "int" -1)
+   (ktv "mother-residence" "varchar" "")
+   (ktv "father-residence" "varchar" "")
+   (ktv "spouse-residence" "varchar" "")
    (ktv "social-answered" "varchar" "not-set")
    (ktv "friendship-answered" "varchar" "not-set")
    (ktv "social-one" "varchar" "")
@@ -233,10 +242,10 @@
    (ktv "name" "varchar" (mtext-lookup 'default-crop-name))
    (ktv "notes" "varchar" "")
    (ktv "unit" "varchar" "unit")
-   (ktv "used" "real" 0)
-   (ktv "produced" "real" 0)
-   (ktv "given" "real" 0)
-   (ktv "sold" "real" 0)
+   (ktv "used" "real" -1)
+   (ktv "produced" "real" -1)
+   (ktv "given" "real" -1)
+   (ktv "sold" "real" -1)
    (ktv "seed" "varchar" "")))
 
 (define child-ktvlist
@@ -902,21 +911,11 @@
      (lambda ()
        (let ((name
               ;; if it's the first household - change the id...
-              (if (zero? (length (db-filter-only
-                                  db "sync" "household"
-                                  (list (list "parent" "varchar" "="
-                                              (get-setting-value "current-village")))
-                                  (list (list "name" "varchar")))))
-                  (string-append
-                   (ktv-get (get-entity-by-unique db "sync" (get-setting-value "current-village")) "name")
-                   ":"
-                   (get-setting-value "user-id")
-                   ":gamehousehold")
-                  (string-append
-                   (ktv-get (get-entity-by-unique db "sync" (get-setting-value "current-village")) "name")
-                   ":"
-                   (get-setting-value "user-id") ":"
-                   (number->string (get-next-id db "sync" "household" (get-setting-value "current-village")))))))
+              (string-append
+               (ktv-get (get-entity-by-unique db "sync" (get-setting-value "current-village")) "name")
+               ":"
+               (get-setting-value "user-id") ":"
+               (number->string (get-next-id db "sync" "household" (get-setting-value "current-village"))))))
          ;; autogenerate the name from the current ID
          (ktvlist-merge
           household-ktvlist
@@ -1017,10 +1016,10 @@
 
       (medit-text 'crop-prices "normal" (lambda (v) (entity-set-value! "crop-prices" "varchar" v) '()))
 
-      (mbutton 'household-list
-               (lambda ()
-                 (list (start-activity "household-list" 0
-                                       (get-current 'village #f)))))
+   ;   (mbutton 'household-list
+   ;            (lambda ()
+   ;              (list (start-activity "household-list" 0
+   ;                                    (get-current 'village #f)))))
 
       (medit-text-large 'village-notes "normal" (lambda (v) (entity-set-value! "notes" "varchar" v) '()))
 
@@ -1398,8 +1397,9 @@
      (build-person-selector 'spouse "id-spouse" (list) spouse-request-code)
      (vert
       (medit-text 'spouse-name "normal" (lambda (v) (entity-set-value! "spouse-name" "varchar" v) '()))
-      (mspinner 'spouse-gender gender-list (lambda (v) (entity-set-value! "spouse-gender" "varchar" (spinner-choice gender-list v)) '())))
-     )
+      (mspinner 'spouse-gender gender-list (lambda (v) (entity-set-value! "spouse-gender" "varchar" (spinner-choice gender-list v)) '()))
+      (medit-text 'spouse-residence "normal" (lambda (v) (entity-set-value! "spouse-residence" "varchar" v) '()))
+      ))
 
     (mspinner-other 'residence-after-marriage residence-list (lambda (v) (entity-set-value!
                                                                           "residence-after-marriage" "varchar"
@@ -1420,6 +1420,7 @@
       (update-person-selector db "sync" 'spouse "id-spouse")
       (list
        (mupdate 'edit-text 'spouse-name "spouse-name")
+       (mupdate 'edit-text 'spouse-residence "spouse-residence")
        (mupdate-spinner 'spouse-gender "spouse-gender" gender-list)
        (mupdate-spinner 'marital-status "marital-status" married-list)
        (mupdate 'edit-text 'times-married "times-married")
@@ -1460,10 +1461,26 @@
    (build-activity
     (mspinner 'move-household '()
               (lambda (v)
-                (entity-set-value!
-                 "parent" "varchar"
-                 (cadr (list-ref (get-current 'move-household-list '()) v)))
-                '())))
+                (set-current! 'move-household-temp
+                              (cadr (list-ref (get-current 'move-household-list '()) v)))
+                '()))
+
+    (mbutton 'do-move
+             (lambda ()
+               (list
+                (alert-dialog
+                 "move-check"
+                 (mtext-lookup 'move-are-you-sure)
+                 (lambda (v)
+                   (cond
+                    ((eqv? v 1)
+                     (when (get-current 'move-household-temp #f)
+                           (entity-set-value!
+                            "parent" "varchar"
+                            (get-current 'move-household-temp #f)
+                            )) '())
+                    (else '())))))))
+    )
    (lambda (activity arg)
      (activity-layout activity))
    (lambda (activity arg)
@@ -1493,7 +1510,7 @@
     (medit-text 'residences "normal" (lambda (v) (entity-set-value! "residences" "varchar" v) '()))
     (medit-text 'village-visits-month "numeric" (lambda (v) (entity-set-value! "village-visits-month" "int" (string->number v)) '()))
     (medit-text 'village-visits-year "numeric" (lambda (v) (entity-set-value! "village-visits-year" "int" (string->number v)) '()))
-    (mbutton 'migration-next (lambda () (list (start-activity "friendship" 0 ""))))
+    (mbutton 'migration-next (lambda () (list (start-activity-goto "individual" 0 (get-current 'individual #f)))))
     (spacer 20)
     )
    (lambda (activity arg)
@@ -1675,14 +1692,17 @@
    (build-activity
     (horiz
      (vert
-      (build-person-selector 'mother "id-mother" (list) mother-request-code)
+      (build-person-selector 'bio-mother "id-mother" (list) mother-request-code)
       (medit-text 'mother-name "normal" (lambda (v) (entity-set-value! "mother-name" "varchar" v) '()))
-      (mspinner 'mother-alive yesno-list (lambda (v) (entity-set-value! "mother-alive" "varchar" (spinner-choice yesno-list v)) '())))
+      (mspinner 'mother-alive yesno-list (lambda (v) (entity-set-value! "mother-alive" "varchar" (spinner-choice yesno-list v)) '()))
+      (medit-text 'mother-residence "normal" (lambda (v) (entity-set-value! "mother-residence" "varchar" v) '())))
+
 
      (vert
-      (build-person-selector 'father "id-father" (list) father-request-code)
+      (build-person-selector 'bio-father "id-father" (list) father-request-code)
       (medit-text 'father-name "normal" (lambda (v) (entity-set-value! "father-name" "varchar" v) '()))
-      (mspinner 'father-alive yesno-list (lambda (v) (entity-set-value! "father-alive" "varchar" (spinner-choice yesno-list v)) '())))
+      (mspinner 'father-alive yesno-list (lambda (v) (entity-set-value! "father-alive" "varchar" (spinner-choice yesno-list v)) '()))
+      (medit-text 'father-residence "normal" (lambda (v) (entity-set-value! "father-residence" "varchar" v) '())))
      )
     (build-list-widget
      db "sync" 'children (list "name") "child" "child" (lambda () (get-current 'individual #f))
@@ -1701,11 +1721,13 @@
        (update-list-widget db "sync" (list "name") "child" "child" (get-current 'individual #f))
        (mupdate 'edit-text 'mother-name "mother-name")
        (mupdate 'edit-text 'father-name "father-name")
+       (mupdate 'edit-text 'mother-residence "mother-residence")
+       (mupdate 'edit-text 'father-residence "father-residence")
        (mupdate-spinner 'mother-alive "mother-alive" yesno-list)
        (mupdate-spinner 'father-alive "father-alive" yesno-list)
        )
-      (update-person-selector db "sync" 'mother "id-mother")
-      (update-person-selector db "sync" 'father "id-father")))
+      (update-person-selector db "sync" 'bio-mother "id-mother")
+      (update-person-selector db "sync" 'bio-father "id-father")))
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
@@ -1718,15 +1740,15 @@
   (activity
    "social"
    (build-activity
-    (mspinner 'social-type social-types-list
-              (lambda (v)
-                (entity-set-value! "social-type" "varchar"
-                                   (spinner-choice social-types-list v))
-                (list
-                 (update-widget 'text-view (get-id "social-question") 'text
-                                (cond
-                                 ((eqv? v 1) (mtext-lookup 'prestige-question))
-                                 (else (mtext-lookup 'knowledge-question)))))))
+    ;(mspinner 'social-type social-types-list
+    ;          (lambda (v)
+    ;            (entity-set-value! "social-type" "varchar"
+    ;                               (spinner-choice social-types-list v))
+    ;            (list
+    ;             (update-widget 'text-view (get-id "social-question") 'text
+    ;                            (cond
+    ;                             ((eqv? v 1) (mtext-lookup 'prestige-question))
+    ;                             (else (mtext-lookup 'knowledge-question)))))))
     (text-view (make-id "social-question")
                "" 30 (layout 'wrap-content 'wrap-content -1 'centre 20))
     (mspinner 'social-answered yesno-list2 (lambda (v) (entity-set-value! "social-answered" "varchar" (spinner-choice yesno-list2 v)) '()))
@@ -1745,6 +1767,12 @@
      (append
       (update-top-bar)
       (list
+       (let ((v (entity-get-value "social-type" "varchar")))
+         (update-widget
+          'text-view (get-id "social-question") 'text
+          (cond
+           ((equal? v "knowledge") (mtext-lookup 'prestige-question))
+           (else (mtext-lookup 'knowledge-question)))))
        (mupdate-spinner 'social-type "social-type" social-types-list)
        (mupdate-spinner 'social-answered "social-answered" yesno-list2))
       (update-social-connection db "sync" 'social-one "social-one" "friend" social-request-code-one)
