@@ -88,7 +88,7 @@
     (else str)))
 
 (define csv "\"test-num\",1,1,1,\" \"\n\"one\",34,\"32\", one two, \n \"three four\", 4, 5" )
- 
+
 (define (csv->list csv)
   (map
    (lambda (line)
@@ -103,19 +103,41 @@
 (display (foldl
  (lambda (l r)
    (if (null? l) r
-       (string-append 
+       (string-append
         r
-        "(list '" (car l) " (list " 
-        (apply string-append 
-               (map 
+        "(list '" (car l) " (list "
+        (apply string-append
+               (map
                 (lambda (s) (string-append "\"" (trim s) "\" "))
                 (cdr l)))
         "))\n" )))
  ""
- (csv->list (file->string "translations.csv"))))
+(csv->list (file->string "translations.csv"))))
 
 ;(csv->list csv)
 
 ;(word-gen)
 
+;------------------------------------------------------
 
+(define (list->string l)
+  (foldl
+   (lambda (l r)
+     (string-append r ", \"" l "\""))
+   ""
+   l))
+
+(define (list->csv l)
+  (foldl
+   (lambda (l r)
+     (string-append r (symbol->string (car l)) (list->string (cadr l)) "\n"))
+   ""
+   l))
+
+
+(define i18n-text
+  (list
+   ))
+
+
+;(display (list->csv i18n-text))

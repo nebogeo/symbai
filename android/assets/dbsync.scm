@@ -295,9 +295,12 @@
     (string-append url "fn=file-list")
     (lambda (file-list)
       (let ((r (sync-files file-list)))
-        (when (not (null? r))
-              (set-current! 'upload 0)
-              (debug! "Found a mismatch with files on raspberry pi - fixing..."))
+        (cond
+         ((not (null? r))
+          (set-current! 'mismatch 0)
+          (debug! "Found a mismatch with files on raspberry pi - fixing..."))
+         (else
+          (set-current! 'mismatch 1)))
         r)))))
 
 
@@ -438,11 +441,15 @@
          ((null? new-entity-requests)
           (debug! "No new data to download")
           (set-current! 'download 1)
-          (append
-           (if (eqv? (get-current 'upload 0) 1)
-               (list (play-sound "ping")) '())
-           (list
-            (toast "No new data to download"))))
+          (msg "-->")
+          (msg (get-current 'upload 0))
+          (msg (get-current 'mismatch 0))
+          (if (and
+;;               (eqv? (get-current 'upload 0) 1) won't have got here if uploading still
+               (eqv? (get-current 'mismatch 0) 1))
+              (list
+               (play-sound "ping")
+               (toast "I'm synced with the Raspberry Pi"))))
          (else
           (debug! (string-append
                    "Requesting "
@@ -484,11 +491,8 @@
                  (else
                   (debug! "No data changed to upload")
                   (set-current! 'upload 1)
-                  (append
-                   (if (eqv? (get-current 'download 0) 1)
-                       (list (play-sound "ping")) '())
-                   (list
-                    (toast "No data changed to upload"))))) r))))))
+                  (list
+                   (toast "No data changed to upload"))))) r)))))
 
 (define (connect-to-net fn)
   (list

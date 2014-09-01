@@ -87,8 +87,6 @@ public class starwisp extends StarwispActivity
     @Override
     public void onCreate(Bundle savedInstanceState)
     {
-        setContentView(R.layout.main);
-
         String dirname = "symbai/";
         m_AppDir = "/sdcard/"+dirname;
         File appdir = new File(m_AppDir);
