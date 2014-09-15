@@ -112,7 +112,7 @@
                 (cdr l)))
         "))\n" )))
  ""
-(csv->list (file->string "translations.csv"))))
+(csv->list (file->string "translations3.csv"))))
 
 ;(csv->list csv)
 
@@ -137,6 +137,9 @@
 
 (define i18n-text
   (list
+
+
+
    ))
 
 

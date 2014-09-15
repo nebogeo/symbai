@@ -189,7 +189,8 @@
         (previous (ktv-get-whole (get-current 'entity-values '()) (ktv-key ktv))))
     (cond
      ((and previous (ktv-eq? previous ktv))
-      (msg "eusv: no change for" (ktv-key ktv)))
+      ;(msg "eusv: no change for" (ktv-key ktv))
+      0)
      (unique-id
       (update-entity db table (entity-id-from-unique db table unique-id) (list ktv)))
      (else

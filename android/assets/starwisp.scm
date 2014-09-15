@@ -43,6 +43,10 @@
   (ktv "language" "int" 0)
   (ktv "current-village" "varchar" "none")))
 
+;; test in-list
+(msg (in-list? "3" '("1" "2" "3" "4")))
+(msg (in-list? "5" '("1" "2" "3" "4")))
+
 (define (get-setting-value name)
   (ktv-get (get-entity db "local" settings-entity-id-version) name))
 
@@ -254,7 +258,7 @@
    (ktv "notes" "varchar" "")
    (ktv "alive" "varchar" "varchar" "not-set")
    (ktv "gender" "varchar" "not-set")
-   (ktv "age" "int" -1)
+   (ktv "birth-year" "int" -1)
    (ktv "living-at-home" "varchar" "not-set")))
 
 
@@ -460,9 +464,9 @@
     (list
      (update-widget 'text-view (get-id "title") 'text
                     (get-current 'activity-title "Title not set"))
-     (update-widget 'text-view (get-id "top-village") 'text (if village (string-append "Village: " village) ""))
-     (update-widget 'text-view (get-id "top-household") 'text (if household (string-append "Household: " household) ""))
-     (update-widget 'text-view (get-id "top-photo-id") 'text (if individual (string-append "Individual: " individual) "")))))
+     (update-widget 'text-view (get-id "top-village") 'text (if village (string-append (mtext-lookup 'village) ": " village) ""))
+     (update-widget 'text-view (get-id "top-household") 'text (if household (string-append (mtext-lookup 'household) ": " household) ""))
+     (update-widget 'text-view (get-id "top-photo-id") 'text (if individual (string-append (mtext-lookup 'individual) ": " individual) "")))))
 
 
 
@@ -901,9 +905,14 @@
 
      (mspinner 'languages (list 'english 'khasi 'hindi)
                (lambda (c)
-                 (set-setting! "language" "int" c)
-                 (set! i18n-lang c)
-                 (list)))
+                 (cond
+                  ((not (eqv? c i18n-lang))
+                   (msg "lang setting" c)
+                   (set-setting! "language" "int" c)
+                   (set! i18n-lang c)
+                   (list (start-activity-goto "main" 0 "")))
+                  (else '()))))
+
      (mbutton-scale 'find-individual (lambda () (list (start-activity "individual-chooser" choose-code "")))))
 
     (build-list-widget
@@ -930,7 +939,7 @@
      (activity-layout activity))
    (lambda (activity arg)
      (alog "start main start")
-     (set-current! 'activity-title "Main screen")
+     (set-current! 'activity-title (mtext-lookup 'start))
      (set-current! 'village (get-setting-value "current-village"))
      (set-current! 'household #f)
      (set-current! 'individual #f)
@@ -980,7 +989,7 @@
    (lambda (activity arg)
      (activity-layout activity))
    (lambda (activity arg)
-     (set-current! 'activity-title "Villages")
+     (set-current! 'activity-title (mtext-lookup 'villages))
      (set-current! 'villages-list (build-array-from-names db "sync" "village"))
      (append
       (update-top-bar)
@@ -1038,7 +1047,7 @@
    (lambda (activity arg)
      (activity-layout activity))
    (lambda (activity arg)
-     (set-current! 'activity-title "Village")
+     (set-current! 'activity-title (mtext-lookup 'village))
      (entity-init! db "sync" "village" (get-entity-by-unique db "sync" arg))
      (set-current! 'village arg)
      (set-current! 'household #f)
@@ -1088,7 +1097,7 @@
    (lambda (activity arg)
      (activity-layout activity))
    (lambda (activity arg)
-     (set-current! 'activity-title "Households")
+     (set-current! 'activity-title (mtext-lookup 'households))
      (append
       (update-top-bar)
       (list (update-list-widget
@@ -1167,7 +1176,7 @@
    (lambda (activity arg)
      (activity-layout activity))
    (lambda (activity arg)
-     (set-current! 'activity-title "Household")
+     (set-current! 'activity-title (mtext-lookup 'household))
      (entity-init! db "sync" "household" (get-entity-by-unique db "sync" arg))
      (set-current! 'household arg)
      (set-current! 'individual #f)
@@ -1251,7 +1260,7 @@
    (lambda (activity arg)
      (activity-layout activity))
    (lambda (activity arg)
-     (set-current! 'activity-title "Individual")
+     (set-current! 'activity-title (mtext-lookup 'individual))
      (entity-init! db "sync" "individual" (get-entity-by-unique db "sync" arg))
      (set-current! 'individual arg)
      (msg "individual on create")
@@ -1276,7 +1285,6 @@
                       (string-append "Last edit by " (history-get-last (entity-get-value "social-edit-history"))))
        (mupdate 'edit-text 'individual-notes "notes")
        (update-widget 'text-view (get-id "name-display") 'text (string-append "ID: " (entity-get-value "name")))
-       (update-widget 'text-view (get-id "first-name-display") 'text (string-append "Name: " (entity-get-value "first-name") " " (entity-get-value "family")))
        (mupdate 'image-view 'photo "photo"))))
    (lambda (activity) '())
    (lambda (activity) '())
@@ -1344,7 +1352,7 @@
    (lambda (activity arg)
      (activity-layout activity))
    (lambda (activity arg)
-     (set-current! 'activity-title "Details")
+     (set-current! 'activity-title (mtext-lookup 'details-button))
      (append
       (update-top-bar)
       (mupdate-spinner-other 'tribe "tribe" tribes-list)
@@ -1411,10 +1419,7 @@
    (lambda (activity arg)
      (activity-layout activity))
    (lambda (activity arg)
-     (set-current! 'activity-title "Marriage")
-
-     (let ((v (entity-get-value "ever-married")))
-
+     (set-current! 'activity-title (mtext-lookup 'family-button))
      (append
       (update-top-bar)
       (update-person-selector db "sync" 'spouse "id-spouse")
@@ -1426,14 +1431,12 @@
        (mupdate 'edit-text 'times-married "times-married")
        (mupdate-spinner 'ever-married "ever-married" yesno-list)
 
-
-
        ;;(mupdate 'id-spouse "id-spouse")
        ;;       (mupdate 'edit-text 'children-living "children-living")
-;;       (mupdate 'edit-text 'children-dead "children-dead")
-;;       (mupdate 'edit-text 'children-together "children-together")
-;;       (mupdate 'edit-text 'children-apart "children-apart")
-       (mupdate-spinner 'residence-after-marriage "residence-after-marriage" residence-list)))))
+       ;;       (mupdate 'edit-text 'children-dead "children-dead")
+       ;;       (mupdate 'edit-text 'children-together "children-together")
+       ;;       (mupdate 'edit-text 'children-apart "children-apart")
+       (mupdate-spinner 'residence-after-marriage "residence-after-marriage" residence-list))))
    (lambda (activity) '())
    (lambda (activity) '())
    (lambda (activity) '())
@@ -1516,7 +1519,7 @@
    (lambda (activity arg)
      (activity-layout activity))
    (lambda (activity arg)
-     (set-current! 'activity-title "Migration")
+     (set-current! 'activity-title (mtext-lookup 'migration-button))
      (append
       (update-top-bar)
       (list
@@ -1578,7 +1581,7 @@
    (lambda (activity arg)
      (activity-layout activity))
    (lambda (activity arg)
-     (set-current! 'activity-title "Income")
+     (set-current! 'activity-title (mtext-lookup 'income-button))
      ;; reset after crop entity
      (entity-init! db "sync" "individual" (get-entity-by-unique db "sync" (get-current 'individual #f)))
 
@@ -1628,7 +1631,7 @@
    (lambda (activity arg)
      (activity-layout activity))
    (lambda (activity arg)
-     (set-current! 'activity-title "Crop")
+     (set-current! 'activity-title (mtext-lookup 'crops))
      (entity-init! db "sync" "crop" (get-entity-by-unique db "sync" arg))
      (set-current! 'crop arg)
      (append
@@ -1657,7 +1660,16 @@
      (medit-text 'child-name "normal" (lambda (v) (entity-set-value! "name" "varchar" v) '()))
      (horiz
       (mspinner 'child-gender gender-list (lambda (v) (entity-set-value! "gender" "varchar" (spinner-choice gender-list v)) '()))
-      (medit-text 'child-age "numeric" (lambda (v) (entity-set-value! "age" "int" (string->number v)) '())))
+
+      (medit-text 'child-birth-year "numeric"
+                  (lambda (v)
+                    (entity-set-value! "birth-year" "int" (string->number v))
+                    (list (update-widget 'text-view (get-id "child-age") 'text
+                                         (string-append
+                                          "= "
+                                          (number->string (- date-year (string->number v)))
+                                          (mtext-lookup 'years-old))))))
+      (mtext 'child-age))
      (horiz
       (mspinner 'child-alive yesno-list (lambda (v) (entity-set-value! "alive" "varchar" (spinner-choice yesno-list v)) '()))
       (mspinner-other 'child-home yesno-list (lambda (v) (entity-set-value! "living-at-home" "varchar" (spinner-choice yesno-list v)) '())))
@@ -1666,7 +1678,7 @@
    (lambda (activity arg)
      (activity-layout activity))
    (lambda (activity arg)
-     (set-current! 'activity-title "Child")
+     (set-current! 'activity-title (mtext-lookup 'children))
      (entity-init! db "sync" "child" (get-entity-by-unique db "sync" arg))
      (set-current! 'child arg)
      (append
@@ -1675,7 +1687,7 @@
       (list
        (mupdate 'edit-text 'child-name "name")
        (mupdate-spinner 'child-gender "gender" gender-list)
-       (mupdate 'edit-text 'child-age "age")
+       (mupdate 'edit-text 'child-birth-year "birth-year")
        (mupdate 'edit-text 'child-notes "notes")
        (mupdate-spinner 'child-alive "alive" yesno-list)
        )))
@@ -1713,7 +1725,7 @@
      (activity-layout activity))
    (lambda (activity arg)
      ;; reset after child entity
-     (set-current! 'activity-title "Genealogy")
+     (set-current! 'activity-title (mtext-button 'genealogy-button))
      (entity-init! db "sync" "individual" (get-entity-by-unique db "sync" (get-current 'individual #f)))
      (append
       (update-top-bar)
@@ -1763,7 +1775,7 @@
    (lambda (activity arg)
      (activity-layout activity))
    (lambda (activity arg)
-     (set-current! 'activity-title "Social network")
+     (set-current! 'activity-title (mtext-lookup 'social-button))
      (append
       (update-top-bar)
       (list
@@ -1810,7 +1822,7 @@
    (lambda (activity arg)
      (activity-layout activity))
    (lambda (activity arg)
-     (set-current! 'activity-title "Friendships")
+     (set-current! 'activity-title (mtext-lookup 'friendship-button))
      (append
       (list (mupdate-spinner 'friendship-answered "friendship-answered" yesno-list2))
       (update-top-bar)
