@@ -960,6 +960,15 @@
                     (ktv "num-pots" "int" (random 10))
                     (ktv "parent" "varchar" parent)))))
 
+(define (photo-var)
+  (choose
+   (list
+    ""
+    " (copy)"
+    " (another copy)"
+    " (3rd copy)"
+    )))
+
 (define (simpsons-individual db table parent default-ktvlist)
   (let ((n (random 1000)))
   (entity-create! db table "individual"
@@ -973,127 +982,127 @@
     (ktv "name" "varchar"
                 (string-append "Abe-" (number->string n)))
     (ktv "gender" "varchar" "male")
-    (ktv "photo" "file" "abe.jpg"))
+    (ktv "photo" "file" (string-append "abe" (photo-var) ".jpg")))
    (list
     (ktv
      "name" "varchar" (string-append "Akira-" (number->string n)))
     (ktv "gender" "varchar" "male")
-    (ktv "photo" "file" "akira.jpg"))
+    (ktv "photo" "file" (string-append "akira" (photo-var) ".jpg")))
    (list
     (ktv
      "name" "varchar" (string-append "Apu-" (number->string n)))
     (ktv "gender" "varchar" "male")
-    (ktv "photo" "file" "apu.jpg"))
+    (ktv "photo" "file" (string-append "apu" (photo-var) ".jpg")))
    (list
     (ktv
      "name" "varchar" (string-append "Barney-" (number->string n)))
     (ktv "gender" "varchar" "male")
-    (ktv "photo" "file" "barney.jpg"))
+    (ktv "photo" "file" (string-append "barney" (photo-var) ".jpg")))
    (list
     (ktv
      "name" "varchar" (string-append "Bart-" (number->string n)))
     (ktv "gender" "varchar" "male")
-    (ktv "photo" "file" "bartsimpson.jpg"))
+    (ktv "photo" "file" (string-append "bartsimpson" (photo-var) ".jpg")))
    (list
     (ktv
      "name" "varchar" (string-append "Billy-" (number->string n)))
     (ktv "gender" "varchar" "male")
-    (ktv "photo" "file" "billy.jpg"))
+    (ktv "photo" "file" (string-append "billy" (photo-var) ".jpg")))
    (list
     (ktv
      "name" "varchar" (string-append "Carl-" (number->string n)))
     (ktv "gender" "varchar" "male")
-    (ktv "photo" "file" "carl.jpg"))
+    (ktv "photo" "file" (string-append "carl" (photo-var) ".jpg")))
    (list
     (ktv
      "name" "varchar" (string-append "Cletus-" (number->string n)))
     (ktv "gender" "varchar" "male")
-    (ktv "photo" "file" "cletus.jpg"))
+    (ktv "photo" "file" (string-append "cletus" (photo-var) ".jpg")))
    (list
     (ktv
      "name" "varchar" (string-append "ComicBookGuy-" (number->string n)))
     (ktv "gender" "varchar" "male")
-    (ktv "photo" "file" "comicbookguy.jpg"))
+    (ktv "photo" "file" (string-append "comicbookguy" (photo-var) ".jpg")))
    (list
     (ktv
      "name" "varchar" (string-append "Homer-" (number->string n)))
     (ktv "gender" "varchar" "male")
-    (ktv "photo" "file" "homersimpson.jpg"))
+    (ktv "photo" "file" (string-append "homersimpson" (photo-var) ".jpg")))
    (list
     (ktv
      "name" "varchar" (string-append "Jasper-" (number->string n)))
     (ktv "gender" "varchar" "male")
-    (ktv "photo" "file" "jasper.jpg"))
+    (ktv "photo" "file" (string-append "jasper" (photo-var) ".jpg")))
    (list
     (ktv
      "name" "varchar" (string-append "Kent-" (number->string n)))
     (ktv "gender" "varchar" "male")
-    (ktv "photo" "file" "kentbrockman.jpg"))
+    (ktv "photo" "file" (string-append "kentbrockman" (photo-var) ".jpg")))
    (list
     (ktv
      "name" "varchar" (string-append "Kodos-" (number->string n)))
     (ktv "gender" "varchar" "male")
-    (ktv "photo" "file" "kodos.jpg"))
+    (ktv "photo" "file" (string-append "kodos" (photo-var) ".jpg")))
    (list
     (ktv
      "name" "varchar" (string-append "Lenny-" (number->string n)))
     (ktv "gender" "varchar" "male")
-    (ktv "photo" "file" "lenny.jpg"))
+    (ktv "photo" "file" (string-append "lenny" (photo-var) ".jpg")))
    (list
     (ktv
      "name" "varchar" (string-append "Lisa-" (number->string n)))
     (ktv "gender" "varchar" "female")
-    (ktv "photo" "file" "lisasimpson.jpg"))
+    (ktv "photo" "file" (string-append "lisasimpson" (photo-var) ".jpg")))
    (list
     (ktv
      "name" "varchar" (string-append "Marge-" (number->string n)))
     (ktv "gender" "varchar" "female")
-    (ktv "photo" "file" "margesimpson.jpg"))
+    (ktv "photo" "file" (string-append "margesimpson" (photo-var) ".jpg")))
    (list
     (ktv
      "name" "varchar" (string-append "Martin-" (number->string n)))
     (ktv "gender" "varchar" "male")
-    (ktv "photo" "file" "martinprince.jpg"))
+    (ktv "photo" "file" (string-append "martinprince" (photo-var) ".jpg")))
    (list
     (ktv
      "name" "varchar" (string-append "Milhouse-" (number->string n)))
     (ktv "gender" "varchar" "male")
-    (ktv "photo" "file" "milhouse.jpg"))
+    (ktv "photo" "file" (string-append "milhouse" (photo-var) ".jpg")))
    (list
     (ktv
      "name" "varchar" (string-append "MrBurns-" (number->string n)))
     (ktv "gender" "varchar" "male")
-    (ktv "photo" "file" "mrburns.jpg"))
+    (ktv "photo" "file" (string-append "mrburns" (photo-var) ".jpg")))
    (list
     (ktv
      "name" "varchar" (string-append "Ned-" (number->string n)))
     (ktv "gender" "varchar" "male")
-    (ktv "photo" "file" "nedflanders.jpg"))
+    (ktv "photo" "file" (string-append "nedflanders" (photo-var) ".jpg")))
    (list
     (ktv
      "name" "varchar" (string-append "Nelson-" (number->string n)))
     (ktv "gender" "varchar" "male")
-    (ktv "photo" "file" "nelson.jpg"))
+    (ktv "photo" "file" (string-append "nelson" (photo-var) ".jpg")))
    (list
     (ktv
      "name" "varchar" (string-append "Otto-" (number->string n)))
     (ktv "gender" "varchar" "male")
-    (ktv "photo" "file" "otto.jpg"))
+    (ktv "photo" "file" (string-append "otto" (photo-var) ".jpg")))
    (list
     (ktv
      "name" "varchar" (string-append "Ralph-" (number->string n)))
     (ktv "gender" "varchar" "male")
-    (ktv "photo" "file" "ralphwiggum.jpg"))
+    (ktv "photo" "file" (string-append "ralphwiggum" (photo-var) ".jpg")))
    (list
     (ktv
      "name" "varchar" (string-append "Santaslittlehelper-" (number->string n)))
     (ktv "gender" "varchar" "male")
-    (ktv "photo" "file" "santaslittlehelper.jpg"))
+    (ktv "photo" "file" (string-append "santaslittlehelper" (photo-var) ".jpg")))
    (list
     (ktv
      "name" "varchar" (string-append "SideshowBob-" (number->string n)))
     (ktv "gender" "varchar" "male")
-    (ktv "photo" "file" "sideshowbob.jpg")))))))))
+    (ktv "photo" "file" (string-append "sideshowbob" (photo-var) ".jpg"))))))))))
 
 (define (looper! n fn)
   (when (not (zero? n))
@@ -1113,7 +1122,7 @@
           (msg "making household" i)
           (let ((household (simpsons-household db table village household-ktvlist)))
             (looper!
-             (+ 2 (random 5))
+             (+ 5 (random 10))
              (lambda (i)
                (msg "making individual" i)
                (simpsons-individual db table household individual-ktvlist))))))))))

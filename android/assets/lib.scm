@@ -518,6 +518,7 @@
 (define (http-upload name url filename) (list "http-upload" 0 "http-upload" name filename url))
 (define (send-mail to subject body attachments) (list "send-mail" 0 "send-mail" to subject body attachments))
 (define (take-photo filename code) (list "take-photo" 0 "take-photo" filename code))
+(define (process-image-in-place filename) (list "process-image-in-place" 0 "process-image-in-place" filename))
 (define (walk-draggable name id fn) (list "walk-draggable" 0 "walk-draggable" name fn id))
 
 (define (dialog-fragment id layout fragment-name fn)

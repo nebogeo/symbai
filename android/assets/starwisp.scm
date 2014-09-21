@@ -1302,8 +1302,12 @@
                (entity-update-values!))
          ;; need to reset the individual from the db now (as update reset it)
          (entity-init! db "sync" "individual" (get-entity-by-unique db "sync" unique-id)))
-       (list
-        (mupdate 'image-view 'photo "photo")))
+       (append
+        (if (eqv? resultcode -1)
+            (list (process-image-in-place (string-append "/sdcard/symbai/files/" (get-current 'photo-name "error no photo name!!"))))
+            '())
+        (list
+         (mupdate 'image-view 'photo "photo"))))
       (else
        '()))))
 
