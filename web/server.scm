@@ -45,6 +45,7 @@
 (define db (db-open db-name setup))
 (open-log "log.txt")
 
+
 ;(write-db db "sync" "/home/dave/code/mongoose-web/web/input.csv")
 
 ;(msg (csv db "sync" "individual"))

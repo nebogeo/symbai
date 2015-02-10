@@ -46,14 +46,14 @@
 (define (fold-entity fn db table entity-id)
   (let* ((entity-type (get-entity-type db table entity-id)))
     (cond
-      ((null? entity-type) (msg "entity" entity-id "not found!") '())
-      (else
-       (foldl
-        (lambda (kt r)
-          (let ((vd (get-value db table entity-id kt)))
-            (fn kt vd r)))
-        '()
-        (reverse (get-attribute-ids/types db table entity-type)))))))
+     ((null? entity-type) (msg "entity" entity-id "not found!") '())
+     (else
+      (foldl
+       (lambda (kt r)
+         (let ((vd (get-value db table entity-id kt)))
+           (fn kt vd r)))
+       '()
+       (reverse (get-attribute-ids/types db table entity-type)))))))
 
 
 ;; get an entire entity, as a list of key/value pairs
@@ -112,18 +112,16 @@
 
 
 (define (all-entities db table type)
-  (msg "all-entities" type)
   (let ((s (db-select
-            db (dbg (string-append "select e.entity_id from " table "_entity as e "
+            db (string-append "select e.entity_id from " table "_entity as e "
                               "join " table "_value_varchar "
                               " as n on n.entity_id = e.entity_id and n.attribute_id = ? "
                               "left join " table "_value_int "
                               "as d on d.entity_id = e.entity_id and d.attribute_id = ? "
                               "where e.entity_type = ? "
                               "and (d.value='NULL' or d.value is NULL or d.value = 0) "
-                              "order by n.value"))
+                              "order by n.value")
             "name" "deleted" type)))
-    (msg s)
     (msg (db-status db))
     (if (null? s)
         '()
@@ -136,9 +134,9 @@
   (let ((s (db-select
             db (string-append "select e.entity_id from " table "_entity as e "
                               "join " table "_value_varchar "
-                              " as n on n.entity_id = e.entity_id and n.attribute_id = ?"
+                              " as n on n.entity_id = e.entity_id and n.attribute_id = ? "
                               "join " table "_value_varchar "
-                              " as p on p.entity_id = e.entity_id and p.attribute_id = ?"
+                              " as p on p.entity_id = e.entity_id and p.attribute_id = ? "
                               "left join " table "_value_int "
                               "as d on d.entity_id = e.entity_id and d.attribute_id = ? "
                               "where e.entity_type = ? and "
@@ -178,6 +176,10 @@
    db (string-append "select version from " table "_entity where unique_id = ?")
    unique-id))
 
+(define (entity-type-from-unique db table unique-id)
+  (select-first
+   db (string-append "select entity_type from " table "_entity where unique_id = ?")
+   unique-id))
 
 (define (get-unique-id db table entity-id)
   (select-first

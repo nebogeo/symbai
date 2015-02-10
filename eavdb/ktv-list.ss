@@ -18,6 +18,11 @@
 
 (provide (all-defined-out))
 
+;; todo: why are the fast versions switched off?
+;; presumably not on raspberry pi - bugger.
+;; do something with racket-fix.scm...
+
+
 ;(define (ktv-get ktv-list key)
 ;  (cond
 ;   ((null? ktv-list) #f)

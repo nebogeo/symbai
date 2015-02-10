@@ -896,6 +896,7 @@
    "main2"
    (build-activity
     (mtitle 'title)
+    (text-view (make-id "version") app-version 10 fillwrap)
     (horiz
      (medit-text 'user-id "normal"
                  (lambda (v)
@@ -953,7 +954,8 @@
                           (set-current! 'location loc)
                           (list (toast (string-append
                                         (number->string (car loc)) ", "
-                                        (number->string (cadr loc)))))))
+                                        (number->string (cadr loc))))))
+                  (* 3 60 1000) 5)
        (update-list-widget
         db "sync" (list "name") "household" "household" (get-setting-value "current-village"))))))
        (alog "end main start") r))
@@ -1303,9 +1305,10 @@
          ;; need to reset the individual from the db now (as update reset it)
          (entity-init! db "sync" "individual" (get-entity-by-unique db "sync" unique-id)))
        (append
-        (if (eqv? resultcode -1)
-            (list (process-image-in-place (string-append "/sdcard/symbai/files/" (get-current 'photo-name "error no photo name!!"))))
-            '())
+;;        (if (eqv? resultcode -1)
+;;            (list (process-image-in-place (string-append "/sdcard/symbai/files/" (get-current 'photo-name "error no photo name!!"))))
+;;            '())
+        '()
         (list
          (mupdate 'image-view 'photo "photo"))))
       (else

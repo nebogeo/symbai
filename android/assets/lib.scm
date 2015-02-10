@@ -500,7 +500,8 @@
 (define (drawlist-line colour width points) (list "line" colour width points))
 (define (drawlist-text text x y colour size align) (list "text" text x y colour size align))
 
-(define (toast msg) (list "toast" 0 "toast" msg))
+(define (toast msg) (list "toast" 0 "toast" msg 30))
+(define (toast-size msg size) (list "toast" 0 "toast" msg size))
 (define (play-sound wav) (list "play-sound" 0 "play-sound" wav))
 (define (soundfile-start-recording wav) (list "soundfile-start-recording" 0 "soundfile-start-recording" wav))
 (define (soundfile-stop-recording) (list "soundfile-stop-recording" 0 "soundfile-stop-recording"))

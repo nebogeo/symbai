@@ -82,10 +82,18 @@
          (cdr de)))))
 
 ;; include all the ktvs
+;; only certian entities - todo - fix!
 (define (dirty-entities-for-review db table)
   (let ((de (db-select
              db (string-append
-                 "select entity_id, entity_type, unique_id, dirty, version from " table "_entity where dirty=1;"))))
+                 "select e.entity_id, e.entity_type, e.unique_id, e.dirty, e.version from " table "_entity as e "
+                 "left join " table "_value_varchar "
+                 "as p on p.entity_id = e.entity_id and p.attribute_id = 'parent' "
+                 "join " table "_value_int "
+                 "as d on d.entity_id = e.entity_id and d.attribute_id = 'deleted' "
+                 "where e.dirty = 1 and p.value is NULL or p.value='not-set' "
+                 "and d.value = 0 "
+                 ))))
     (if (null? de)
         '()
         (map
@@ -96,6 +104,29 @@
             (cdr (vector->list i))
             (get-entity-plain db table (vector-ref i 0))))
          (cdr de)))))
+
+;; include all the ktvs - including the parent itself
+(define (dirty-entities-for-review-parent db table parent)
+  (let ((de (db-select
+             db (string-append
+                 "select e.entity_id, e.entity_type, e.unique_id, e.dirty, e.version from " table "_entity as e "
+                 "left join " table "_value_varchar "
+                 "as p on p.entity_id = e.entity_id and p.attribute_id = 'parent' "
+                 "join " table "_value_int "
+                 "as d on d.entity_id = e.entity_id and d.attribute_id = 'deleted' "
+                 "where e.dirty=1 and (p.value = ? or e.unique_id = ?) and d.value=0;")
+             parent parent)))
+    (if (null? de)
+        '()
+        (map
+         (lambda (i)
+           ;;(msg "dirty-entities")
+           (list
+            ;; build according to url ([table] entity-type unique-id dirty version)
+            (cdr (vector->list i))
+            (get-entity-plain db table (vector-ref i 0))))
+         (cdr de)))))
+
 
 
 ;; todo: BROKEN...

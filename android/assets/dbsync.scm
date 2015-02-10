@@ -240,17 +240,29 @@
    (build-url-from-ktvlist (cadr e))))
 
 
+(define (is-image? filename)
+  (equal? (substring filename 3) "jpg"))
+
 ;; todo fix all hardcoded paths here
 (define (send-files ktvlist)
   (foldl
    (lambda (ktv r)
      (if (equal? (ktv-type ktv) "file")
-         (begin
-           (cons (http-upload
-                  (string-append "upload-" (ktv-value ktv))
-                  "http://192.168.2.1:8889/symbai?fn=upload"
-                  (string-append "/sdcard/symbai/files/" (ktv-value ktv)))
-                 r))
+         (if (is-image? (ktv-value ktv))
+             (append
+              (list
+               ;; make sure we're not sending mahusiv images to sync
+               (process-image-in-place
+                (string-append "/sdcard/symbai/files/" (ktv-value ktv)))
+               (http-upload
+                (string-append "upload-" (ktv-value ktv))
+                "http://192.168.2.1:8889/symbai?fn=upload"
+                (string-append "/sdcard/symbai/files/" (ktv-value ktv)))) r)
+             (cons (http-upload
+                    (string-append "upload-" (ktv-value ktv))
+                    "http://192.168.2.1:8889/symbai?fn=upload"
+                    (string-append "/sdcard/symbai/files/" (ktv-value ktv)))
+                   r))
          r))
    '() ktvlist))
 
