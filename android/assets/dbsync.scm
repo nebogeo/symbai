@@ -239,30 +239,36 @@
    "&version=" (number->string (list-ref (car e) 3))
    (build-url-from-ktvlist (cadr e))))
 
-
 (define (is-image? filename)
-  (equal? (substring filename 3) "jpg"))
+  (and
+   (> (string-length filename) 3)
+   (equal? (substring filename (- (string-length filename) 3)) "jpg")))
+
+(define (proc+upload-file filename r)
+  (if (is-image? filename)
+      (append
+       (list
+        ;; make sure we're not sending mahusiv images to sync
+        (process-image-in-place
+         (string-append "/sdcard/symbai/files/" filename))
+        (http-upload
+         (string-append "upload-" filename)
+         "http://192.168.2.1:8889/symbai?fn=upload"
+         (string-append "/sdcard/symbai/files/" filename)))
+       r)
+      (cons (http-upload
+             (string-append "upload-" filename)
+             "http://192.168.2.1:8889/symbai?fn=upload"
+             (string-append "/sdcard/symbai/files/" filename))
+            r)))
+
 
 ;; todo fix all hardcoded paths here
 (define (send-files ktvlist)
   (foldl
    (lambda (ktv r)
      (if (equal? (ktv-type ktv) "file")
-         (if (is-image? (ktv-value ktv))
-             (append
-              (list
-               ;; make sure we're not sending mahusiv images to sync
-               (process-image-in-place
-                (string-append "/sdcard/symbai/files/" (ktv-value ktv)))
-               (http-upload
-                (string-append "upload-" (ktv-value ktv))
-                "http://192.168.2.1:8889/symbai?fn=upload"
-                (string-append "/sdcard/symbai/files/" (ktv-value ktv)))) r)
-             (cons (http-upload
-                    (string-append "upload-" (ktv-value ktv))
-                    "http://192.168.2.1:8889/symbai?fn=upload"
-                    (string-append "/sdcard/symbai/files/" (ktv-value ktv)))
-                   r))
+         (proc+upload-file (ktv-value ktv) r)
          r))
    '() ktvlist))
 
@@ -276,14 +282,9 @@
       (foldl
        (lambda (file r)
          ;; send files not present
-         (if (or
-              (eqv? (string-ref file 0) #\.)
-              (in-list? file server-list))
-             r (cons
-                (http-upload
-                 (string-append "upload-" file)
-                 "http://192.168.2.1:8889/symbai?fn=upload"
-                 (string-append "/sdcard/symbai/files/" file)) r)))
+         (if (or (eqv? (string-ref file 0) #\.)
+                 (in-list? file server-list))
+             r (proc+upload-file file r)))
        '()
        local-list)
       ;; search for all server files in local list
@@ -370,8 +371,6 @@
          r))
    '() ktvlist))
 
-(msg "suck ent")
-
 (define (suck-entity-from-server db table unique-id)
   ;; ask for the current version
   (http-request
@@ -416,7 +415,7 @@
        ;; if we don't have this entity or the version on the server is newer
        (if (and (or (not exists) old)
                 ;; limit this to 5 a time
-                (< (length r) 5))
+                (< (length r) 1))
            (cons (suck-entity-from-server db table unique-id) r)
            r)))
    '()
@@ -470,8 +469,6 @@
           (cons
            (play-sound "active")
            new-entity-requests))))))))
-
-(msg "build-dirty defined...")
 
 (define (build-dirty db)
   (let ((sync (get-dirty-stats db "sync")))
